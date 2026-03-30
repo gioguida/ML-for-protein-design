@@ -75,15 +75,24 @@ def organize_and_save_clusters(df, output_filename='D2_clustered.csv'):
     
 
 if __name__ == '__main__':
+    # Define paths
+    raw_data_dir = Path('../data/raw')
+    processed_data_dir = Path('../data/processed')
+    
     # extract only distance-2 data if not already done
-    df_d2 = get_distance2_data('M22_binding_enrichment.csv')
-    df_d2.to_csv('D2.csv', index=False)
+    input_file = raw_data_dir / 'M22_binding_enrichment.csv'
+    df_d2 = get_distance2_data(input_file)
+    
+    output_d2 = processed_data_dir / 'D2.csv'
+    df_d2.to_csv(output_d2, index=False)
     
     # compute and print statistics for distance-2 data
     d2_stats(df_d2)
     
     d2_clustered = organize_and_save_clusters(df_d2)
-    d2_clustered.to_csv('D2_clustered.csv', index=False)
+    
+    output_clustered = processed_data_dir / 'D2_clustered.csv'
+    d2_clustered.to_csv(output_clustered, index=False)
 
 
 
