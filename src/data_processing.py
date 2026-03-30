@@ -39,17 +39,21 @@ def d2_stats(df):
         print("Error: Could not split mutations into exactly two parts.")
 
 
-def organize_and_save_clusters(df, output_filename='D2_clustered.csv'):
-    '''Organizes the distance-2 data into clusters based on the first mutation (mut1),
+def organize_and_cluster(df, cluster_by=1):
+    '''Organizes the distance-2 data into clusters based on the given mutation (1 for mut1, 2 for mut2),
     calculates a new enrichment score, sorts within clusters by this score'''
 
-    # Ensure mut1 is present
-    df['mut1'] = df['mut'].str.split(';').str[0]
+    df = df.copy()
+    mut_idx = cluster_by - 1
+    target_mut = f'mut{cluster_by}'
+
+    # Ensure target mutation is present
+    df[target_mut] = df['mut'].str.split(';').str[mut_idx]
     
-    # Generate cluster index based on mut1
-    unique_clusters = df['mut1'].unique()
+    # Generate cluster index based on target mutation
+    unique_clusters = df[target_mut].unique()
     cluster_mapping = {mut: idx for idx, mut in enumerate(unique_clusters)}
-    df['cluster_idx'] = df['mut1'].map(cluster_mapping)
+    df['cluster_idx'] = df[target_mut].map(cluster_mapping)
     
     # Calculate new score
     bind_count = df['M22_binding_count_adj']
@@ -89,10 +93,13 @@ if __name__ == '__main__':
     # compute and print statistics for distance-2 data
     d2_stats(df_d2)
     
-    d2_clustered = organize_and_save_clusters(df_d2)
+    # Cluster by mut1
+    d2_clustered_mut1 = organize_and_cluster(df_d2, cluster_by=1)
+    d2_clustered_mut1.to_csv(processed_data_dir / 'D2_clustered_mut1.csv', index=False)
     
-    output_clustered = processed_data_dir / 'D2_clustered.csv'
-    d2_clustered.to_csv(output_clustered, index=False)
+    # Cluster by mut2
+    d2_clustered_mut2 = organize_and_cluster(df_d2, cluster_by=2)
+    d2_clustered_mut2.to_csv(processed_data_dir / 'D2_clustered_mut2.csv', index=False)
 
 
 
