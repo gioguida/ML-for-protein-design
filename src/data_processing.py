@@ -7,7 +7,9 @@ def get_distance2_data(filename):
 
     df = pd.read_csv(filename)
     df_filtered = df[df['num_mut'] == 2]
-    return df_filtered
+    N_bind = df['M22_binding_count_adj'].sum()
+    N_non_bind = df['M22_non_binding_count_adj'].sum()
+    return df_filtered, N_bind, N_non_bind
 
 
 def d2_stats(df):
@@ -39,7 +41,7 @@ def d2_stats(df):
         print("Error: Could not split mutations into exactly two parts.")
 
 
-def organize_and_cluster(df, cluster_by=1):
+def organize_and_cluster(df, cluster_by=1, N_bind=None, N_non_bind=None):
     '''Organizes the distance-2 data into clusters based on the given mutation (1 for mut1, 2 for mut2),
     calculates a new enrichment score, sorts within clusters by this score'''
 
@@ -56,10 +58,12 @@ def organize_and_cluster(df, cluster_by=1):
     df['cluster_idx'] = df[target_mut].map(cluster_mapping)
     
     # Calculate new score
-    bind_count = df['M22_binding_count_adj']
-    non_bind_count = df['M22_non_binding_count_adj']
+    bind_count_adj = df['M22_binding_count_adj']
+    N_binding = N_bind if N_bind is not None else bind_count_adj.sum()
+    non_bind_count_adj = df['M22_non_binding_count_adj']
+    N_non_binding = N_non_bind if N_non_bind is not None else non_bind_count_adj.sum()
     # Replace zeros with a small number to avoid log(0) if any, or just use np.log since inputs should be positive
-    df['M22_binding_enrichment'] = np.log(np.maximum(bind_count, 1e-9)) - np.log(np.maximum(non_bind_count, 1e-9))
+    df['M22_binding_enrichment'] = np.log2(bind_count_adj) - np.log2(non_bind_count_adj) - np.log2(N_binding) + np.log2(N_non_binding)
     
     # Sort within clusters by the new score in descending order
     df = df.sort_values(by=['cluster_idx', 'M22_binding_enrichment'], ascending=[True, False])
@@ -85,7 +89,7 @@ if __name__ == '__main__':
     
     # extract only distance-2 data if not already done
     input_file = raw_data_dir / 'M22_binding_enrichment.csv'
-    df_d2 = get_distance2_data(input_file)
+    df_d2, N_bind, N_non_bind = get_distance2_data(input_file)
     
     output_d2 = processed_data_dir / 'D2.csv'
     df_d2.to_csv(output_d2, index=False)
@@ -94,11 +98,11 @@ if __name__ == '__main__':
     d2_stats(df_d2)
     
     # Cluster by mut1
-    d2_clustered_mut1 = organize_and_cluster(df_d2, cluster_by=1)
+    d2_clustered_mut1 = organize_and_cluster(df_d2, cluster_by=1, N_bind=N_bind, N_non_bind=N_non_bind)
     d2_clustered_mut1.to_csv(processed_data_dir / 'D2_clustered_mut1.csv', index=False)
     
     # Cluster by mut2
-    d2_clustered_mut2 = organize_and_cluster(df_d2, cluster_by=2)
+    d2_clustered_mut2 = organize_and_cluster(df_d2, cluster_by=2, N_bind=N_bind, N_non_bind=N_non_bind)
     d2_clustered_mut2.to_csv(processed_data_dir / 'D2_clustered_mut2.csv', index=False)
 
 
