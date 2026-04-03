@@ -13,11 +13,11 @@ fi
 
 # Load required modules
 # Some stacks hide specific Python modules; if unavailable, rely on conda Python.
-if [ -n "${DPO_PYTHON_MODULE}" ]; then
-    if module spider "${DPO_PYTHON_MODULE}" >/dev/null 2>&1; then
-        module load "${DPO_PYTHON_MODULE}"
+if [ -n "${DPO_PYTHON_MODULE:-}" ]; then
+    if module load "${DPO_PYTHON_MODULE}" >/dev/null 2>&1; then
+        echo "Loaded optional Python module: ${DPO_PYTHON_MODULE}"
     else
-        echo "WARNING: ${DPO_PYTHON_MODULE} is not available in this module stack."
+        echo "WARNING: Could not load optional Python module: ${DPO_PYTHON_MODULE}"
         echo "Continuing without explicit python module; conda env Python will be used."
     fi
 fi
@@ -27,6 +27,6 @@ module load "${DPO_STACK_MODULE}" "${DPO_GCC_MODULE}"
 module load "${DPO_CUDA_MODULE}"
 
 # Activate conda environment
-source ${DPO_CONDA_BASE}/bin/activate ${DPO_CONDA_ENV}
+source "${DPO_CONDA_BASE}/bin/activate" "${DPO_CONDA_ENV}"
 
 echo "DPO environment loaded for user: ${DPO_USER}"
