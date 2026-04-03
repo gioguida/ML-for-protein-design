@@ -15,19 +15,13 @@ import torch
 from esme import ESM2
 from esme.alphabet import Alphabet, tokenize
 
-from .utils import LEFT_CONTEXT, RIGHT_CONTEXT, add_context, get_mask_token_idx
-
-@dataclass
-class ESM2Config:
-	esm_model_path: str
-	device: str = "cuda"
-	use_context: bool = True
+from .utils import LEFT_CONTEXT, RIGHT_CONTEXT, add_context, get_mask_token_idx, ModelConfig
 
 
 class ESM2PLLScorer:
 	"""Thin wrapper around ESM2 for sequence-level PLL scoring."""
 
-	def __init__(self, config: ESM2Config):
+	def __init__(self, config: ModelConfig):
 		self.config = config
 		self.device = config.device
 		self.alphabet = Alphabet()
@@ -116,7 +110,7 @@ class ESM2PLLScorer:
 		mask_positions: Sequence[int],
 		use_grad: bool = False,
 	) -> torch.Tensor:
-		"""Compute PLL for specified masked positions in each input sequence.
+		"""Compute PLL only for specified masked positions in each input sequence.
 
 		Args:
 			sequences: list of CDR sequences (without context when use_context=True).

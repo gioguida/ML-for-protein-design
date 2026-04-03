@@ -78,13 +78,12 @@ def _compute_m22_binding_enrichment(
     n_bind: float,
     n_non_bind: float,
 ) -> pd.Series:
-    """Compute log2 enrichment with a small epsilon for numerical stability."""
-    eps = 1e-12
+    """Compute log2 enrichment."""
     return (
-        np.log2(bind_count_adj.clip(lower=eps))
-        - np.log2(non_bind_count_adj.clip(lower=eps))
-        - np.log2(max(n_bind, eps))
-        + np.log2(max(n_non_bind, eps))
+        np.log2(bind_count_adj)
+        - np.log2(non_bind_count_adj)
+        - np.log2(n_bind)
+        + np.log2(n_non_bind)
     )
 
 
@@ -138,6 +137,7 @@ def organize_and_cluster(
         "mut",
         "M22_binding_count_adj",
         "M22_non_binding_count_adj",
+        "delta_M22_binding_enrichment_adj",
         "M22_binding_enrichment",
         "cluster_idx",
     ]
