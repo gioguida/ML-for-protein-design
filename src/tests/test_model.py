@@ -8,7 +8,8 @@ Run with:
 import torch
 from functools import lru_cache
 
-from src.model import ESM2Config, ESM2PLLScorer, LEFT_CONTEXT
+from src.model import ESM2Config, ESM2PLLScorer
+from src.utils import LEFT_CONTEXT
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
