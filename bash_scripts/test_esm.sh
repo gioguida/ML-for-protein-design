@@ -6,7 +6,7 @@
 #SBATCH --mem-per-cpu=16G
 #SBATCH --gpus=rtx_3090:1
 
-source "${HOME}/protein/protein-design/bash_scripts/common_setup.sh"
+source "${HOME}/protein-design/bash_scripts/common_setup.sh"
 nvidia-smi
 which python
 

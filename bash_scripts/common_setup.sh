@@ -2,12 +2,12 @@
 # Common setup script for flu experiments
 
 # Load environment variables
-if [ -f "${HOME}/protein/protein-design/.env.local" ]; then
-    source "${HOME}/protein/protein-design/.env.local"
+if [ -f "${HOME}/protein-design/.env.local" ]; then
+    source "${HOME}/protein-design/.env.local"
 else
-    echo "ERROR: ${HOME}/protein/protein-design/.env.local not found."
+    echo "ERROR: ${HOME}/protein-design/.env.local not found."
     echo "Please copy .env.template to .env.local and customize it:"
-    echo "  cp ${HOME}/protein/protein-design/.env.template ${HOME}/protein/protein-design/.env.local"
+    echo "  cp ${HOME}/protein-design/.env.template ${HOME}/protein-design/.env.local"
     exit 1
 fi
 
