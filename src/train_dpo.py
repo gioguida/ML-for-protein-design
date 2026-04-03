@@ -9,7 +9,6 @@ This script:
 
 from __future__ import annotations
 
-import importlib
 import json
 import logging
 from pathlib import Path
@@ -22,31 +21,29 @@ from torch.utils.data import DataLoader, Dataset
 
 if __package__:
     from .dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
-    from .loss import dpo_loss
+    from .loss import batch_monitoring_metrics, dpo_loss
     from .model import ESM2PLLScorer
-    from .utils import ModelConfig
+    from .utils import (
+        ModelConfig,
+        init_wandb_run,
+        load_hydra_runtime_modules,
+        log_pair_diagnostics,
+        setup_train_logger,
+    )
 else:  # pragma: no cover
     from dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
-    from loss import dpo_loss
+    from loss import batch_monitoring_metrics, dpo_loss
     from model import ESM2PLLScorer
-    from utils import ModelConfig
+    from utils import (
+        ModelConfig,
+        init_wandb_run,
+        load_hydra_runtime_modules,
+        log_pair_diagnostics,
+        setup_train_logger,
+    )
 
 
-def _load_hydra_modules() -> Tuple[Any, Any, Any, Any]:
-    try:
-        hydra = importlib.import_module("hydra")
-        omegaconf = importlib.import_module("omegaconf")
-        hydra_config_mod = importlib.import_module("hydra.core.hydra_config")
-        hydra_utils_mod = importlib.import_module("hydra.utils")
-    except ModuleNotFoundError as exc:  # pragma: no cover
-        raise ModuleNotFoundError(
-            "Hydra/OmegaConf is required for train_dpo.py. Install hydra-core and omegaconf."
-        ) from exc
-
-    return hydra, omegaconf.OmegaConf, hydra_config_mod.HydraConfig, hydra_utils_mod.to_absolute_path
-
-
-hydra, OmegaConf, HydraConfig, to_absolute_path = _load_hydra_modules()
+hydra, OmegaConf, HydraConfig, to_absolute_path = load_hydra_runtime_modules()
 
 
 class PairDataset(Dataset):
@@ -64,97 +61,6 @@ class PairDataset(Dataset):
 
 def _pair_collate(batch: Sequence[Tuple[str, str]]) -> List[Tuple[str, str]]:
     return list(batch)
-
-
-def _setup_logger(output_dir: Path, level_name: str) -> logging.Logger:
-    logger = logging.getLogger("dpo_train")
-    logger.setLevel(getattr(logging, str(level_name).upper(), logging.INFO))
-    logger.propagate = False
-
-    if logger.handlers:
-        logger.handlers.clear()
-
-    formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-
-    file_handler = logging.FileHandler(output_dir / "train.log", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    return logger
-
-
-def _init_wandb(cfg: Any, output_dir: Path, logger: logging.Logger) -> Tuple[Optional[Any], Optional[Any]]:
-    if not bool(cfg.wandb.enabled):
-        return None, None
-
-    try:
-        wandb = importlib.import_module("wandb")
-    except ModuleNotFoundError:  # pragma: no cover
-        logger.warning("wandb is not available; continuing without Weights & Biases logging.")
-        return None, None
-
-    run = wandb.init(
-        project=str(cfg.wandb.project),
-        entity=None if cfg.wandb.entity is None else str(cfg.wandb.entity),
-        name=None if cfg.wandb.run_name is None else str(cfg.wandb.run_name),
-        tags=None if cfg.wandb.tags is None else list(cfg.wandb.tags),
-        notes=None if cfg.wandb.notes is None else str(cfg.wandb.notes),
-        dir=str(output_dir),
-        config=OmegaConf.to_container(cfg, resolve=True),
-    )
-    return wandb, run
-
-
-def _log_pair_diagnostics(logger: logging.Logger, pairs_df: pd.DataFrame, preview_count: int = 5) -> None:
-    if pairs_df.empty:
-        logger.warning("No pairs available after preprocessing.")
-        return
-
-    margins = pairs_df["delta_margin"].astype(float)
-    logger.info(
-        "Pair stats | n=%d | margin mean=%.4f median=%.4f min=%.4f max=%.4f",
-        len(pairs_df),
-        float(margins.mean()),
-        float(margins.median()),
-        float(margins.min()),
-        float(margins.max()),
-    )
-
-    by_view = pairs_df.groupby("source_view").size().sort_values(ascending=False)
-    logger.info("Pairs per view: %s", ", ".join(f"{k}:{int(v)}" for k, v in by_view.items()))
-
-    show_n = min(int(preview_count), len(pairs_df))
-    if show_n <= 0:
-        return
-
-    top_examples = pairs_df.nlargest(show_n, "delta_margin")
-    low_examples = pairs_df.nsmallest(show_n, "delta_margin")
-
-    logger.info("Top margin examples:")
-    for _, row in top_examples.iterrows():
-        logger.info(
-            "  view=%s cluster=%s margin=%.4f chosen=%s rejected=%s",
-            row["source_view"],
-            row["cluster_idx"],
-            float(row["delta_margin"]),
-            row["chosen_sequence"],
-            row["rejected_sequence"],
-        )
-
-    logger.info("Bottom margin examples:")
-    for _, row in low_examples.iterrows():
-        logger.info(
-            "  view=%s cluster=%s margin=%.4f chosen=%s rejected=%s",
-            row["source_view"],
-            row["cluster_idx"],
-            float(row["delta_margin"]),
-            row["chosen_sequence"],
-            row["rejected_sequence"],
-        )
 
 
 def _build_pairs_dataframe(cfg: Any) -> pd.DataFrame:
@@ -302,6 +208,10 @@ def _run_epoch(
     total_loss = 0.0
     num_batches = 0
     skipped_batches = 0
+    monitored_pairs = 0.0
+    reward_accuracy_sum = 0.0
+    reward_margin_sum = 0.0
+    implicit_kl_sum = 0.0
 
     for step, batch in enumerate(dataloader, start=1):
         if is_train:
@@ -315,6 +225,13 @@ def _run_epoch(
                 reference=reference,
                 policy_use_grad=is_train,
             )
+            with torch.no_grad():
+                batch_metrics = batch_monitoring_metrics(
+                    batch,
+                    beta=beta,
+                    scorer=policy,
+                    reference=reference,
+                )
         except ValueError:
             skipped_batches += 1
             continue
@@ -327,14 +244,34 @@ def _run_epoch(
 
         total_loss += float(loss.item())
         num_batches += 1
+        num_pairs = float(batch_metrics["num_pairs"])
+        monitored_pairs += num_pairs
+        reward_accuracy_sum += float(batch_metrics["reward_accuracy"]) * num_pairs
+        reward_margin_sum += float(batch_metrics["reward_margin"]) * num_pairs
+        implicit_kl_sum += float(batch_metrics["implicit_kl"]) * num_pairs
 
         if is_train and log_every_n_steps > 0 and step % log_every_n_steps == 0:
-            logger.info("step=%d train_loss=%.6f", step, float(loss.item()))
+            logger.info(
+                "step=%d train_loss=%.6f reward_acc=%.4f reward_margin=%.4f implicit_kl=%.4f",
+                step,
+                float(loss.item()),
+                float(batch_metrics["reward_accuracy"]),
+                float(batch_metrics["reward_margin"]),
+                float(batch_metrics["implicit_kl"]),
+            )
 
     avg_loss = total_loss / max(1, num_batches)
+    avg_reward_accuracy = reward_accuracy_sum / max(1.0, monitored_pairs)
+    avg_reward_margin = reward_margin_sum / max(1.0, monitored_pairs)
+    avg_implicit_kl = implicit_kl_sum / max(1.0, monitored_pairs)
+
     return {
         "loss": float(avg_loss),
+        "reward_accuracy": float(avg_reward_accuracy),
+        "reward_margin": float(avg_reward_margin),
+        "implicit_kl": float(avg_implicit_kl),
         "num_batches": float(num_batches),
+        "num_pairs": float(monitored_pairs),
         "skipped_batches": float(skipped_batches),
     }
 
@@ -344,20 +281,20 @@ def main(cfg: Any) -> None:
     output_dir = Path(HydraConfig.get().runtime.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    logger = _setup_logger(output_dir=output_dir, level_name=str(cfg.logging.level))
+    logger = setup_train_logger(output_dir=output_dir, level_name=str(cfg.logging.level))
     logger.info("Starting DPO training run")
 
     resolved_cfg_path = output_dir / "resolved_config.yaml"
     OmegaConf.save(cfg, resolved_cfg_path)
     logger.info("Saved resolved config to %s", resolved_cfg_path)
 
-    wandb_mod, wandb_run = _init_wandb(cfg, output_dir, logger)
+    wandb_mod, wandb_run = init_wandb_run(cfg, output_dir, logger, OmegaConf)
 
     pairs_df = _build_pairs_dataframe(cfg)
     if pairs_df.empty:
         raise ValueError("No DPO pairs generated. Adjust data pairing settings.")
 
-    _log_pair_diagnostics(logger, pairs_df, preview_count=int(cfg.logging.preview_count))
+    log_pair_diagnostics(logger, pairs_df, preview_count=int(cfg.logging.preview_count))
 
     train_df, val_df, test_df = create_train_val_test_split(
         pairs_df,
@@ -446,20 +383,32 @@ def main(cfg: Any) -> None:
             "epoch": float(epoch),
             "lr": lr,
             "train_loss": float(train_metrics["loss"]),
+            "train_reward_accuracy": float(train_metrics["reward_accuracy"]),
+            "train_reward_margin": float(train_metrics["reward_margin"]),
+            "train_implicit_kl": float(train_metrics["implicit_kl"]),
             "val_loss": float(val_metrics["loss"]),
+            "val_reward_accuracy": float(val_metrics["reward_accuracy"]),
+            "val_reward_margin": float(val_metrics["reward_margin"]),
+            "val_implicit_kl": float(val_metrics["implicit_kl"]),
             "train_batches": float(train_metrics["num_batches"]),
+            "train_pairs": float(train_metrics["num_pairs"]),
             "val_batches": float(val_metrics["num_batches"]),
+            "val_pairs": float(val_metrics["num_pairs"]),
             "train_skipped": float(train_metrics["skipped_batches"]),
             "val_skipped": float(val_metrics["skipped_batches"]),
         }
         history.append(epoch_record)
 
         logger.info(
-            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | train_batches=%d | val_batches=%d",
+            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | train_acc=%.4f | val_acc=%.4f | train_margin=%.4f | val_margin=%.4f | train_batches=%d | val_batches=%d",
             epoch,
             lr,
             epoch_record["train_loss"],
             epoch_record["val_loss"],
+            epoch_record["train_reward_accuracy"],
+            epoch_record["val_reward_accuracy"],
+            epoch_record["train_reward_margin"],
+            epoch_record["val_reward_margin"],
             int(epoch_record["train_batches"]),
             int(epoch_record["val_batches"]),
         )
@@ -510,8 +459,11 @@ def main(cfg: Any) -> None:
         log_every_n_steps=0,
     )
     logger.info(
-        "Test metrics | loss=%.6f | batches=%d | skipped=%d",
+        "Test metrics | loss=%.6f | reward_acc=%.4f | reward_margin=%.4f | implicit_kl=%.4f | batches=%d | skipped=%d",
         float(test_metrics["loss"]),
+        float(test_metrics["reward_accuracy"]),
+        float(test_metrics["reward_margin"]),
+        float(test_metrics["implicit_kl"]),
         int(test_metrics["num_batches"]),
         int(test_metrics["skipped_batches"]),
     )
@@ -523,7 +475,11 @@ def main(cfg: Any) -> None:
     summary = {
         "best_val_loss": float(best_val_loss),
         "test_loss": float(test_metrics["loss"]),
+        "test_reward_accuracy": float(test_metrics["reward_accuracy"]),
+        "test_reward_margin": float(test_metrics["reward_margin"]),
+        "test_implicit_kl": float(test_metrics["implicit_kl"]),
         "test_batches": int(test_metrics["num_batches"]),
+        "test_pairs": int(test_metrics["num_pairs"]),
         "test_skipped_batches": int(test_metrics["skipped_batches"]),
         "num_train_pairs": int(len(train_df)),
         "num_val_pairs": int(len(val_df)),

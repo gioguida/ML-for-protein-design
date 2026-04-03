@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from typing import List, Sequence, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 if __package__:
     from .model import ESM2PLLScorer
@@ -52,6 +52,7 @@ def dpo_loss(
 
     return torch.stack(losses).mean()
 
+
 def implicit_reward(
     sequence: str, 
     masked_positions: np.ndarray, 
@@ -68,6 +69,7 @@ def implicit_reward(
     reward = beta * (masked_pll - ref_masked_pll)   
     return reward
 
+
 def reward_accuracy(
     pair: Tuple[str, str], 
     masked_positions: np.ndarray, 
@@ -80,6 +82,7 @@ def reward_accuracy(
     winner_reward = implicit_reward(winner, masked_positions, beta, scorer, reference)
     loser_reward = implicit_reward(loser, masked_positions, beta, scorer, reference)
     return bool((winner_reward > loser_reward).item())
+
 
 def reward_margin(
     pair: Tuple[str, str], 
@@ -95,6 +98,7 @@ def reward_margin(
     margin = winner_reward - loser_reward
     return margin
 
+
 def implicit_KL_divergence(
     sequence: str, 
     scorer: ESM2PLLScorer, 
@@ -105,3 +109,63 @@ def implicit_KL_divergence(
     ref_masked_pll = reference.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
     kl_divergence = (masked_pll - ref_masked_pll)
     return kl_divergence
+
+
+def pair_monitoring_metrics(
+    pair: Tuple[str, str],
+    beta: float,
+    scorer: ESM2PLLScorer,
+    reference: ESM2PLLScorer,
+) -> Dict[str, float]:
+    """Compute monitoring metrics for a single winner-loser pair."""
+    winner, loser = pair
+    diff_positions = np.asarray(_diff_positions(winner, loser), dtype=int)
+    if diff_positions.size == 0:
+        raise ValueError("Winner and loser are identical; monitoring metrics are undefined.")
+
+    acc = reward_accuracy(pair, diff_positions, beta, scorer, reference)
+    margin = reward_margin(pair, diff_positions, beta, scorer, reference)
+    winner_kl = implicit_KL_divergence(winner, scorer, reference)
+    loser_kl = implicit_KL_divergence(loser, scorer, reference)
+
+    return {
+        "reward_accuracy": float(acc),
+        "reward_margin": float(margin.item()),
+        "implicit_kl": float(((winner_kl + loser_kl) / 2.0).item()),
+    }
+
+
+def batch_monitoring_metrics(
+    pairs: Union[Tuple[str, str], Sequence[Tuple[str, str]]],
+    beta: float,
+    scorer: ESM2PLLScorer,
+    reference: ESM2PLLScorer,
+) -> Dict[str, float]:
+    """Compute average monitoring metrics over one pair or a batch of pairs."""
+    pair_batch = _as_pair_batch(pairs)
+
+    reward_accuracy_sum = 0.0
+    reward_margin_sum = 0.0
+    implicit_kl_sum = 0.0
+    valid_pairs = 0
+
+    for pair in pair_batch:
+        try:
+            metrics = pair_monitoring_metrics(pair, beta, scorer, reference)
+        except ValueError:
+            continue
+
+        reward_accuracy_sum += metrics["reward_accuracy"]
+        reward_margin_sum += metrics["reward_margin"]
+        implicit_kl_sum += metrics["implicit_kl"]
+        valid_pairs += 1
+
+    if valid_pairs == 0:
+        raise ValueError("No valid non-identical winner-loser pairs in batch.")
+
+    return {
+        "reward_accuracy": reward_accuracy_sum / valid_pairs,
+        "reward_margin": reward_margin_sum / valid_pairs,
+        "implicit_kl": implicit_kl_sum / valid_pairs,
+        "num_pairs": float(valid_pairs),
+    }
