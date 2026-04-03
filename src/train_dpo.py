@@ -196,6 +196,7 @@ def _run_epoch(
     grad_clip_norm: float,
     logger: logging.Logger,
     log_every_n_steps: int,
+    track_metrics: bool,
 ) -> Dict[str, float]:
     is_train = optimizer is not None
 
@@ -225,13 +226,14 @@ def _run_epoch(
                 reference=reference,
                 policy_use_grad=is_train,
             )
-            with torch.no_grad():
-                batch_metrics = batch_monitoring_metrics(
-                    batch,
-                    beta=beta,
-                    scorer=policy,
-                    reference=reference,
-                )
+            if track_metrics:
+                with torch.no_grad():
+                    batch_metrics = batch_monitoring_metrics(
+                        batch,
+                        beta=beta,
+                        scorer=policy,
+                        reference=reference,
+                    )
         except ValueError:
             skipped_batches += 1
             continue
@@ -244,26 +246,35 @@ def _run_epoch(
 
         total_loss += float(loss.item())
         num_batches += 1
-        num_pairs = float(batch_metrics["num_pairs"])
-        monitored_pairs += num_pairs
-        reward_accuracy_sum += float(batch_metrics["reward_accuracy"]) * num_pairs
-        reward_margin_sum += float(batch_metrics["reward_margin"]) * num_pairs
-        implicit_kl_sum += float(batch_metrics["implicit_kl"]) * num_pairs
+        if track_metrics:
+            num_pairs = float(batch_metrics["num_pairs"])
+            monitored_pairs += num_pairs
+            reward_accuracy_sum += float(batch_metrics["reward_accuracy"]) * num_pairs
+            reward_margin_sum += float(batch_metrics["reward_margin"]) * num_pairs
+            implicit_kl_sum += float(batch_metrics["implicit_kl"]) * num_pairs
 
         if is_train and log_every_n_steps > 0 and step % log_every_n_steps == 0:
-            logger.info(
-                "step=%d train_loss=%.6f reward_acc=%.4f reward_margin=%.4f implicit_kl=%.4f",
-                step,
-                float(loss.item()),
-                float(batch_metrics["reward_accuracy"]),
-                float(batch_metrics["reward_margin"]),
-                float(batch_metrics["implicit_kl"]),
-            )
+            if track_metrics:
+                logger.info(
+                    "step=%d train_loss=%.6f reward_acc=%.4f reward_margin=%.4f implicit_kl=%.4f",
+                    step,
+                    float(loss.item()),
+                    float(batch_metrics["reward_accuracy"]),
+                    float(batch_metrics["reward_margin"]),
+                    float(batch_metrics["implicit_kl"]),
+                )
+            else:
+                logger.info("step=%d train_loss=%.6f", step, float(loss.item()))
 
     avg_loss = total_loss / max(1, num_batches)
-    avg_reward_accuracy = reward_accuracy_sum / max(1.0, monitored_pairs)
-    avg_reward_margin = reward_margin_sum / max(1.0, monitored_pairs)
-    avg_implicit_kl = implicit_kl_sum / max(1.0, monitored_pairs)
+    if track_metrics and monitored_pairs > 0:
+        avg_reward_accuracy = reward_accuracy_sum / monitored_pairs
+        avg_reward_margin = reward_margin_sum / monitored_pairs
+        avg_implicit_kl = implicit_kl_sum / monitored_pairs
+    else:
+        avg_reward_accuracy = float("nan")
+        avg_reward_margin = float("nan")
+        avg_implicit_kl = float("nan")
 
     return {
         "loss": float(avg_loss),
@@ -362,6 +373,7 @@ def main(cfg: Any) -> None:
             grad_clip_norm=float(cfg.training.grad_clip_norm),
             logger=logger,
             log_every_n_steps=int(cfg.logging.log_every_n_steps),
+            track_metrics=False,
         )
 
         val_metrics = _run_epoch(
@@ -373,6 +385,7 @@ def main(cfg: Any) -> None:
             grad_clip_norm=0.0,
             logger=logger,
             log_every_n_steps=0,
+            track_metrics=True,
         )
 
         if scheduler is not None:
@@ -400,15 +413,14 @@ def main(cfg: Any) -> None:
         history.append(epoch_record)
 
         logger.info(
-            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | train_acc=%.4f | val_acc=%.4f | train_margin=%.4f | val_margin=%.4f | train_batches=%d | val_batches=%d",
+            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | val_acc=%.4f | val_margin=%.4f | val_kl=%.4f | train_batches=%d | val_batches=%d",
             epoch,
             lr,
             epoch_record["train_loss"],
             epoch_record["val_loss"],
-            epoch_record["train_reward_accuracy"],
             epoch_record["val_reward_accuracy"],
-            epoch_record["train_reward_margin"],
             epoch_record["val_reward_margin"],
+            epoch_record["val_implicit_kl"],
             int(epoch_record["train_batches"]),
             int(epoch_record["val_batches"]),
         )
@@ -457,6 +469,7 @@ def main(cfg: Any) -> None:
         grad_clip_norm=0.0,
         logger=logger,
         log_every_n_steps=0,
+        track_metrics=True,
     )
     logger.info(
         "Test metrics | loss=%.6f | reward_acc=%.4f | reward_margin=%.4f | implicit_kl=%.4f | batches=%d | skipped=%d",

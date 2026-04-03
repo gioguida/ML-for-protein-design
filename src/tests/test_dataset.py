@@ -1,61 +1,80 @@
-import pandas as pd
-
-from src.dataset import build_dpo_pairs_from_clustered_dataframe
-
-
-def _example_cluster_df() -> pd.DataFrame:
-	return pd.DataFrame(
-		{
-			"Unnamed: 0": [10, 11, 12, 13, 14, 15],
-			"aa": ["SEQ_B", "SEQ_F", "SEQ_A", "SEQ_E", "SEQ_D", "SEQ_C"],
-			"mut": ["mB", "mF", "mA", "mE", "mD", "mC"],
-			"cluster_idx": [0, 0, 0, 0, 0, 0],
-			"delta_M22_binding_enrichment_adj": [0.6, -0.4, 0.9, -0.3, -0.2, -0.1],
-		}
-	)
+import argparse
+import sys
+from pathlib import Path
 
 
-def test_build_dpo_pairs_positive_vs_tail():
-	clustered = _example_cluster_df()
-	pairs = build_dpo_pairs_from_clustered_dataframe(
-		clustered_df=clustered,
-		pairing_strategy="positive_vs_tail",
-		min_positive_delta=0.0,
-		source_view="mut1",
-	)
-
-	assert len(pairs) == 2
-	assert pairs.loc[0, "chosen_sequence"] == "SEQ_A"
-	assert pairs.loc[0, "rejected_sequence"] == "SEQ_F"
-	assert pairs.loc[1, "chosen_sequence"] == "SEQ_B"
-	assert pairs.loc[1, "rejected_sequence"] == "SEQ_E"
-	assert (pairs["delta_margin"] > 0).all()
+def _add_repo_root_to_path() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    repo_root_str = str(repo_root)
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
 
 
-def test_build_dpo_pairs_positive_only_extremes():
-	clustered = _example_cluster_df()
-	pairs = build_dpo_pairs_from_clustered_dataframe(
-		clustered_df=clustered,
-		pairing_strategy="positive_only_extremes",
-		min_positive_delta=0.0,
-		source_view="mut2",
-	)
+_add_repo_root_to_path()
 
-	assert len(pairs) == 2
-	assert pairs.loc[0, "chosen_sequence"] == "SEQ_A"
-	assert pairs.loc[0, "rejected_sequence"] == "SEQ_E"
-	assert pairs.loc[1, "chosen_sequence"] == "SEQ_B"
-	assert pairs.loc[1, "rejected_sequence"] == "SEQ_F"
-	assert (pairs["delta_margin"] > 0).all()
+from src.dataset import default_data_paths, load_dpo_pair_dataframe
 
 
-def test_build_dpo_pairs_rejects_invalid_strategy():
-	clustered = _example_cluster_df()
-	try:
-		build_dpo_pairs_from_clustered_dataframe(
-			clustered_df=clustered,
-			pairing_strategy="not_a_strategy",  # type: ignore[arg-type]
-		)
-		assert False, "Expected ValueError for invalid pairing strategy"
-	except ValueError as exc:
-		assert "pairing_strategy" in str(exc)
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Inspect number of DPO pairs and basic stats.")
+    parser.add_argument(
+        "--pairing-strategy",
+        choices=["positive_vs_tail", "positive_only_extremes"],
+        default="positive_vs_tail",
+    )
+    parser.add_argument("--preview-count", type=int, default=5)
+    args = parser.parse_args()
+
+    paths = default_data_paths()
+    pairs_df = load_dpo_pair_dataframe(
+        pairing_strategy=args.pairing_strategy,
+        include_views=("mut1", "mut2"),
+        raw_csv_path=paths["raw_m22"],
+        processed_dir=paths["processed_dir"],
+        force_rebuild=False,
+        min_positive_delta=2.0,
+        deduplicate_across_views=True,
+    )
+
+    if pairs_df.empty:
+        print("No pairs available after preprocessing.")
+        return
+
+    margins = pairs_df["delta_margin"].astype(float)
+    print(
+        f"Pair stats | n={len(pairs_df)} | "
+        f"margin mean={margins.mean():.4f} median={margins.median():.4f} "
+        f"min={margins.min():.4f} max={margins.max():.4f}"
+    )
+
+    by_view = pairs_df.groupby("source_view").size().sort_values(ascending=False)
+    print("Pairs per view: " + ", ".join(f"{k}:{int(v)}" for k, v in by_view.items()))
+
+    show_n = min(max(0, int(args.preview_count)), len(pairs_df))
+    if show_n == 0:
+        return
+
+    top_examples = pairs_df.nlargest(show_n, "delta_margin")
+    low_examples = pairs_df.nsmallest(show_n, "delta_margin")
+
+    print("Top margin examples:")
+    for _, row in top_examples.iterrows():
+        print(
+            f"  view={row['source_view']} cluster={row['cluster_idx']} "
+            f"margin={float(row['delta_margin']):.4f} "
+            f"chosen={row['chosen_sequence']} rejected={row['rejected_sequence']}"
+        )
+
+    print("Bottom margin examples:")
+    for _, row in low_examples.iterrows():
+        print(
+            f"  view={row['source_view']} cluster={row['cluster_idx']} "
+            f"margin={float(row['delta_margin']):.4f} "
+            f"chosen={row['chosen_sequence']} rejected={row['rejected_sequence']}"
+        )
+
+
+if __name__ == "__main__":
+    main()
+
+

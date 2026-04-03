@@ -20,8 +20,8 @@ model:
   use_context: true
 
 training:
-  batch_size: 32
-  num_epochs: 50
+  batch_size: 128
+  num_epochs: 25
   lr: 1e-5
   weight_decay: 0.0
   beta: 0.1
