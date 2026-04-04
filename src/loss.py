@@ -169,3 +169,18 @@ def batch_monitoring_metrics(
         "implicit_kl": implicit_kl_sum / valid_pairs,
         "num_pairs": float(valid_pairs),
     }
+
+def sequence_perplexity(
+        sequence: str,
+        scorer: ESM2PLLScorer,
+        reference: ESM2PLLScorer
+) -> Dict[str, float]:
+    """Compute the perplexity of a single sequence under the scorer and reference."""
+    masked_pll = scorer.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
+    ref_masked_pll = reference.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
+    perplexity = torch.exp(-masked_pll)
+    ref_perplexity = torch.exp(-ref_masked_pll)
+    return {
+        "perplexity": float(perplexity.item()),
+        "reference_perplexity": float(ref_perplexity.item()),
+    }

@@ -23,6 +23,7 @@ if __package__:
     from .dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
     from .loss import batch_monitoring_metrics, dpo_loss
     from .model import ESM2PLLScorer
+    from .eval import sequence_perplexity
     from .utils import (
         ModelConfig,
         init_wandb_run,
@@ -34,6 +35,7 @@ else:  # pragma: no cover
     from dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
     from loss import batch_monitoring_metrics, dpo_loss
     from model import ESM2PLLScorer
+    from eval import sequence_perplexity
     from utils import (
         ModelConfig,
         init_wandb_run,
@@ -84,6 +86,7 @@ def _build_pairs_dataframe(cfg: Any) -> pd.DataFrame:
         processed_dir=processed_dir,
         force_rebuild=bool(cfg.data.force_rebuild),
         min_positive_delta=float(cfg.data.min_positive_delta),
+        min_delta_margin=float(cfg.data.min_delta_margin),
         deduplicate_across_views=bool(cfg.data.deduplicate_across_views),
     )
 
@@ -197,7 +200,10 @@ def _run_epoch(
     logger: logging.Logger,
     log_every_n_steps: int,
     track_metrics: bool,
-) -> Dict[str, float]:
+    global_step: int = 0,
+    wandb_mod: Optional[Any] = None,
+    epoch: int = 0,
+) -> Tuple[Dict[str, float], int]:
     is_train = optimizer is not None
 
     if is_train:
@@ -217,6 +223,7 @@ def _run_epoch(
     for step, batch in enumerate(dataloader, start=1):
         if is_train:
             optimizer.zero_grad(set_to_none=True)
+            global_step += 1
 
         try:
             loss = dpo_loss(
@@ -254,6 +261,11 @@ def _run_epoch(
             implicit_kl_sum += float(batch_metrics["implicit_kl"]) * num_pairs
 
         if is_train and log_every_n_steps > 0 and step % log_every_n_steps == 0:
+            step_record = {
+                "step": global_step,
+                "epoch": epoch,
+                "train_step/loss": float(loss.item()),
+            }
             if track_metrics:
                 logger.info(
                     "step=%d train_loss=%.6f reward_acc=%.4f reward_margin=%.4f implicit_kl=%.4f",
@@ -263,8 +275,16 @@ def _run_epoch(
                     float(batch_metrics["reward_margin"]),
                     float(batch_metrics["implicit_kl"]),
                 )
+                step_record.update({
+                    "train_step/reward_accuracy": float(batch_metrics["reward_accuracy"]),
+                    "train_step/reward_margin": float(batch_metrics["reward_margin"]),
+                    "train_step/implicit_kl": float(batch_metrics["implicit_kl"]),
+                })
             else:
                 logger.info("step=%d train_loss=%.6f", step, float(loss.item()))
+            
+            if wandb_mod is not None:
+                wandb_mod.log(step_record, step=global_step)
 
     avg_loss = total_loss / max(1, num_batches)
     if track_metrics and monitored_pairs > 0:
@@ -284,7 +304,7 @@ def _run_epoch(
         "num_batches": float(num_batches),
         "num_pairs": float(monitored_pairs),
         "skipped_batches": float(skipped_batches),
-    }
+    }, global_step
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
@@ -362,9 +382,10 @@ def main(cfg: Any) -> None:
 
     history: List[Dict[str, float]] = []
     epochs_without_improvement = 0
+    global_step = 0
 
     for epoch in range(start_epoch, int(cfg.training.num_epochs) + 1):
-        train_metrics = _run_epoch(
+        train_metrics, global_step = _run_epoch(
             policy=policy,
             reference=reference,
             dataloader=train_loader,
@@ -374,9 +395,12 @@ def main(cfg: Any) -> None:
             logger=logger,
             log_every_n_steps=int(cfg.logging.log_every_n_steps),
             track_metrics=False,
+            global_step=global_step,
+            wandb_mod=wandb_mod if wandb_run is not None else None,
+            epoch=epoch,
         )
 
-        val_metrics = _run_epoch(
+        val_metrics, _ = _run_epoch(
             policy=policy,
             reference=reference,
             dataloader=val_loader,
@@ -386,6 +410,9 @@ def main(cfg: Any) -> None:
             logger=logger,
             log_every_n_steps=0,
             track_metrics=True,
+            global_step=global_step,
+            wandb_mod=None, # Typically don't log step-level val metrics online this way
+            epoch=epoch,
         )
 
         if scheduler is not None:
@@ -426,7 +453,7 @@ def main(cfg: Any) -> None:
         )
 
         if wandb_run is not None:
-            wandb_mod.log(epoch_record, step=epoch)
+            wandb_mod.log(epoch_record, step=global_step)
 
         improved = epoch_record["val_loss"] < best_val_loss
         if improved:
@@ -460,7 +487,7 @@ def main(cfg: Any) -> None:
         _load_checkpoint(best_ckpt, policy=policy, optimizer=None, scheduler=None)
         logger.info("Loaded best checkpoint for final test evaluation: %s", best_ckpt)
 
-    test_metrics = _run_epoch(
+    test_metrics, _ = _run_epoch(
         policy=policy,
         reference=reference,
         dataloader=test_loader,
@@ -470,6 +497,9 @@ def main(cfg: Any) -> None:
         logger=logger,
         log_every_n_steps=0,
         track_metrics=True,
+        global_step=global_step,
+        wandb_mod=None,
+        epoch=0,
     )
     logger.info(
         "Test metrics | loss=%.6f | reward_acc=%.4f | reward_margin=%.4f | implicit_kl=%.4f | batches=%d | skipped=%d",
@@ -481,6 +511,24 @@ def main(cfg: Any) -> None:
         int(test_metrics["skipped_batches"]),
     )
 
+    logger.info("Computing perplexity on test set (chosen sequences)...")
+    policy.model.eval()
+    total_perplexity = 0.0
+    num_chosen = 0
+
+    with torch.no_grad():
+        for batch in test_loader:
+            chosen_seqs = [pair[0] for pair in batch]
+            try:
+                perplexities = sequence_perplexity(chosen_seqs, scorer=policy, cdr_only=True)
+                total_perplexity += float(perplexities.sum().item())
+                num_chosen += len(chosen_seqs)
+            except ValueError:
+                continue
+
+    avg_test_perplexity = total_perplexity / max(1, num_chosen)
+    logger.info("Test Chosen Perplexity: %.4f", avg_test_perplexity)
+
     history_df = pd.DataFrame(history)
     history_csv_path = output_dir / str(cfg.logging.history_csv)
     history_df.to_csv(history_csv_path, index=False)
@@ -491,6 +539,7 @@ def main(cfg: Any) -> None:
         "test_reward_accuracy": float(test_metrics["reward_accuracy"]),
         "test_reward_margin": float(test_metrics["reward_margin"]),
         "test_implicit_kl": float(test_metrics["implicit_kl"]),
+        "test_perplexity": float(avg_test_perplexity),
         "test_batches": int(test_metrics["num_batches"]),
         "test_pairs": int(test_metrics["num_pairs"]),
         "test_skipped_batches": int(test_metrics["skipped_batches"]),

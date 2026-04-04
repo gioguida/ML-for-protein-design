@@ -9,6 +9,7 @@ data:
   force_rebuild: false
   pairing_strategy: positive_vs_tail  # positive_vs_tail | positive_only_extremes
   min_positive_delta: 0.0
+  min_delta_margin: 0.0
   include_views: [mut1, mut2]
   deduplicate_across_views: true
   train_frac: 0.8

@@ -97,6 +97,7 @@ def _pair_cluster_positive_vs_tail(
 	cluster_df: pd.DataFrame,
 	delta_col: str,
 	min_positive_delta: float,
+	min_delta_margin: float = 0.0,
 ) -> List[Tuple[pd.Series, pd.Series]]:
 	"""Pair first with last, second with second-last, until chosen side is not positive."""
 	cluster_sorted = cluster_df.sort_values(by=delta_col, ascending=False).reset_index(drop=True)
@@ -109,7 +110,7 @@ def _pair_cluster_positive_vs_tail(
 	while left < right and float(deltas[left]) > float(min_positive_delta):
 		chosen = cluster_sorted.iloc[left]
 		rejected = cluster_sorted.iloc[right]
-		if float(chosen[delta_col]) > float(rejected[delta_col]):
+		if float(chosen[delta_col]) - float(rejected[delta_col]) >= float(min_delta_margin):
 			pairs.append((chosen, rejected))
 		left += 1
 		right -= 1
@@ -121,6 +122,7 @@ def _pair_cluster_positive_only_extremes(
 	cluster_df: pd.DataFrame,
 	delta_col: str,
 	min_positive_delta: float,
+	min_delta_margin: float = 0.0,
 ) -> List[Tuple[pd.Series, pd.Series]]:
 	"""Pair i-th positive with (P-i)-th from tail in full cluster, where P is #positives."""
 	cluster_sorted = cluster_df.sort_values(by=delta_col, ascending=False).reset_index(drop=True)
@@ -136,7 +138,7 @@ def _pair_cluster_positive_only_extremes(
 			break
 		chosen = cluster_sorted.iloc[i]
 		rejected = cluster_sorted.iloc[rejected_idx]
-		if float(chosen[delta_col]) > float(rejected[delta_col]):
+		if float(chosen[delta_col]) - float(rejected[delta_col]) >= float(min_delta_margin):
 			pairs.append((chosen, rejected))
 
 	return pairs
@@ -146,6 +148,7 @@ def build_dpo_pairs_from_clustered_dataframe(
 	clustered_df: pd.DataFrame,
 	pairing_strategy: PairingStrategy = "positive_vs_tail", 	# "positive_only_extremes",
 	min_positive_delta: float = 0.0,
+	min_delta_margin: float = 0.0,
 	source_view: str = "",
 ) -> pd.DataFrame:
 	"""Build DPO preference pairs from one clustered dataframe."""
@@ -207,6 +210,7 @@ def load_dpo_pair_dataframe(
 	processed_dir: Path = None,
 	force_rebuild: bool = False,
 	min_positive_delta: float = 0.0,
+	min_delta_margin: float = 0.0,
 	deduplicate_across_views: bool = True,
 ) -> pd.DataFrame:
 	"""Load clustered views and build a DPO pair dataframe."""
@@ -254,6 +258,7 @@ def load_dpo_sequence_pairs(
 	processed_dir: Path = None,
 	force_rebuild: bool = False,
 	min_positive_delta: float = 0.0,
+	min_delta_margin: float = 0.0,
 	deduplicate_across_views: bool = True,
 ) -> List[Tuple[str, str]]:
 	"""Return DPO (chosen_sequence, rejected_sequence) tuples."""
@@ -264,6 +269,7 @@ def load_dpo_sequence_pairs(
 		processed_dir=processed_dir,
 		force_rebuild=force_rebuild,
 		min_positive_delta=min_positive_delta,
+		min_delta_margin=min_delta_margin,
 		deduplicate_across_views=deduplicate_across_views,
 	)
 	return list(zip(pairs_df["chosen_sequence"], pairs_df["rejected_sequence"]))

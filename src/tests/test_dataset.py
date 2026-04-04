@@ -20,7 +20,7 @@ def main() -> None:
     parser.add_argument(
         "--pairing-strategy",
         choices=["positive_vs_tail", "positive_only_extremes"],
-        default="positive_vs_tail",
+        default="positive_only_extremes",
     )
     parser.add_argument("--preview-count", type=int, default=5)
     args = parser.parse_args()
@@ -32,7 +32,7 @@ def main() -> None:
         raw_csv_path=paths["raw_m22"],
         processed_dir=paths["processed_dir"],
         force_rebuild=False,
-        min_positive_delta=2.0,
+        min_positive_delta=0.0,
         deduplicate_across_views=True,
     )
 
