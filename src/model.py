@@ -89,18 +89,39 @@ class ESM2PLLScorer:
 
 		grad_context = torch.enable_grad() if use_grad else torch.no_grad()
 		with grad_context:
-			for pos in positions:
-				masked_tokens = tokens.clone()
-				true_token_ids = tokens[:, pos].clone()
-				masked_tokens[:, pos] = self.mask_token_idx
+			num_pos = len(positions)
+			flat_batch_idx = [b for b in range(batch_size) for _ in range(num_pos)]
+			flat_pos = [positions[p_idx] for _ in range(batch_size) for p_idx in range(num_pos)]
+			num_masks = len(flat_batch_idx)
 
-				logits = self.forward_logits(masked_tokens)
-				log_probs = torch.log_softmax(logits[:, pos, :].float(), dim=-1)
-				true_log_probs = log_probs.gather(
-					1, true_token_ids.unsqueeze(1)
-				).squeeze(1)
-
-				pll = pll + true_log_probs
+			if num_masks > 0:
+				idx_tensor = torch.tensor(flat_batch_idx, device=tokens.device, dtype=torch.long)
+				pos_tensor = torch.tensor(flat_pos, device=tokens.device, dtype=torch.long)
+				
+				masked_tokens = tokens[idx_tensor].clone()
+				true_token_ids = masked_tokens[torch.arange(num_masks), pos_tensor].clone()
+				masked_tokens[torch.arange(num_masks), pos_tensor] = self.mask_token_idx
+				
+				max_batch_size = 64
+				all_true_log_probs = []
+				for i in range(0, num_masks, max_batch_size):
+					chunk_tokens = masked_tokens[i:i+max_batch_size]
+					chunk_pos = pos_tensor[i:i+max_batch_size]
+					chunk_true = true_token_ids[i:i+max_batch_size]
+					
+					logits = self.forward_logits(chunk_tokens)
+					log_probs = torch.log_softmax(logits.float(), dim=-1)
+					
+					chunk_batch_idx = torch.arange(chunk_tokens.shape[0], device=tokens.device)
+					all_true_log_probs.append(log_probs[chunk_batch_idx, chunk_pos, chunk_true])
+					
+				if all_true_log_probs:
+					all_true_log_probs = torch.cat(all_true_log_probs)
+					accumulated_pll = []
+					for b in range(batch_size):
+						b_mask = (idx_tensor == b)
+						accumulated_pll.append(all_true_log_probs[b_mask].sum())
+					pll = torch.stack(accumulated_pll)
 
 		return pll
 
@@ -135,18 +156,39 @@ class ESM2PLLScorer:
 
 		grad_context = torch.enable_grad() if use_grad else torch.no_grad()
 		with grad_context:
-			for pos in mask_positions:
-				masked_tokens = tokens.clone()
-				true_token_ids = tokens[:, pos].clone()
-				masked_tokens[:, pos] = self.mask_token_idx
+			num_pos = len(mask_positions)
+			flat_batch_idx = [b for b in range(batch_size) for _ in range(num_pos)]
+			flat_pos = [mask_positions[p_idx] for _ in range(batch_size) for p_idx in range(num_pos)]
+			num_masks = len(flat_batch_idx)
 
-				logits = self.forward_logits(masked_tokens)
-				log_probs = torch.log_softmax(logits[:, pos, :].float(), dim=-1)
-				true_log_probs = log_probs.gather(
-					1, true_token_ids.unsqueeze(1)
-				).squeeze(1)
+			if num_masks > 0:
+				idx_tensor = torch.tensor(flat_batch_idx, device=tokens.device, dtype=torch.long)
+				pos_tensor = torch.tensor(flat_pos, device=tokens.device, dtype=torch.long)
 
-				pll = pll + true_log_probs
+				masked_tokens = tokens[idx_tensor].clone()
+				true_token_ids = masked_tokens[torch.arange(num_masks), pos_tensor].clone()
+				masked_tokens[torch.arange(num_masks), pos_tensor] = self.mask_token_idx
+
+				max_batch_size = 64
+				all_true_log_probs = []
+				for i in range(0, num_masks, max_batch_size):
+					chunk_tokens = masked_tokens[i:i+max_batch_size]
+					chunk_pos = pos_tensor[i:i+max_batch_size]
+					chunk_true = true_token_ids[i:i+max_batch_size]
+
+					logits = self.forward_logits(chunk_tokens)
+					log_probs = torch.log_softmax(logits.float(), dim=-1)
+
+					chunk_batch_idx = torch.arange(chunk_tokens.shape[0], device=tokens.device)
+					all_true_log_probs.append(log_probs[chunk_batch_idx, chunk_pos, chunk_true])
+
+				if all_true_log_probs:
+					all_true_log_probs = torch.cat(all_true_log_probs)
+					accumulated_pll = []
+					for b in range(batch_size):
+						b_mask = (idx_tensor == b)
+						accumulated_pll.append(all_true_log_probs[b_mask].sum())
+					pll = torch.stack(accumulated_pll)
 
 		return pll
         
