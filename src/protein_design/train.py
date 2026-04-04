@@ -20,14 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _resolve_env_vars(config: dict) -> dict:
     """Replace ${VAR} placeholders in string config values with env vars."""
-    resolved = {}
-    for k, v in config.items():
-        if isinstance(v, str) and v.startswith("${") and v.endswith("}"):
-            env_key = v[2:-1]
-            resolved[k] = os.environ.get(env_key, v)
-        else:
-            resolved[k] = v
-    return resolved
+    return {k: os.path.expandvars(v) if isinstance(v, str) else v for k, v in config.items()}
 
 
 def train(config: dict) -> None:
@@ -60,7 +53,6 @@ def train(config: dict) -> None:
     model.to(device)
 
     # ── Data ─────────────────────────────────────────────────────────────
-    fasta_path = os.path.join(config["checkpoint_dir"], "..", "oas_dedup_rep_seq.fasta")
     data_dir = os.environ.get("SCRATCH_DIR", ".")
     fasta_path = os.path.join(data_dir, "oas_dedup_rep_seq.fasta")
     train_loader, val_loader = make_dataloaders(fasta_path, config)
@@ -99,7 +91,7 @@ def train(config: dict) -> None:
             loss = outputs.loss / accum_steps
 
         scaler.scale(loss).backward()
-        running_loss += loss.item()
+        running_loss += outputs.loss.item()
 
         if global_step % accum_steps == 0:
             scaler.step(optimizer)
@@ -109,19 +101,15 @@ def train(config: dict) -> None:
 
         # ── Logging ──────────────────────────────────────────────────────
         if global_step % 50 == 0:
-            avg_loss = running_loss / 50 * accum_steps
+            avg_loss = running_loss / 50
             lr = scheduler.get_last_lr()[0]
             wandb.log({"train/loss": avg_loss, "train/lr": lr}, step=global_step)
             progress.set_postfix(loss=f"{avg_loss:.4f}", lr=f"{lr:.2e}")
-            running_loss = 0.0
-
-        if global_step % 100 == 0:
             logger.info(
                 "Step %d/%d — loss: %.4f — lr: %.2e",
-                global_step, config["max_steps"],
-                running_loss / min(global_step % 100 or 100, 100) * accum_steps,
-                scheduler.get_last_lr()[0],
+                global_step, config["max_steps"], avg_loss, lr,
             )
+            running_loss = 0.0
 
         # ── Evaluation ───────────────────────────────────────────────────
         if global_step % config["eval_every_n_steps"] == 0:
