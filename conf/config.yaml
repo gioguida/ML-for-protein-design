@@ -7,9 +7,9 @@ data:
   raw_csv: data/raw/M22_binding_enrichment.csv
   processed_dir: data/processed
   force_rebuild: false
-  pairing_strategy: positive_vs_tail  # positive_vs_tail | positive_only_extremes
+  pairing_strategy: positive_only_extremes  # positive_vs_tail | positive_only_extremes
   min_positive_delta: 1.0
-  min_delta_margin: 2.0
+  min_delta_margin: 5.0
   include_views: [mut1, mut2]
   deduplicate_across_views: true
   train_frac: 0.8

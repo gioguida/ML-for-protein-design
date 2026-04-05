@@ -1,0 +1,28 @@
+2026-04-03 20:26:50,947 | INFO | Starting DPO training run
+2026-04-03 20:26:50,950 | INFO | Saved resolved config to /cluster/home/gguidarini/protein-design/outputs/2026-04-03/20-26-50/resolved_config.yaml
+2026-04-03 20:27:03,397 | INFO | Pair stats | n=32641 | margin mean=12.8674 median=14.0945 min=0.0098 max=22.5497
+2026-04-03 20:27:03,436 | INFO | Pairs per view: mut2:16508, mut1:16133
+2026-04-03 20:27:03,444 | INFO | Top margin examples:
+2026-04-03 20:27:03,444 | INFO |   view=mut1 cluster=418 margin=22.5497 chosen=HRSMQQVRSAGWERADLVGDAFDV rejected=HRSMQQVVSAGVERADLVGDAFDV
+2026-04-03 20:27:03,445 | INFO |   view=mut2 cluster=389 margin=22.3773 chosen=HMSMQQVVGVGWERADLVGDAFDV rejected=HMSMQQRVSVGWERADLVGDAFDV
+2026-04-03 20:27:03,445 | INFO |   view=mut2 cluster=313 margin=22.3260 chosen=HMSMQQVRSAGWERASLVGDAFDV rejected=HMSMQQVVSAGLERASLVGDAFDV
+2026-04-03 20:27:03,445 | INFO |   view=mut2 cluster=307 margin=22.2503 chosen=HMSMQQVVGAGWERALLVGDAFDV rejected=HMSMQQVVSAGTERALLVGDAFDV
+2026-04-03 20:27:03,445 | INFO |   view=mut2 cluster=331 margin=22.2321 chosen=HMSMQQVVDAGWERRDLVGDAFDV rejected=HMSMQQVVSAGRERRDLVGDAFDV
+2026-04-03 20:27:03,446 | INFO | Bottom margin examples:
+2026-04-03 20:27:03,446 | INFO |   view=mut2 cluster=97 margin=0.0098 chosen=HMRMQQVVGAGWERADLVGDAFDV rejected=CMSMQQVVGAGWERADLVGDAFDV
+2026-04-03 20:27:03,446 | INFO |   view=mut1 cluster=99 margin=0.0303 chosen=HMSMQQVSSAGWERADLVGDAFDQ rejected=HMSMQQVSSAGWERADLQGDAFDV
+2026-04-03 20:27:03,447 | INFO |   view=mut1 cluster=96 margin=0.0314 chosen=HMSMQQVPSAGWERADLVGDAFEV rejected=HMSMQQVPSAGWERADLFGDAFDV
+2026-04-03 20:27:03,447 | INFO |   view=mut1 cluster=291 margin=0.0390 chosen=HMSMQQVVSAGWERAELVTDAFDV rejected=HMSMQQVVSAGWERAENVGDAFDV
+2026-04-03 20:27:03,447 | INFO |   view=mut1 cluster=418 margin=0.0410 chosen=HRSMQQVVDAGWERADLVGDAFDV rejected=HRVMQQVVSAGWERADLVGDAFDV
+2026-04-03 20:27:03,453 | INFO | Split sizes | train=26112 val=3264 test=3265
+2026-04-03 20:38:31,803 | INFO | step=20 train_loss=0.693107 reward_acc=0.5625 reward_margin=0.0001 implicit_kl=0.0097
+2026-04-03 20:49:55,246 | INFO | step=40 train_loss=0.693244 reward_acc=0.4375 reward_margin=-0.0002 implicit_kl=0.0075
+2026-04-03 21:01:17,655 | INFO | step=60 train_loss=0.693135 reward_acc=0.5000 reward_margin=0.0000 implicit_kl=0.0221
+2026-04-03 21:12:40,883 | INFO | step=80 train_loss=0.692970 reward_acc=0.5312 reward_margin=0.0004 implicit_kl=0.0058
+2026-04-03 21:24:02,340 | INFO | step=100 train_loss=0.692292 reward_acc=0.5938 reward_margin=0.0017 implicit_kl=0.0177
+2026-04-03 21:35:24,687 | INFO | step=120 train_loss=0.692812 reward_acc=0.4688 reward_margin=0.0007 implicit_kl=0.0295
+2026-04-03 21:46:47,887 | INFO | step=140 train_loss=0.692869 reward_acc=0.5312 reward_margin=0.0006 implicit_kl=0.0055
+2026-04-03 21:58:11,112 | INFO | step=160 train_loss=0.692864 reward_acc=0.5938 reward_margin=0.0006 implicit_kl=0.0288
+2026-04-03 22:09:33,408 | INFO | step=180 train_loss=0.692128 reward_acc=0.5938 reward_margin=0.0020 implicit_kl=0.0242
+2026-04-03 22:20:55,731 | INFO | step=200 train_loss=0.692318 reward_acc=0.6562 reward_margin=0.0017 implicit_kl=0.0147
+2026-04-03 22:32:17,919 | INFO | step=220 train_loss=0.692696 reward_acc=0.5312 reward_margin=0.0009 implicit_kl=0.0140

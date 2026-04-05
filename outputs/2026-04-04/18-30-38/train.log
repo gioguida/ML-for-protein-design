@@ -1,0 +1,28 @@
+2026-04-04 18:30:38,862 | INFO | Starting DPO training run
+2026-04-04 18:30:38,864 | INFO | Saved resolved config to /cluster/home/gguidarini/protein-design/outputs/2026-04-04/18-30-38/resolved_config.yaml
+2026-04-04 18:30:45,176 | INFO | Pair stats | n=32646 | margin mean=12.8654 median=14.0940 min=0.0000 max=22.5497
+2026-04-04 18:30:45,193 | INFO | Pairs per view: mut2:16510, mut1:16136
+2026-04-04 18:30:45,200 | INFO | Top margin examples:
+2026-04-04 18:30:45,201 | INFO |   view=mut1 cluster=418 margin=22.5497 chosen=HRSMQQVRSAGWERADLVGDAFDV rejected=HRSMQQVVSAGVERADLVGDAFDV
+2026-04-04 18:30:45,201 | INFO |   view=mut2 cluster=389 margin=22.3773 chosen=HMSMQQVVGVGWERADLVGDAFDV rejected=HMSMQQRVSVGWERADLVGDAFDV
+2026-04-04 18:30:45,201 | INFO |   view=mut2 cluster=313 margin=22.3260 chosen=HMSMQQVRSAGWERASLVGDAFDV rejected=HMSMQQVVSAGLERASLVGDAFDV
+2026-04-04 18:30:45,202 | INFO |   view=mut2 cluster=307 margin=22.2503 chosen=HMSMQQVVGAGWERALLVGDAFDV rejected=HMSMQQVVSAGTERALLVGDAFDV
+2026-04-04 18:30:45,202 | INFO |   view=mut2 cluster=331 margin=22.2321 chosen=HMSMQQVVDAGWERRDLVGDAFDV rejected=HMSMQQVVSAGRERRDLVGDAFDV
+2026-04-04 18:30:45,202 | INFO | Bottom margin examples:
+2026-04-04 18:30:45,202 | INFO |   view=mut1 cluster=92 margin=0.0000 chosen=HMSMQQVKSAGWERADLDGDAFDV rejected=HMSMQQVKVAGWERADLVGDAFDV
+2026-04-04 18:30:45,202 | INFO |   view=mut1 cluster=291 margin=0.0000 chosen=HMSMQQVVSAGWERAELFGDAFDV rejected=HMSMQQVVSAGWERAELVQDAFDV
+2026-04-04 18:30:45,203 | INFO |   view=mut1 cluster=411 margin=0.0000 chosen=HMTMQQVVSAGWERMDLVGDAFDV rejected=HMTNQQVVSAGWERADLVGDAFDV
+2026-04-04 18:30:45,203 | INFO |   view=mut2 cluster=158 margin=0.0000 chosen=HMSEQQVVSAGWERADLAGDAFDV rejected=HMSMQQVVSAGWERAILAGDAFDV
+2026-04-04 18:30:45,203 | INFO |   view=mut2 cluster=229 margin=0.0000 chosen=HMSMQNVVSAGWERADLVGDAMDV rejected=HMSMQQVVKAGWERADLVGDAMDV
+2026-04-04 18:30:45,206 | INFO | Split sizes | train=26116 val=3264 test=3266
+2026-04-04 18:34:02,913 | INFO | step=20 train_loss=0.693096
+2026-04-04 18:37:15,484 | INFO | step=40 train_loss=0.693017
+2026-04-04 18:40:27,968 | INFO | step=60 train_loss=0.692680
+2026-04-04 18:43:39,708 | INFO | step=80 train_loss=0.692647
+2026-04-04 18:46:51,586 | INFO | step=100 train_loss=0.692257
+2026-04-04 18:50:03,046 | INFO | step=120 train_loss=0.692387
+2026-04-04 18:53:15,095 | INFO | step=140 train_loss=0.691884
+2026-04-04 18:56:27,739 | INFO | step=160 train_loss=0.692000
+2026-04-04 18:59:40,370 | INFO | step=180 train_loss=0.691978
+2026-04-04 19:02:53,133 | INFO | step=200 train_loss=0.691606
+2026-04-04 19:39:53,944 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.692500 | val_loss=0.691794 | val_acc=0.6976 | val_margin=0.0027 | val_kl=-0.0758 | train_batches=205 | val_batches=26

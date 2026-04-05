@@ -1,0 +1,160 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            r09t9dra86qjra7wlx86n8xh5fql9ewp:
+                cpu_count: 128
+                cpu_count_logical: 128
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "10737418240"
+                        used: "8081313792"
+                email: gguidarini@ethz.ch
+                executable: /cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+                git:
+                    commit: 13cb454190d45d2da0dddb8e5cac99b187342079
+                    remote: git@github.com:gioguida/protein-design.git
+                gpu: NVIDIA GeForce RTX 4090
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 16384
+                      memoryTotal: "25757220864"
+                      name: NVIDIA GeForce RTX 4090
+                      uuid: GPU-f52bdfb4-e92d-2bdf-fae9-439d5df127db
+                host: eu-g6-012
+                memory:
+                    total: "538293407744"
+                os: Linux-5.15.0-171-generic-x86_64-with-glibc2.35
+                program: -m src.train_dpo
+                python: CPython 3.11.15
+                root: /cluster/home/gguidarini/protein-design/outputs/2026-04-05/08-24-51
+                slurm:
+                    cluster_name: euler-24-production
+                    conf: /cluster/slurm/adm/etc/slurm.conf
+                    cpus_on_node: "8"
+                    cpus_per_task: "8"
+                    export_env: ALL,OMP_NUM_THREADS=8
+                    get_user_env: "1"
+                    gpus: nvidia_geforce_rtx_4090:1
+                    gpus_on_node: "1"
+                    gtids: "0"
+                    job_account: gpuhe/ls_math
+                    job_cpus_per_node: "8"
+                    job_end_time: "1775456666"
+                    job_gid: "536237"
+                    job_gpus: "4"
+                    job_id: "62418634"
+                    job_name: train_dpo
+                    job_nodelist: eu-g6-012
+                    job_num_nodes: "1"
+                    job_partition: gpuhe.24h
+                    job_qos: ls_math/math-euler-hpclab-data
+                    job_reservation: math_otrs_18927341
+                    job_start_time: "1775370266"
+                    job_uid: "654548"
+                    job_user: gguidarini
+                    jobid: "62418634"
+                    localid: "0"
+                    mem_per_cpu: "8192"
+                    nnodes: "1"
+                    nodeid: "0"
+                    nodelist: eu-g6-012
+                    nprocs: "1"
+                    ntasks: "1"
+                    oom_kill_step: "0"
+                    prio_process: "0"
+                    procid: "0"
+                    script_context: prolog_task
+                    submit_dir: /cluster/home/gguidarini/protein-design
+                    submit_host: eu-login-29
+                    task_pid: "1421634"
+                    tasks_per_node: "1"
+                    topology_addr: .euler_rtx4090_lca_ib.eu-g6-012
+                    topology_addr_pattern: switch.switch.node
+                    tres_per_task: cpu=8
+                startedAt: "2026-04-05T06:24:53.430879Z"
+                writerId: r09t9dra86qjra7wlx86n8xh5fql9ewp
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 49
+                - 50
+                - 71
+            "2":
+                - 1
+                - 49
+                - 50
+                - 71
+            "3":
+                - 2
+                - 15
+                - 16
+                - 61
+                - 62
+            "4": 3.11.15
+            "5": 0.25.1
+            "12": 0.25.1
+            "13": linux-x86_64
+checkpointing:
+    value:
+        best_filename: best.pt
+        dir: checkpoints
+        last_filename: last.pt
+data:
+    value:
+        deduplicate_across_views: true
+        force_rebuild: false
+        include_views:
+            - mut1
+            - mut2
+        min_delta_margin: 5
+        min_positive_delta: 1
+        pairing_strategy: positive_only_extremes
+        processed_dir: data/processed
+        raw_csv: data/raw/M22_binding_enrichment.csv
+        test_frac: 0.1
+        train_frac: 0.8
+        val_frac: 0.1
+logging:
+    value:
+        history_csv: history.csv
+        level: INFO
+        log_every_n_steps: 20
+        preview_count: 5
+model:
+    value:
+        esm_model_path: /cluster/project/krause/flohmann/mgm/oracle_assets/esm2_8m.safetensors
+        use_context: true
+output_dir:
+    value: outputs
+seed:
+    value: 42
+training:
+    value:
+        batch_size: 256
+        beta: 0.1
+        device: cuda
+        evaluate_best_checkpoint: true
+        grad_clip_norm: 1
+        lr: 1e-05
+        num_epochs: 25
+        num_workers: 0
+        patience: 10
+        resume_checkpoint: null
+        scheduler:
+            enabled: false
+            gamma: 0.95
+            step_size: 100
+        weight_decay: 0
+wandb:
+    value:
+        enabled: true
+        entity: null
+        notes: null
+        project: flu
+        run_name: null
+        tags: []

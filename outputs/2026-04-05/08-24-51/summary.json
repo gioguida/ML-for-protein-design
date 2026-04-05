@@ -1,0 +1,14 @@
+{
+  "best_val_loss": 0.4917516681281003,
+  "test_loss": 0.5039257786490701,
+  "test_reward_accuracy": 0.8213071401586702,
+  "test_reward_margin": 0.538159392398505,
+  "test_implicit_kl": -8.030821648551962,
+  "test_perplexity": 34.59097378813279,
+  "test_batches": 11,
+  "test_pairs": 2647,
+  "test_skipped_batches": 0,
+  "num_train_pairs": 21176,
+  "num_val_pairs": 2647,
+  "num_test_pairs": 2647
+}

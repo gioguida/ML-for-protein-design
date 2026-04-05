@@ -1,0 +1,75 @@
+2026-04-03 22:40:10,150 | INFO | Starting DPO training run
+2026-04-03 22:40:10,155 | INFO | Saved resolved config to /cluster/home/gguidarini/protein-design/outputs/2026-04-03/22-40-10/resolved_config.yaml
+2026-04-03 22:40:19,713 | INFO | Pair stats | n=32641 | margin mean=12.8674 median=14.0945 min=0.0098 max=22.5497
+2026-04-03 22:40:19,725 | INFO | Pairs per view: mut2:16508, mut1:16133
+2026-04-03 22:40:19,732 | INFO | Top margin examples:
+2026-04-03 22:40:19,732 | INFO |   view=mut1 cluster=418 margin=22.5497 chosen=HRSMQQVRSAGWERADLVGDAFDV rejected=HRSMQQVVSAGVERADLVGDAFDV
+2026-04-03 22:40:19,733 | INFO |   view=mut2 cluster=389 margin=22.3773 chosen=HMSMQQVVGVGWERADLVGDAFDV rejected=HMSMQQRVSVGWERADLVGDAFDV
+2026-04-03 22:40:19,733 | INFO |   view=mut2 cluster=313 margin=22.3260 chosen=HMSMQQVRSAGWERASLVGDAFDV rejected=HMSMQQVVSAGLERASLVGDAFDV
+2026-04-03 22:40:19,733 | INFO |   view=mut2 cluster=307 margin=22.2503 chosen=HMSMQQVVGAGWERALLVGDAFDV rejected=HMSMQQVVSAGTERALLVGDAFDV
+2026-04-03 22:40:19,733 | INFO |   view=mut2 cluster=331 margin=22.2321 chosen=HMSMQQVVDAGWERRDLVGDAFDV rejected=HMSMQQVVSAGRERRDLVGDAFDV
+2026-04-03 22:40:19,734 | INFO | Bottom margin examples:
+2026-04-03 22:40:19,734 | INFO |   view=mut2 cluster=97 margin=0.0098 chosen=HMRMQQVVGAGWERADLVGDAFDV rejected=CMSMQQVVGAGWERADLVGDAFDV
+2026-04-03 22:40:19,734 | INFO |   view=mut1 cluster=99 margin=0.0303 chosen=HMSMQQVSSAGWERADLVGDAFDQ rejected=HMSMQQVSSAGWERADLQGDAFDV
+2026-04-03 22:40:19,735 | INFO |   view=mut1 cluster=96 margin=0.0314 chosen=HMSMQQVPSAGWERADLVGDAFEV rejected=HMSMQQVPSAGWERADLFGDAFDV
+2026-04-03 22:40:19,735 | INFO |   view=mut1 cluster=291 margin=0.0390 chosen=HMSMQQVVSAGWERAELVTDAFDV rejected=HMSMQQVVSAGWERAENVGDAFDV
+2026-04-03 22:40:19,735 | INFO |   view=mut1 cluster=418 margin=0.0410 chosen=HRSMQQVVDAGWERADLVGDAFDV rejected=HRVMQQVVSAGWERADLVGDAFDV
+2026-04-03 22:40:19,739 | INFO | Split sizes | train=26112 val=3264 test=3265
+2026-04-03 22:45:22,213 | INFO | step=20 train_loss=0.693154
+2026-04-03 22:50:18,667 | INFO | step=40 train_loss=0.692924
+2026-04-03 22:55:15,197 | INFO | step=60 train_loss=0.692649
+2026-04-03 23:00:10,975 | INFO | step=80 train_loss=0.692595
+2026-04-03 23:05:07,422 | INFO | step=100 train_loss=0.692249
+2026-04-03 23:10:04,408 | INFO | step=120 train_loss=0.692438
+2026-04-03 23:15:01,974 | INFO | step=140 train_loss=0.692377
+2026-04-03 23:19:56,143 | INFO | step=160 train_loss=0.692067
+2026-04-03 23:24:52,054 | INFO | step=180 train_loss=0.691948
+2026-04-03 23:29:47,453 | INFO | step=200 train_loss=0.691881
+2026-04-04 00:25:10,473 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.692515 | val_loss=0.691794 | val_acc=0.6982 | val_margin=0.0027 | val_kl=-0.0605 | train_batches=204 | val_batches=26
+2026-04-04 00:30:07,157 | INFO | step=20 train_loss=0.691541
+2026-04-04 00:35:03,504 | INFO | step=40 train_loss=0.690933
+2026-04-04 00:39:58,764 | INFO | step=60 train_loss=0.690494
+2026-04-04 00:44:56,110 | INFO | step=80 train_loss=0.688056
+2026-04-04 00:49:53,162 | INFO | step=100 train_loss=0.677664
+2026-04-04 00:54:52,518 | INFO | step=120 train_loss=0.655901
+2026-04-04 00:59:49,156 | INFO | step=140 train_loss=0.635220
+2026-04-04 01:04:47,050 | INFO | step=160 train_loss=0.609186
+2026-04-04 01:09:41,457 | INFO | step=180 train_loss=0.606580
+2026-04-04 01:14:37,888 | INFO | step=200 train_loss=0.572481
+2026-04-04 02:10:04,997 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.658601 | val_loss=0.599408 | val_acc=0.7739 | val_margin=0.2376 | val_kl=-7.3212 | train_batches=204 | val_batches=26
+2026-04-04 02:14:59,518 | INFO | step=20 train_loss=0.575517
+2026-04-04 02:19:54,673 | INFO | step=40 train_loss=0.608472
+2026-04-04 02:24:50,815 | INFO | step=60 train_loss=0.589228
+2026-04-04 02:29:45,669 | INFO | step=80 train_loss=0.575240
+2026-04-04 02:34:41,399 | INFO | step=100 train_loss=0.589833
+2026-04-04 02:39:35,853 | INFO | step=120 train_loss=0.570910
+2026-04-04 02:44:32,582 | INFO | step=140 train_loss=0.591096
+2026-04-04 02:49:29,554 | INFO | step=160 train_loss=0.577666
+2026-04-04 02:54:27,001 | INFO | step=180 train_loss=0.538064
+2026-04-04 02:59:22,866 | INFO | step=200 train_loss=0.556515
+2026-04-04 03:54:40,933 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.577676 | val_loss=0.562487 | val_acc=0.7828 | val_margin=0.3533 | val_kl=-9.0055 | train_batches=204 | val_batches=26
+2026-04-04 03:59:35,758 | INFO | step=20 train_loss=0.556212
+2026-04-04 04:04:30,218 | INFO | step=40 train_loss=0.530328
+2026-04-04 04:09:25,153 | INFO | step=60 train_loss=0.575354
+2026-04-04 04:14:21,903 | INFO | step=80 train_loss=0.548320
+2026-04-04 04:19:15,814 | INFO | step=100 train_loss=0.544976
+2026-04-04 04:24:11,858 | INFO | step=120 train_loss=0.554919
+2026-04-04 04:29:07,805 | INFO | step=140 train_loss=0.542567
+2026-04-04 04:34:03,601 | INFO | step=160 train_loss=0.550884
+2026-04-04 04:38:58,296 | INFO | step=180 train_loss=0.550158
+2026-04-04 04:43:54,370 | INFO | step=200 train_loss=0.548083
+2026-04-04 05:39:15,093 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.552449 | val_loss=0.546555 | val_acc=0.7895 | val_margin=0.4036 | val_kl=-8.7818 | train_batches=204 | val_batches=26
+2026-04-04 05:44:05,772 | INFO | step=20 train_loss=0.529274
+2026-04-04 05:48:58,644 | INFO | step=40 train_loss=0.548713
+2026-04-04 05:53:50,983 | INFO | step=60 train_loss=0.557030
+2026-04-04 05:58:42,647 | INFO | step=80 train_loss=0.558224
+2026-04-04 06:03:34,206 | INFO | step=100 train_loss=0.534660
+2026-04-04 06:08:26,249 | INFO | step=120 train_loss=0.554852
+2026-04-04 06:13:18,002 | INFO | step=140 train_loss=0.538794
+2026-04-04 06:18:09,639 | INFO | step=160 train_loss=0.529917
+2026-04-04 06:23:00,532 | INFO | step=180 train_loss=0.557954
+2026-04-04 06:27:52,514 | INFO | step=200 train_loss=0.560689
+2026-04-04 07:23:34,307 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.540025 | val_loss=0.539289 | val_acc=0.7923 | val_margin=0.4283 | val_kl=-8.2948 | train_batches=204 | val_batches=26
+2026-04-04 07:28:27,726 | INFO | step=20 train_loss=0.519365
+2026-04-04 07:33:20,351 | INFO | step=40 train_loss=0.559317
+2026-04-04 07:38:14,202 | INFO | step=60 train_loss=0.530519

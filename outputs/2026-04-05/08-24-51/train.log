@@ -1,0 +1,148 @@
+2026-04-05 08:24:51,542 | INFO | Starting DPO training run
+2026-04-05 08:24:51,544 | INFO | Saved resolved config to /cluster/home/gguidarini/protein-design/outputs/2026-04-05/08-24-51/resolved_config.yaml
+2026-04-05 08:24:57,656 | INFO | Pair stats | n=26470 | margin mean=13.9388 median=14.7827 min=5.0013 max=20.8004
+2026-04-05 08:24:57,666 | INFO | Pairs per view: mut2:13568, mut1:12902
+2026-04-05 08:24:57,671 | INFO | Top margin examples:
+2026-04-05 08:24:57,671 | INFO |   view=mut2 cluster=270 margin=20.8004 chosen=HMSMQQVPSAGWERADLVGSAFDV rejected=HMSMLQVVSAGWERADLVGSAFDV
+2026-04-05 08:24:57,672 | INFO |   view=mut2 cluster=278 margin=20.5274 chosen=HMSMQQVPSAGWERADLVLDAFDV rejected=HMSMFQVVSAGWERADLVLDAFDV
+2026-04-05 08:24:57,672 | INFO |   view=mut2 cluster=347 margin=20.4841 chosen=HMSMQQVVGAGWLRADLVGDAFDV rejected=HMSMQQVVSWGWLRADLVGDAFDV
+2026-04-05 08:24:57,672 | INFO |   view=mut2 cluster=353 margin=20.0159 chosen=HMSMQQVSSAGWSRADLVGDAFDV rejected=HMSMQQVVSAGGSRADLVGDAFDV
+2026-04-05 08:24:57,672 | INFO |   view=mut1 cluster=343 margin=19.8923 chosen=HMSMQQVVSAGWSRADLAGDAFDV rejected=HMSMQQVVSAGWSRADLVGWAFDV
+2026-04-05 08:24:57,672 | INFO | Bottom margin examples:
+2026-04-05 08:24:57,673 | INFO |   view=mut1 cluster=106 margin=5.0013 chosen=HMSMQQVVGAGWERADLVGDAFTV rejected=HMSMQQVVGAGWERADCVGDAFDV
+2026-04-05 08:24:57,673 | INFO |   view=mut1 cluster=91 margin=5.0035 chosen=HMSMQQVISVGWERADLVGDAFDV rejected=HMSMQQVISAGWERADLDGDAFDV
+2026-04-05 08:24:57,673 | INFO |   view=mut2 cluster=95 margin=5.0086 chosen=HMSMQMVVEAGWERADLVGDAFDV rejected=HMSMQVVVEAGWERADLVGDAFDV
+2026-04-05 08:24:57,673 | INFO |   view=mut1 cluster=90 margin=5.0092 chosen=HMSMQQVHSAGWERADLVGDAFDT rejected=HMSMQQVHSAGWERADLVRDAFDV
+2026-04-05 08:24:57,674 | INFO |   view=mut2 cluster=88 margin=5.0143 chosen=HGSMQQVQSAGWERADLVGDAFDV rejected=HMSMQQCQSAGWERADLVGDAFDV
+2026-04-05 08:24:57,676 | INFO | Split sizes | train=21176 val=2647 test=2647
+2026-04-05 08:28:27,437 | INFO | step=20 train_loss=0.693015
+2026-04-05 08:31:52,340 | INFO | step=40 train_loss=0.692921
+2026-04-05 08:35:17,126 | INFO | step=60 train_loss=0.692834
+2026-04-05 08:38:41,863 | INFO | step=80 train_loss=0.692596
+2026-04-05 08:43:19,534 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.692829 | val_loss=0.692479 | val_acc=0.6521 | val_margin=0.0014 | val_kl=0.0263 | train_batches=83 | val_batches=11
+2026-04-05 08:46:44,186 | INFO | step=20 train_loss=0.692261
+2026-04-05 08:50:09,173 | INFO | step=40 train_loss=0.692021
+2026-04-05 08:53:33,958 | INFO | step=60 train_loss=0.692063
+2026-04-05 08:56:58,445 | INFO | step=80 train_loss=0.691843
+2026-04-05 09:01:36,419 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.692148 | val_loss=0.691629 | val_acc=0.7284 | val_margin=0.0031 | val_kl=-0.0334 | train_batches=83 | val_batches=11
+2026-04-05 09:05:01,070 | INFO | step=20 train_loss=0.691169
+2026-04-05 09:08:25,998 | INFO | step=40 train_loss=0.690367
+2026-04-05 09:11:51,035 | INFO | step=60 train_loss=0.687332
+2026-04-05 09:15:16,111 | INFO | step=80 train_loss=0.680240
+2026-04-05 09:19:55,203 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.688480 | val_loss=0.675977 | val_acc=0.7918 | val_margin=0.0356 | val_kl=-2.0298 | train_batches=83 | val_batches=11
+2026-04-05 09:23:19,883 | INFO | step=20 train_loss=0.660581
+2026-04-05 09:26:44,912 | INFO | step=40 train_loss=0.639359
+2026-04-05 09:30:09,970 | INFO | step=60 train_loss=0.610989
+2026-04-05 09:33:34,964 | INFO | step=80 train_loss=0.594948
+2026-04-05 09:38:14,171 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.633581 | val_loss=0.598211 | val_acc=0.8024 | val_margin=0.2364 | val_kl=-5.9563 | train_batches=83 | val_batches=11
+2026-04-05 09:41:38,990 | INFO | step=20 train_loss=0.585840
+2026-04-05 09:45:04,050 | INFO | step=40 train_loss=0.584270
+2026-04-05 09:48:29,200 | INFO | step=60 train_loss=0.578220
+2026-04-05 09:51:54,351 | INFO | step=80 train_loss=0.565121
+2026-04-05 09:56:34,000 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.584559 | val_loss=0.566030 | val_acc=0.8036 | val_margin=0.3339 | val_kl=-8.0351 | train_batches=83 | val_batches=11
+2026-04-05 09:59:58,891 | INFO | step=20 train_loss=0.560318
+2026-04-05 10:03:24,004 | INFO | step=40 train_loss=0.576247
+2026-04-05 10:06:49,062 | INFO | step=60 train_loss=0.539239
+2026-04-05 10:10:13,844 | INFO | step=80 train_loss=0.551099
+2026-04-05 10:14:53,390 | INFO | Epoch 6 | lr=1.000e-05 | train_loss=0.559545 | val_loss=0.544462 | val_acc=0.8107 | val_margin=0.4008 | val_kl=-8.9238 | train_batches=83 | val_batches=11
+2026-04-05 10:18:18,027 | INFO | step=20 train_loss=0.541021
+2026-04-05 10:21:43,111 | INFO | step=40 train_loss=0.541478
+2026-04-05 10:25:08,158 | INFO | step=60 train_loss=0.545956
+2026-04-05 10:28:33,251 | INFO | step=80 train_loss=0.542395
+2026-04-05 10:33:12,256 | INFO | Epoch 7 | lr=1.000e-05 | train_loss=0.542621 | val_loss=0.529780 | val_acc=0.8183 | val_margin=0.4455 | val_kl=-8.7228 | train_batches=83 | val_batches=11
+2026-04-05 10:36:37,045 | INFO | step=20 train_loss=0.539696
+2026-04-05 10:40:02,042 | INFO | step=40 train_loss=0.516042
+2026-04-05 10:43:27,044 | INFO | step=60 train_loss=0.547635
+2026-04-05 10:46:52,194 | INFO | step=80 train_loss=0.533199
+2026-04-05 10:51:31,785 | INFO | Epoch 8 | lr=1.000e-05 | train_loss=0.532629 | val_loss=0.522306 | val_acc=0.8217 | val_margin=0.4649 | val_kl=-7.8888 | train_batches=83 | val_batches=11
+2026-04-05 10:54:56,576 | INFO | step=20 train_loss=0.508835
+2026-04-05 10:58:21,473 | INFO | step=40 train_loss=0.528799
+2026-04-05 11:01:46,407 | INFO | step=60 train_loss=0.509842
+2026-04-05 11:05:11,181 | INFO | step=80 train_loss=0.540751
+2026-04-05 11:09:48,746 | INFO | Epoch 9 | lr=1.000e-05 | train_loss=0.523728 | val_loss=0.514131 | val_acc=0.8228 | val_margin=0.4910 | val_kl=-7.7882 | train_batches=83 | val_batches=11
+2026-04-05 11:13:13,442 | INFO | step=20 train_loss=0.505590
+2026-04-05 11:16:38,352 | INFO | step=40 train_loss=0.507808
+2026-04-05 11:20:03,204 | INFO | step=60 train_loss=0.513417
+2026-04-05 11:23:27,747 | INFO | step=80 train_loss=0.497907
+2026-04-05 11:28:06,761 | INFO | Epoch 10 | lr=1.000e-05 | train_loss=0.517639 | val_loss=0.508722 | val_acc=0.8247 | val_margin=0.5090 | val_kl=-7.7662 | train_batches=83 | val_batches=11
+2026-04-05 11:31:31,547 | INFO | step=20 train_loss=0.542012
+2026-04-05 11:34:56,505 | INFO | step=40 train_loss=0.496702
+2026-04-05 11:38:21,610 | INFO | step=60 train_loss=0.515544
+2026-04-05 11:41:46,664 | INFO | step=80 train_loss=0.530029
+2026-04-05 11:46:26,269 | INFO | Epoch 11 | lr=1.000e-05 | train_loss=0.513923 | val_loss=0.504977 | val_acc=0.8266 | val_margin=0.5229 | val_kl=-7.8130 | train_batches=83 | val_batches=11
+2026-04-05 11:49:51,210 | INFO | step=20 train_loss=0.507717
+2026-04-05 11:53:16,177 | INFO | step=40 train_loss=0.521345
+2026-04-05 11:56:40,834 | INFO | step=60 train_loss=0.544820
+2026-04-05 12:00:05,862 | INFO | step=80 train_loss=0.528572
+2026-04-05 12:04:45,303 | INFO | Epoch 12 | lr=1.000e-05 | train_loss=0.510366 | val_loss=0.501514 | val_acc=0.8315 | val_margin=0.5339 | val_kl=-7.8429 | train_batches=83 | val_batches=11
+2026-04-05 12:08:09,897 | INFO | step=20 train_loss=0.495647
+2026-04-05 12:11:34,955 | INFO | step=40 train_loss=0.527122
+2026-04-05 12:15:00,136 | INFO | step=60 train_loss=0.503148
+2026-04-05 12:18:25,203 | INFO | step=80 train_loss=0.503500
+2026-04-05 12:23:05,079 | INFO | Epoch 13 | lr=1.000e-05 | train_loss=0.508606 | val_loss=0.499436 | val_acc=0.8323 | val_margin=0.5405 | val_kl=-7.8346 | train_batches=83 | val_batches=11
+2026-04-05 12:26:30,012 | INFO | step=20 train_loss=0.508517
+2026-04-05 12:29:55,332 | INFO | step=40 train_loss=0.501199
+2026-04-05 12:33:20,492 | INFO | step=60 train_loss=0.517480
+2026-04-05 12:36:45,318 | INFO | step=80 train_loss=0.504120
+2026-04-05 12:41:24,301 | INFO | Epoch 14 | lr=1.000e-05 | train_loss=0.506797 | val_loss=0.498536 | val_acc=0.8274 | val_margin=0.5442 | val_kl=-8.0071 | train_batches=83 | val_batches=11
+2026-04-05 12:44:49,027 | INFO | step=20 train_loss=0.500735
+2026-04-05 12:48:14,061 | INFO | step=40 train_loss=0.507313
+2026-04-05 12:51:38,942 | INFO | step=60 train_loss=0.526944
+2026-04-05 12:55:03,667 | INFO | step=80 train_loss=0.485051
+2026-04-05 12:59:43,668 | INFO | Epoch 15 | lr=1.000e-05 | train_loss=0.505411 | val_loss=0.497134 | val_acc=0.8349 | val_margin=0.5487 | val_kl=-7.9537 | train_batches=83 | val_batches=11
+2026-04-05 13:03:08,433 | INFO | step=20 train_loss=0.503744
+2026-04-05 13:06:33,343 | INFO | step=40 train_loss=0.536254
+2026-04-05 13:09:58,120 | INFO | step=60 train_loss=0.508248
+2026-04-05 13:13:22,819 | INFO | step=80 train_loss=0.491043
+2026-04-05 13:18:02,622 | INFO | Epoch 16 | lr=1.000e-05 | train_loss=0.504495 | val_loss=0.495843 | val_acc=0.8330 | val_margin=0.5536 | val_kl=-7.9810 | train_batches=83 | val_batches=11
+2026-04-05 13:21:27,495 | INFO | step=20 train_loss=0.516987
+2026-04-05 13:24:52,461 | INFO | step=40 train_loss=0.523775
+2026-04-05 13:28:17,356 | INFO | step=60 train_loss=0.517996
+2026-04-05 13:31:42,061 | INFO | step=80 train_loss=0.498040
+2026-04-05 13:36:21,565 | INFO | Epoch 17 | lr=1.000e-05 | train_loss=0.503149 | val_loss=0.494218 | val_acc=0.8364 | val_margin=0.5585 | val_kl=-8.0013 | train_batches=83 | val_batches=11
+2026-04-05 13:39:46,126 | INFO | step=20 train_loss=0.476442
+2026-04-05 13:43:10,882 | INFO | step=40 train_loss=0.513452
+2026-04-05 13:46:36,005 | INFO | step=60 train_loss=0.511386
+2026-04-05 13:50:01,154 | INFO | step=80 train_loss=0.491730
+2026-04-05 13:54:39,924 | INFO | Epoch 18 | lr=1.000e-05 | train_loss=0.502470 | val_loss=0.494888 | val_acc=0.8326 | val_margin=0.5574 | val_kl=-7.9576 | train_batches=83 | val_batches=11
+2026-04-05 13:58:04,687 | INFO | step=20 train_loss=0.491812
+2026-04-05 14:01:29,665 | INFO | step=40 train_loss=0.496544
+2026-04-05 14:04:54,675 | INFO | step=60 train_loss=0.522914
+2026-04-05 14:08:19,680 | INFO | step=80 train_loss=0.515507
+2026-04-05 14:12:59,274 | INFO | Epoch 19 | lr=1.000e-05 | train_loss=0.501969 | val_loss=0.493554 | val_acc=0.8357 | val_margin=0.5599 | val_kl=-7.9797 | train_batches=83 | val_batches=11
+2026-04-05 14:16:23,902 | INFO | step=20 train_loss=0.504947
+2026-04-05 14:19:48,584 | INFO | step=40 train_loss=0.510594
+2026-04-05 14:23:13,353 | INFO | step=60 train_loss=0.493816
+2026-04-05 14:26:38,293 | INFO | step=80 train_loss=0.475322
+2026-04-05 14:31:16,722 | INFO | Epoch 20 | lr=1.000e-05 | train_loss=0.501661 | val_loss=0.493633 | val_acc=0.8345 | val_margin=0.5603 | val_kl=-8.0312 | train_batches=83 | val_batches=11
+2026-04-05 14:34:41,370 | INFO | step=20 train_loss=0.480938
+2026-04-05 14:38:06,158 | INFO | step=40 train_loss=0.492771
+2026-04-05 14:41:31,174 | INFO | step=60 train_loss=0.501248
+2026-04-05 14:44:56,152 | INFO | step=80 train_loss=0.499801
+2026-04-05 14:49:35,453 | INFO | Epoch 21 | lr=1.000e-05 | train_loss=0.501523 | val_loss=0.493584 | val_acc=0.8379 | val_margin=0.5611 | val_kl=-7.9463 | train_batches=83 | val_batches=11
+2026-04-05 14:53:00,061 | INFO | step=20 train_loss=0.508567
+2026-04-05 14:56:24,767 | INFO | step=40 train_loss=0.526936
+2026-04-05 14:59:49,405 | INFO | step=60 train_loss=0.500102
+2026-04-05 15:03:14,375 | INFO | step=80 train_loss=0.500347
+2026-04-05 15:07:54,079 | INFO | Epoch 22 | lr=1.000e-05 | train_loss=0.501214 | val_loss=0.493257 | val_acc=0.8274 | val_margin=0.5614 | val_kl=-7.9864 | train_batches=83 | val_batches=11
+2026-04-05 15:11:18,978 | INFO | step=20 train_loss=0.507681
+2026-04-05 15:14:43,943 | INFO | step=40 train_loss=0.510626
+2026-04-05 15:18:08,993 | INFO | step=60 train_loss=0.495225
+2026-04-05 15:21:33,590 | INFO | step=80 train_loss=0.493844
+2026-04-05 15:26:13,181 | INFO | Epoch 23 | lr=1.000e-05 | train_loss=0.500908 | val_loss=0.492394 | val_acc=0.8353 | val_margin=0.5645 | val_kl=-7.9908 | train_batches=83 | val_batches=11
+2026-04-05 15:29:37,911 | INFO | step=20 train_loss=0.473122
+2026-04-05 15:33:02,484 | INFO | step=40 train_loss=0.501699
+2026-04-05 15:36:27,369 | INFO | step=60 train_loss=0.499797
+2026-04-05 15:39:52,336 | INFO | step=80 train_loss=0.522155
+2026-04-05 15:44:31,538 | INFO | Epoch 24 | lr=1.000e-05 | train_loss=0.500642 | val_loss=0.492364 | val_acc=0.8391 | val_margin=0.5644 | val_kl=-7.9576 | train_batches=83 | val_batches=11
+2026-04-05 15:47:56,405 | INFO | step=20 train_loss=0.502181
+2026-04-05 15:51:21,378 | INFO | step=40 train_loss=0.479658
+2026-04-05 15:54:46,370 | INFO | step=60 train_loss=0.514041
+2026-04-05 15:58:11,424 | INFO | step=80 train_loss=0.473772
+2026-04-05 16:02:50,984 | INFO | Epoch 25 | lr=1.000e-05 | train_loss=0.500435 | val_loss=0.491752 | val_acc=0.8387 | val_margin=0.5656 | val_kl=-7.9876 | train_batches=83 | val_batches=11
+2026-04-05 16:02:51,249 | INFO | Loaded best checkpoint for final test evaluation: /cluster/home/gguidarini/protein-design/outputs/2026-04-05/08-24-51/checkpoints/best.pt
+2026-04-05 16:07:02,632 | INFO | Test metrics | loss=0.503926 | reward_acc=0.8213 | reward_margin=0.5382 | implicit_kl=-8.0308 | batches=11 | skipped=0
+2026-04-05 16:07:02,633 | INFO | Computing perplexity on test set (chosen sequences)...
+2026-04-05 16:07:09,763 | INFO | Test Chosen Perplexity: 34.5910
+2026-04-05 16:07:09,863 | INFO | Saved history to /cluster/home/gguidarini/protein-design/outputs/2026-04-05/08-24-51/history.csv
+2026-04-05 16:07:09,863 | INFO | Saved summary to /cluster/home/gguidarini/protein-design/outputs/2026-04-05/08-24-51/summary.json

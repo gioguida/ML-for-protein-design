@@ -1,0 +1,19 @@
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_setup.py:_flush():81] Current SDK version is 0.25.1
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_setup.py:_flush():81] Configure stats pid to 3988342
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /cluster/home/gguidarini/protein-design/outputs/2026-04-03/22-40-10/wandb/run-20260403_224012-hxdoy2sm/logs/debug.log
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /cluster/home/gguidarini/protein-design/outputs/2026-04-03/22-40-10/wandb/run-20260403_224012-hxdoy2sm/logs/debug-internal.log
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_init.py:init():844] calling init triggers
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'seed': 42, 'data': {'raw_csv': 'data/raw/M22_binding_enrichment.csv', 'processed_dir': 'data/processed', 'force_rebuild': False, 'pairing_strategy': 'positive_vs_tail', 'min_positive_delta': 0.0, 'include_views': ['mut1', 'mut2'], 'deduplicate_across_views': True, 'train_frac': 0.8, 'val_frac': 0.1, 'test_frac': 0.1}, 'model': {'esm_model_path': '/cluster/project/krause/flohmann/mgm/oracle_assets/esm2_8m.safetensors', 'use_context': True}, 'training': {'batch_size': 128, 'num_epochs': 25, 'lr': 1e-05, 'weight_decay': 0.0, 'beta': 0.1, 'grad_clip_norm': 1.0, 'patience': 10, 'device': 'cuda', 'num_workers': 0, 'resume_checkpoint': None, 'evaluate_best_checkpoint': True, 'scheduler': {'enabled': False, 'step_size': 100, 'gamma': 0.95}}, 'logging': {'level': 'INFO', 'preview_count': 5, 'log_every_n_steps': 20, 'history_csv': 'history.csv'}, 'checkpointing': {'dir': 'checkpoints', 'best_filename': 'best.pt', 'last_filename': 'last.pt'}, 'output_dir': 'outputs', 'wandb': {'enabled': True, 'project': 'flu', 'entity': None, 'run_name': None, 'tags': [], 'notes': None}, '_wandb': {}}
+2026-04-03 22:40:12,335 INFO    MainThread:3988342 [wandb_init.py:init():892] starting backend
+2026-04-03 22:40:13,364 INFO    MainThread:3988342 [wandb_init.py:init():895] sending inform_init request
+2026-04-03 22:40:13,378 INFO    MainThread:3988342 [wandb_init.py:init():903] backend started and connected
+2026-04-03 22:40:13,381 INFO    MainThread:3988342 [wandb_init.py:init():973] updated telemetry
+2026-04-03 22:40:13,410 INFO    MainThread:3988342 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-04-03 22:40:14,356 INFO    MainThread:3988342 [wandb_init.py:init():1042] starting run threads in backend
+2026-04-03 22:40:14,610 INFO    MainThread:3988342 [wandb_run.py:_console_start():2524] atexit reg
+2026-04-03 22:40:14,610 INFO    MainThread:3988342 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-04-03 22:40:14,610 INFO    MainThread:3988342 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-04-03 22:40:14,610 INFO    MainThread:3988342 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-04-03 22:40:14,620 INFO    MainThread:3988342 [wandb_init.py:init():1082] run started, returning control to user process

@@ -1,7 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=test_esm
+#SBATCH --job-name=test_model
 #SBATCH --output=slurm-outputs/%x-%j.out  
-#SBATCH --error=slurm-outputs/%x-%j.err
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8

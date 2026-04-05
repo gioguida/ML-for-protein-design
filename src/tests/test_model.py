@@ -19,7 +19,7 @@ from src.train_dpo import (
      _build_dataloader
 )
 from src.utils import LEFT_CONTEXT, ModelConfig
-from eval import sequence_perplexity
+from src.eval import sequence_perplexity
 
 
 
@@ -196,6 +196,9 @@ def main():
     reference = ESM2PLLScorer(reference_cfg)
 
     for param in reference.model.parameters():
+        param.requires_grad_(False)
+
+    for param in policy.model.parameters():
         param.requires_grad_(False)
 
     test_loader = _build_dataloader(
