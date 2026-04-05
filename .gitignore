@@ -18,6 +18,9 @@ __pycache__/
 # Claude
 .claude/
 
+# Outputs folder
+outputs/
+
 # Data (Avoid checking in data unless explicitly intended)
 # If your datasets are huge, ignore them completely
 # data/

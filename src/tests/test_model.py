@@ -6,7 +6,6 @@ Run with:
 """
 
 import torch
-from functools import lru_cache
 from pathlib import Path
 
 from src.model import ESM2PLLScorer
@@ -18,7 +17,7 @@ from src.train_dpo import (
      _load_checkpoint,
      _build_dataloader
 )
-from src.utils import LEFT_CONTEXT, ModelConfig
+from src.utils import ModelConfig
 from src.eval import sequence_perplexity
 
 
@@ -48,24 +47,18 @@ class dataset_config:
         self.test_frac = 0.1
 
 
-class policy_config:
-    def __init__(self):
-        self.esm_model_path=FINE_TUNED_CHECKPOINT_PATH
-        self.device="cuda" if torch.cuda.is_available() else "cpu",
-        self.use_context=True,
-
-
-class reference_config:
-    def __init__(self):
-        self.esm_model_path="/cluster/project/krause/flohmann/mgm/oracle_assets/esm2_8m.safetensors"
-        self.device="cuda" if torch.cuda.is_available() else "cpu",
-        self.use_context=True,
-
-
 def main():   
     cfg_data = dataset_config()
-    policy_cfg = policy_config()
-    reference_cfg = reference_config()
+    policy_cfg = ModelConfig(
+        esm_model_path=ESM_MODEL_PATH,
+        device=DEVICE,
+        use_context=True,
+    )
+    reference_cfg = ModelConfig(
+        esm_model_path=ESM_MODEL_PATH,
+        device=DEVICE,
+        use_context=True,
+    )
 
     pairs_df = load_dpo_pair_dataframe(
         pairing_strategy=cfg_data.pairing_strategy,
@@ -86,6 +79,12 @@ def main():
     )
 
     policy = ESM2PLLScorer(policy_cfg)
+    _load_checkpoint(
+        checkpoint_path=Path(FINE_TUNED_CHECKPOINT_PATH),
+        policy=policy,
+        optimizer=None,
+        scheduler=None,
+    )
     reference = ESM2PLLScorer(reference_cfg)
 
     for param in reference.model.parameters():
@@ -101,6 +100,10 @@ def main():
         seed=42,
         num_workers=0,
     )
+
+    total_perplexity_finetuned = 0.0
+    total_perplexity_reference = 0.0
+    num_chosen = 0
 
     with torch.no_grad():
         for batch in test_loader:
