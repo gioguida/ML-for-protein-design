@@ -11,6 +11,21 @@ else
     exit 1
 fi
 
+# Route run artifacts to scratch by default.
+export DPO_OUTPUT_DIR="${DPO_OUTPUT_DIR:-${DPO_SCRATCH}/outputs}"
+export DPO_BEST_MODEL_DIR="${DPO_BEST_MODEL_DIR:-${DPO_HOME}/dpo_best_models}"
+export DPO_LAST_MODEL_DIR="${DPO_LAST_MODEL_DIR:-${DPO_HOME}/dpo_last_models}"
+
+# Keep W&B caches/artifacts off home.
+export DPO_WANDB_DIR="${DPO_WANDB_DIR:-${DPO_SCRATCH}/wandb}"
+export DPO_WANDB_CACHE_DIR="${DPO_WANDB_CACHE_DIR:-${DPO_SCRATCH}/wandb-cache}"
+export DPO_WANDB_DATA_DIR="${DPO_WANDB_DATA_DIR:-${DPO_SCRATCH}/wandb-data}"
+export WANDB_DIR="${DPO_WANDB_DIR}"
+export WANDB_CACHE_DIR="${DPO_WANDB_CACHE_DIR}"
+export WANDB_DATA_DIR="${DPO_WANDB_DATA_DIR}"
+
+mkdir -p "${DPO_OUTPUT_DIR}" "${DPO_BEST_MODEL_DIR}" "${DPO_LAST_MODEL_DIR}" "${WANDB_DIR}" "${WANDB_CACHE_DIR}" "${WANDB_DATA_DIR}"
+
 # Load required modules
 # Some stacks hide specific Python modules; if unavailable, rely on conda Python.
 if [ -n "${DPO_PYTHON_MODULE:-}" ]; then
@@ -30,3 +45,7 @@ module load "${DPO_CUDA_MODULE}"
 source "${DPO_CONDA_BASE}/bin/activate" "${DPO_CONDA_ENV}"
 
 echo "DPO environment loaded for user: ${DPO_USER}"
+echo "DPO output dir: ${DPO_OUTPUT_DIR}"
+echo "DPO best-model export dir: ${DPO_BEST_MODEL_DIR}"
+echo "DPO last-model export dir: ${DPO_LAST_MODEL_DIR}"
+echo "W&B dir: ${WANDB_DIR}"

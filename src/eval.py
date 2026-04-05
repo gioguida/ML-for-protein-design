@@ -19,12 +19,21 @@ def sequence_perplexity(
     if len(sequences) == 0:
         raise ValueError("sequences must not be empty")
 
+    seq_lengths = {len(seq) for seq in sequences}
+    if len(seq_lengths) != 1:
+        raise ValueError("All sequences in a batch must have the same length.")
+
     # Get the Pseudo-Log-Likelihood for the batch
     pll_scores = scorer.pseudo_log_likelihood(sequences, cdr_only=cdr_only, use_grad=False)
-    
-    # N is the length of the scored portion. 
-    # For ESM2PLLScorer cdr_only, this implies all sequences in the batch have the same CDR length
-    N = len(sequences[0])  
+
+    # N is the number of positions scored by PLL.
+    if cdr_only:
+        N = float(next(iter(seq_lengths)))
+    else:
+        N = float(scorer.tokenize_sequences([sequences[0]]).shape[1])
+
+    if N <= 0:
+        raise ValueError("Number of scored positions must be positive.")
     
     # Calculate Perplexity: exp(-PLL / N)
     perplexity = torch.exp(-pll_scores / N)

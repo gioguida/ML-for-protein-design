@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -190,6 +191,26 @@ def _load_checkpoint(
     return next_epoch, best_val_loss
 
 
+def _export_checkpoint(
+    checkpoint_path: Path,
+    export_dir: Optional[str],
+    export_filename: str,
+    checkpoint_label: str,
+    logger: logging.Logger,
+) -> Optional[Path]:
+    if export_dir is None:
+        return None
+    if not checkpoint_path.exists():
+        return None
+
+    target_dir = Path(to_absolute_path(str(export_dir)))
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / str(export_filename)
+    shutil.copy2(checkpoint_path, target_path)
+    logger.info("Exported %s checkpoint to %s", checkpoint_label, target_path)
+    return target_path
+
+
 def _run_epoch(
     policy: ESM2PLLScorer,
     reference: ESM2PLLScorer,
@@ -365,6 +386,10 @@ def main(cfg: Any) -> None:
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     best_ckpt = ckpt_dir / str(cfg.checkpointing.best_filename)
     last_ckpt = ckpt_dir / str(cfg.checkpointing.last_filename)
+    best_export_dir = None if cfg.checkpointing.best_export_dir is None else str(cfg.checkpointing.best_export_dir)
+    best_export_filename = str(cfg.checkpointing.best_export_filename)
+    last_export_dir = None if cfg.checkpointing.last_export_dir is None else str(cfg.checkpointing.last_export_dir)
+    last_export_filename = str(cfg.checkpointing.last_export_filename)
 
     start_epoch = 1
     best_val_loss = float("inf")
@@ -467,6 +492,13 @@ def main(cfg: Any) -> None:
                 scheduler=scheduler,
                 best_val_loss=best_val_loss,
             )
+            _export_checkpoint(
+                checkpoint_path=best_ckpt,
+                export_dir=best_export_dir,
+                export_filename=best_export_filename,
+                checkpoint_label="best",
+                logger=logger,
+            )
         else:
             epochs_without_improvement += 1
 
@@ -478,6 +510,13 @@ def main(cfg: Any) -> None:
             scheduler=scheduler,
             best_val_loss=best_val_loss,
         )
+        _export_checkpoint(
+            checkpoint_path=last_ckpt,
+            export_dir=last_export_dir,
+            export_filename=last_export_filename,
+            checkpoint_label="last",
+            logger=logger,
+        )
 
         if int(cfg.training.patience) > 0 and epochs_without_improvement >= int(cfg.training.patience):
             logger.info("Early stopping after %d epochs without val improvement.", epochs_without_improvement)
@@ -486,6 +525,22 @@ def main(cfg: Any) -> None:
     if bool(cfg.training.evaluate_best_checkpoint) and best_ckpt.exists():
         _load_checkpoint(best_ckpt, policy=policy, optimizer=None, scheduler=None)
         logger.info("Loaded best checkpoint for final test evaluation: %s", best_ckpt)
+
+    _export_checkpoint(
+        checkpoint_path=best_ckpt,
+        export_dir=best_export_dir,
+        export_filename=best_export_filename,
+        checkpoint_label="best",
+        logger=logger,
+    )
+
+    _export_checkpoint(
+        checkpoint_path=last_ckpt,
+        export_dir=last_export_dir,
+        export_filename=last_export_filename,
+        checkpoint_label="last",
+        logger=logger,
+    )
 
     test_metrics, _ = _run_epoch(
         policy=policy,

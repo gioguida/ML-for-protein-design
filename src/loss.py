@@ -37,11 +37,31 @@ def dpo_loss(
         if len(diff_positions) == 0:
             continue
         
-        w_masked_pll = scorer.masked_pseudo_log_likelihood([winner], diff_positions, use_grad=policy_use_grad).squeeze(0)
-        l_masked_pll = scorer.masked_pseudo_log_likelihood([loser], diff_positions, use_grad=policy_use_grad).squeeze(0)
+        w_masked_pll = scorer.masked_pseudo_log_likelihood(
+            [winner],
+            diff_positions,
+            use_grad=policy_use_grad,
+            positions_are_cdr=True,
+        ).squeeze(0)
+        l_masked_pll = scorer.masked_pseudo_log_likelihood(
+            [loser],
+            diff_positions,
+            use_grad=policy_use_grad,
+            positions_are_cdr=True,
+        ).squeeze(0)
 
-        ref_w_masked_pll = reference.masked_pseudo_log_likelihood([winner], diff_positions, use_grad=False).squeeze(0)
-        ref_l_masked_pll = reference.masked_pseudo_log_likelihood([loser], diff_positions, use_grad=False).squeeze(0)
+        ref_w_masked_pll = reference.masked_pseudo_log_likelihood(
+            [winner],
+            diff_positions,
+            use_grad=False,
+            positions_are_cdr=True,
+        ).squeeze(0)
+        ref_l_masked_pll = reference.masked_pseudo_log_likelihood(
+            [loser],
+            diff_positions,
+            use_grad=False,
+            positions_are_cdr=True,
+        ).squeeze(0)
 
         delta_score = w_masked_pll - l_masked_pll
         delta_ref_score = ref_w_masked_pll - ref_l_masked_pll
@@ -60,12 +80,20 @@ def implicit_reward(
     scorer: ESM2PLLScorer, 
     reference: ESM2PLLScorer
 ) -> torch.Tensor:
-    """Compute the implicit reward for a single masked sequence."""
-    # compute masked PLL score for the sequence at the masked positions
+    """Compute implicit reward for a sequence at given CDR residue positions."""
     positions = [int(pos) for pos in masked_positions]
-    masked_pll = scorer.masked_pseudo_log_likelihood([sequence], positions, use_grad=False).squeeze(0)
-    ref_masked_pll = reference.masked_pseudo_log_likelihood([sequence], positions, use_grad=False).squeeze(0)
-    # reward only matters in masked positions
+    masked_pll = scorer.masked_pseudo_log_likelihood(
+        [sequence],
+        positions,
+        use_grad=False,
+        positions_are_cdr=True,
+    ).squeeze(0)
+    ref_masked_pll = reference.masked_pseudo_log_likelihood(
+        [sequence],
+        positions,
+        use_grad=False,
+        positions_are_cdr=True,
+    ).squeeze(0)
     reward = beta * (masked_pll - ref_masked_pll)   
     return reward
 
@@ -175,11 +203,15 @@ def sequence_perplexity(
         scorer: ESM2PLLScorer,
         reference: ESM2PLLScorer
 ) -> Dict[str, float]:
-    """Compute the perplexity of a single sequence under the scorer and reference."""
-    masked_pll = scorer.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
-    ref_masked_pll = reference.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
-    perplexity = torch.exp(-masked_pll)
-    ref_perplexity = torch.exp(-ref_masked_pll)
+    """Compute normalized CDR perplexity of one sequence under scorer/reference."""
+    if len(sequence) == 0:
+        raise ValueError("sequence must not be empty")
+
+    cdr_length = float(len(sequence))
+    masked_pll = scorer.pseudo_log_likelihood([sequence], cdr_only=True, use_grad=False).squeeze(0)
+    ref_masked_pll = reference.pseudo_log_likelihood([sequence], cdr_only=True, use_grad=False).squeeze(0)
+    perplexity = torch.exp(-masked_pll / cdr_length)
+    ref_perplexity = torch.exp(-ref_masked_pll / cdr_length)
     return {
         "perplexity": float(perplexity.item()),
         "reference_perplexity": float(ref_perplexity.item()),

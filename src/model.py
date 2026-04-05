@@ -43,14 +43,37 @@ class ESM2PLLScorer:
 			raise TypeError(f"Expected tensor logits from model(tokens), got {type(logits)}")
 		return logits
 
+	def forward_log_probs(self, tokens: torch.Tensor) -> torch.Tensor:
+		"""Forward pass returning token log-probabilities with shape [B, L, V]."""
+		if hasattr(self.model, "predict_log_prob"):
+			log_probs = self.model.predict_log_prob(tokens)
+			if not isinstance(log_probs, torch.Tensor):
+				raise TypeError(
+					f"Expected tensor log_probs from model.predict_log_prob(tokens), got {type(log_probs)}"
+				)
+			return log_probs.float()
+
+		logits = self.forward_logits(tokens)
+		return torch.log_softmax(logits.float(), dim=-1)
+
+	def cdr_to_token_positions(self, cdr_positions: Sequence[int]) -> List[int]:
+		"""Map 0-based CDR residue indices to tokenizer token indices."""
+		offset = 1 + (len(LEFT_CONTEXT) if self.config.use_context else 0)
+		token_positions: List[int] = []
+		for pos in cdr_positions:
+			if int(pos) < 0:
+				raise ValueError("cdr_positions must contain only non-negative indices.")
+			token_positions.append(int(pos) + offset)
+		return token_positions
+
 	def _cdr_positions(self, cdr_length: int) -> List[int]:
 		"""Return token indices corresponding to CDR residues.
 
-		Based on validated probe behavior where CDR starts at index 104 when context is used.
+		Tokenized sequences include a leading <cls> token.
 		"""
 		if not self.config.use_context:
 			raise ValueError("cdr_only=True requires use_context=True.")
-		start = len(LEFT_CONTEXT)
+		start = 1 + len(LEFT_CONTEXT)
 		return list(range(start, start + cdr_length))
 
 	def pseudo_log_likelihood(
@@ -108,9 +131,8 @@ class ESM2PLLScorer:
 					chunk_tokens = masked_tokens[i:i+max_batch_size]
 					chunk_pos = pos_tensor[i:i+max_batch_size]
 					chunk_true = true_token_ids[i:i+max_batch_size]
-					
-					logits = self.forward_logits(chunk_tokens)
-					log_probs = torch.log_softmax(logits.float(), dim=-1)
+
+					log_probs = self.forward_log_probs(chunk_tokens)
 					
 					chunk_batch_idx = torch.arange(chunk_tokens.shape[0], device=tokens.device)
 					all_true_log_probs.append(log_probs[chunk_batch_idx, chunk_pos, chunk_true])
@@ -130,6 +152,7 @@ class ESM2PLLScorer:
 		sequences: Sequence[str],
 		mask_positions: Sequence[int],
 		use_grad: bool = False,
+		positions_are_cdr: bool = False,
 	) -> torch.Tensor:
 		"""Compute PLL only for specified masked positions in each input sequence.
 
@@ -137,12 +160,18 @@ class ESM2PLLScorer:
 			sequences: list of CDR sequences (without context when use_context=True).
 			mask_positions: list of token indices to mask and score.
 			use_grad: set True for policy model scoring during DPO training.
+			positions_are_cdr: if True, mask_positions are interpreted as 0-based
+				CDR residue indices and mapped to token indices.
 
 		Returns:
 			Tensor of shape [batch] with PLL scores.
 		"""
 		if len(sequences) == 0:
 			raise ValueError("sequences must not be empty")
+
+		mask_positions = list(mask_positions)
+		if positions_are_cdr:
+			mask_positions = self.cdr_to_token_positions(mask_positions)
 
 		tokens = self.tokenize_sequences(sequences)
 		batch_size, seq_len = tokens.shape
@@ -176,8 +205,7 @@ class ESM2PLLScorer:
 					chunk_pos = pos_tensor[i:i+max_batch_size]
 					chunk_true = true_token_ids[i:i+max_batch_size]
 
-					logits = self.forward_logits(chunk_tokens)
-					log_probs = torch.log_softmax(logits.float(), dim=-1)
+					log_probs = self.forward_log_probs(chunk_tokens)
 
 					chunk_batch_idx = torch.arange(chunk_tokens.shape[0], device=tokens.device)
 					all_true_log_probs.append(log_probs[chunk_batch_idx, chunk_pos, chunk_true])
