@@ -1,0 +1,81 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+DPO output dir: /cluster/scratch/gguidarini/outputs
+DPO best-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-05/22-20-01/dpo_best_models
+DPO last-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-05/22-20-01/dpo_last_models
+W&B dir: /cluster/scratch/gguidarini/dpo_outputs/2026-04-05/22-20-01/wandb
+Running on host: eu-g6-012
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Sun Apr  5 22:20:04 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:A1:00.0 Off |                  Off |
+| 30%   36C    P8             22W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-05 22:20:06,985 | INFO | Starting DPO training run
+2026-04-05 22:20:06,989 | INFO | Saved resolved config to /cluster/scratch/gguidarini/outputs/2026-04-05/22-20-06/resolved_config.yaml
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run xop9tibz
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/outputs/2026-04-05/22-20-06/wandb/run-20260405_222008-xop9tibz
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run ensign-nimoy-7
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/flu
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/flu/runs/xop9tibz
+2026-04-05 22:20:11,309 | INFO | Pair stats | n=25656 | margin mean=14.3496 median=15.0587 min=5.0035 max=22.5497
+2026-04-05 22:20:11,310 | INFO | Pairs per view: mut2:13321, mut1:12335
+2026-04-05 22:20:11,313 | INFO | Top margin examples:
+2026-04-05 22:20:11,313 | INFO |   view=mut1 cluster=418 margin=22.5497 chosen=HRSMQQVRSAGWERADLVGDAFDV rejected=HRSMQQVVSAGVERADLVGDAFDV
+2026-04-05 22:20:11,313 | INFO |   view=mut2 cluster=389 margin=22.3773 chosen=HMSMQQVVGVGWERADLVGDAFDV rejected=HMSMQQRVSVGWERADLVGDAFDV
+2026-04-05 22:20:11,313 | INFO |   view=mut2 cluster=313 margin=22.3260 chosen=HMSMQQVRSAGWERASLVGDAFDV rejected=HMSMQQVVSAGLERASLVGDAFDV
+2026-04-05 22:20:11,313 | INFO |   view=mut2 cluster=307 margin=22.2503 chosen=HMSMQQVVGAGWERALLVGDAFDV rejected=HMSMQQVVSAGTERALLVGDAFDV
+2026-04-05 22:20:11,314 | INFO |   view=mut2 cluster=331 margin=22.2321 chosen=HMSMQQVVDAGWERRDLVGDAFDV rejected=HMSMQQVVSAGRERRDLVGDAFDV
+2026-04-05 22:20:11,314 | INFO | Bottom margin examples:
+2026-04-05 22:20:11,314 | INFO |   view=mut1 cluster=313 margin=5.0035 chosen=HMSMQQVVSAGWERHDLVGDACDV rejected=HMSMQQVVSAGWERHDAVGDAFDV
+2026-04-05 22:20:11,314 | INFO |   view=mut1 cluster=112 margin=5.0064 chosen=HMSMQQVVNAGWERADLVKDAFDV rejected=HMSMQQVVNAEWERADLVGDAFDV
+2026-04-05 22:20:11,314 | INFO |   view=mut2 cluster=97 margin=5.0112 chosen=HCSMQQVVGAGWERADLVGDAFDV rejected=HMSMQIVVGAGWERADLVGDAFDV
+2026-04-05 22:20:11,314 | INFO |   view=mut2 cluster=229 margin=5.0120 chosen=HMSMQQVVSAGWERADLAGDAMDV rejected=HMSMQQVVSAGWNRADLVGDAMDV
+2026-04-05 22:20:11,314 | INFO |   view=mut1 cluster=54 margin=5.0123 chosen=HMSMQAVVSAGWERADLVGDAFDD rejected=HMSMQAVVSAGWERADLVGSAFDV
+2026-04-05 22:20:11,317 | INFO | Split sizes | train=20524 val=2565 test=2567
+2026-04-05 22:23:38,164 | INFO | step=20 train_loss=0.690874
+2026-04-05 22:27:02,932 | INFO | step=40 train_loss=0.688132
+2026-04-05 22:30:27,191 | INFO | step=60 train_loss=0.685767
+2026-04-05 22:33:51,430 | INFO | step=80 train_loss=0.683409
+2026-04-05 22:37:55,806 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.688555 | val_loss=0.683523 | val_acc=0.7750 | val_margin=0.0190 | val_kl=0.9094 | train_batches=81 | val_batches=11
+Error executing job with overrides: ['output_dir=/cluster/scratch/gguidarini/outputs', 'checkpointing.best_export_dir=/cluster/home/gguidarini/protein-design/outputs/2026-04-05/22-20-01/dpo_best_models', 'checkpointing.last_export_dir=/cluster/home/gguidarini/protein-design/outputs/2026-04-05/22-20-01/dpo_last_models']
+Traceback (most recent call last):
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 487, in main
+    _save_checkpoint(
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 172, in _save_checkpoint
+    torch.save(state, path)
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/serialization.py", line 1003, in save
+    with _open_zipfile_writer(f) as opened_zipfile:
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/serialization.py", line 865, in _open_zipfile_writer
+    return container(name_or_buffer)  # type: ignore[arg-type]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/serialization.py", line 829, in __init__
+    torch._C.PyTorchFileWriter(
+RuntimeError: Parent directory /cluster/scratch/gguidarini/outputs/2026-04-05/22-20-06/checkpoints does not exist.
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mensign-nimoy-7[0m at: [34mhttps://wandb.ai/gguidarini-eth-zurich/flu/runs/xop9tibz[0m
+[1;34mwandb[0m: Find logs at: [1;35m../../../scratch/gguidarini/outputs/2026-04-05/22-20-06/wandb/run-20260405_222008-xop9tibz/logs[0m
