@@ -15,7 +15,13 @@ import torch
 from esme import ESM2
 from esme.alphabet import Alphabet, tokenize
 
-from .utils import LEFT_CONTEXT, RIGHT_CONTEXT, add_context, get_mask_token_idx, ModelConfig
+from .utils import (
+	LEFT_CONTEXT, 
+	RIGHT_CONTEXT, 
+	add_context, 
+	get_mask_token_idx, 
+	ModelConfig
+	)
 
 
 class ESM2PLLScorer:

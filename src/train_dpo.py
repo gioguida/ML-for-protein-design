@@ -328,6 +328,24 @@ def _run_epoch(
     }, global_step
 
 
+def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2PLLScorer) -> float:
+    scorer.model.eval()
+    total_perplexity = 0.0
+    num_chosen = 0
+
+    with torch.no_grad():
+        for batch in dataloader:
+            chosen_seqs = [pair[0] for pair in batch]
+            try:
+                perplexities = sequence_perplexity(chosen_seqs, scorer=scorer, cdr_only=True)
+                total_perplexity += float(perplexities.sum().item())
+                num_chosen += len(chosen_seqs)
+            except ValueError:
+                continue
+
+    return total_perplexity / max(1, num_chosen)
+
+
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: Any) -> None:
     output_dir = Path(HydraConfig.get().runtime.output_dir)
@@ -443,6 +461,8 @@ def main(cfg: Any) -> None:
         if scheduler is not None:
             scheduler.step()
 
+        val_perplexity = _compute_chosen_perplexity(val_loader, policy)
+
         lr = float(optimizer.param_groups[0]["lr"])
         epoch_record = {
             "epoch": float(epoch),
@@ -455,6 +475,7 @@ def main(cfg: Any) -> None:
             "val_reward_accuracy": float(val_metrics["reward_accuracy"]),
             "val_reward_margin": float(val_metrics["reward_margin"]),
             "val_implicit_kl": float(val_metrics["implicit_kl"]),
+            "val_perplexity": float(val_perplexity),
             "train_batches": float(train_metrics["num_batches"]),
             "train_pairs": float(train_metrics["num_pairs"]),
             "val_batches": float(val_metrics["num_batches"]),
@@ -465,7 +486,7 @@ def main(cfg: Any) -> None:
         history.append(epoch_record)
 
         logger.info(
-            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | val_acc=%.4f | val_margin=%.4f | val_kl=%.4f | train_batches=%d | val_batches=%d",
+            "Epoch %d | lr=%.3e | train_loss=%.6f | val_loss=%.6f | val_acc=%.4f | val_margin=%.4f | val_kl=%.4f | val_ppl=%.4f | train_batches=%d | val_batches=%d",
             epoch,
             lr,
             epoch_record["train_loss"],
@@ -473,6 +494,7 @@ def main(cfg: Any) -> None:
             epoch_record["val_reward_accuracy"],
             epoch_record["val_reward_margin"],
             epoch_record["val_implicit_kl"],
+            epoch_record["val_perplexity"],
             int(epoch_record["train_batches"]),
             int(epoch_record["val_batches"]),
         )
@@ -567,21 +589,7 @@ def main(cfg: Any) -> None:
     )
 
     logger.info("Computing perplexity on test set (chosen sequences)...")
-    policy.model.eval()
-    total_perplexity = 0.0
-    num_chosen = 0
-
-    with torch.no_grad():
-        for batch in test_loader:
-            chosen_seqs = [pair[0] for pair in batch]
-            try:
-                perplexities = sequence_perplexity(chosen_seqs, scorer=policy, cdr_only=True)
-                total_perplexity += float(perplexities.sum().item())
-                num_chosen += len(chosen_seqs)
-            except ValueError:
-                continue
-
-    avg_test_perplexity = total_perplexity / max(1, num_chosen)
+    avg_test_perplexity = _compute_chosen_perplexity(test_loader, policy)
     logger.info("Test Chosen Perplexity: %.4f", avg_test_perplexity)
 
     history_df = pd.DataFrame(history)
