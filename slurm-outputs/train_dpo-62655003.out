@@ -1,0 +1,121 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+DPO output dir: /cluster/scratch/gguidarini/outputs
+DPO best-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-08/00-16-42/dpo_best_models
+DPO last-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-08/00-16-42/dpo_last_models
+W&B dir: /cluster/scratch/gguidarini/dpo_outputs/2026-04-08/00-16-42/wandb
+Running on host: eu-g6-065
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Wed Apr  8 00:17:13 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:A1:00.0 Off |                  Off |
+| 33%   39C    P8             24W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-08 00:17:21,560 | INFO | Starting DPO training run
+2026-04-08 00:17:21,564 | INFO | Saved resolved config to /cluster/scratch/gguidarini/outputs/2026-04-08/00-17-21/resolved_config.yaml
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run u2yk139f
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/outputs/2026-04-08/00-17-21/wandb/run-20260408_001723-u2yk139f
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run classic-smoke-12
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/flu
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/flu/runs/u2yk139f
+2026-04-08 00:17:27,602 | INFO | Pair stats | n=22349 | margin mean=16.3477 median=16.9726 min=5.0089 max=22.5497
+2026-04-08 00:17:27,611 | INFO | Pairs per view: mut2:11289, mut1:11060
+2026-04-08 00:17:27,616 | INFO | Top margin examples:
+2026-04-08 00:17:27,617 | INFO |   view=mut1 cluster=418 margin=22.5497 chosen=HRSMQQVRSAGWERADLVGDAFDV rejected=HRSMQQVVSAGVERADLVGDAFDV
+2026-04-08 00:17:27,617 | INFO |   view=mut2 cluster=389 margin=22.3773 chosen=HMSMQQVVGVGWERADLVGDAFDV rejected=HMSMQQRVSVGWERADLVGDAFDV
+2026-04-08 00:17:27,617 | INFO |   view=mut2 cluster=313 margin=22.3260 chosen=HMSMQQVRSAGWERASLVGDAFDV rejected=HMSMQQVVSAGLERASLVGDAFDV
+2026-04-08 00:17:27,617 | INFO |   view=mut2 cluster=307 margin=22.2503 chosen=HMSMQQVVGAGWERALLVGDAFDV rejected=HMSMQQVVSAGTERALLVGDAFDV
+2026-04-08 00:17:27,618 | INFO |   view=mut2 cluster=331 margin=22.2321 chosen=HMSMQQVVDAGWERRDLVGDAFDV rejected=HMSMQQVVSAGRERRDLVGDAFDV
+2026-04-08 00:17:27,618 | INFO | Bottom margin examples:
+2026-04-08 00:17:27,618 | INFO |   view=mut1 cluster=96 margin=5.0089 chosen=HMSMQQVPSAGWERAYLVGDAFDV rejected=HMSMQQVPSAGWEKADLVGDAFDV
+2026-04-08 00:17:27,618 | INFO |   view=mut2 cluster=87 margin=5.0211 chosen=HMSMQLVPSAGWERADLVGDAFDV rejected=HMSMSQVPSAGWERADLVGDAFDV
+2026-04-08 00:17:27,618 | INFO |   view=mut1 cluster=418 margin=5.0321 chosen=HRSMQQVVSAGWERAILVGDAFDV rejected=HRSMQQVVFAGWERADLVGDAFDV
+2026-04-08 00:17:27,619 | INFO |   view=mut1 cluster=96 margin=5.0321 chosen=HMSMQQVPSAGWTRADLVGDAFDV rejected=HMSMQQVPSAGWERADLTGDAFDV
+2026-04-08 00:17:27,619 | INFO |   view=mut1 cluster=418 margin=5.0398 chosen=HRSAQQVVSAGWERADLVGDAFDV rejected=HRSMQQVVSAIWERADLVGDAFDV
+2026-04-08 00:17:27,621 | INFO | Split sizes | train=17879 val=2234 test=2236
+Error executing job with overrides: ['output_dir=/cluster/scratch/gguidarini/outputs', 'checkpointing.best_export_dir=/cluster/home/gguidarini/protein-design/outputs/2026-04-08/00-16-42/dpo_best_models', 'checkpointing.last_export_dir=/cluster/home/gguidarini/protein-design/outputs/2026-04-08/00-16-42/dpo_last_models']
+Traceback (most recent call last):
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 431, in main
+    train_metrics, global_step = _run_epoch(
+                                 ^^^^^^^^^^^
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 250, in _run_epoch
+    loss = dpo_loss(
+           ^^^^^^^^^
+  File "/cluster/home/gguidarini/protein-design/src/loss.py", line 40, in dpo_loss
+    w_masked_pll = scorer.masked_pseudo_log_likelihood(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/home/gguidarini/protein-design/src/model.py", line 219, in masked_pseudo_log_likelihood
+    log_probs = self.forward_log_probs(chunk_tokens)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/home/gguidarini/protein-design/src/model.py", line 55, in forward_log_probs
+    log_probs = self.model.predict_log_prob(tokens)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/esme/esm.py", line 297, in predict_log_prob
+    return torch.log_softmax(self(tokens, pad_args, pad_output,
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/esme/esm.py", line 281, in forward
+    return self.lm_head(self.forward_representation(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/esme/esm.py", line 247, in forward_representation
+    x = layer(x, cu_lens, max_len, lora_names)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/esme/attention.py", line 255, in forward
+    return x + self.final(x) / self.residue_scaling
+               ^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 816, in forward
+    return F.gelu(input, approximate=self.approximate)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 23.52 GiB of which 5.75 MiB is free. Including non-PyTorch memory, this process has 23.50 GiB memory in use. Of the allocated memory 21.31 GiB is allocated by PyTorch, and 1.74 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mclassic-smoke-12[0m at: [34mhttps://wandb.ai/gguidarini-eth-zurich/flu/runs/u2yk139f[0m
+[1;34mwandb[0m: Find logs at: [1;35m../../../scratch/gguidarini/outputs/2026-04-08/00-17-21/wandb/run-20260408_001723-u2yk139f/logs[0m
