@@ -17,7 +17,7 @@ else:  # pragma: no cover
 RANDOM_SEED = 42
 
 
-PairingStrategy = Literal["positive_vs_tail", "positive_only_extremes"]
+PairingStrategy = Literal["positive_vs_tail", "positive_only_extremes", "both_structured"]
 
 
 PAIR_COLUMNS = [
@@ -317,6 +317,141 @@ def load_dpo_sequence_pairs(
 		deduplicate_across_views=deduplicate_across_views,
 	)
 	return list(zip(pairs_df["chosen_sequence"], pairs_df["rejected_sequence"]))
+
+
+def _split_membership_keys(df: pd.DataFrame) -> pd.Series:
+	"""Return stable row keys used to map base split membership into clustered views."""
+	if "Unnamed: 0" in df.columns:
+		return df["Unnamed: 0"].astype(str)
+
+	if {"aa", "mut"}.issubset(df.columns):
+		return df["aa"].astype(str) + "||" + df["mut"].astype(str)
+
+	if "aa" in df.columns:
+		return df["aa"].astype(str)
+
+	raise ValueError(
+		"Cannot infer split membership keys. Expected one of: 'Unnamed: 0', ('aa' and 'mut'), or 'aa'."
+	)
+
+
+def _build_pairs_for_split_views(
+	clustered_views: Dict[str, pd.DataFrame],
+	pairing_strategy: PairingStrategy,
+	include_views: Sequence[str],
+	min_positive_delta: float,
+	min_delta_margin: float,
+	deduplicate_across_views: bool,
+) -> pd.DataFrame:
+	"""Build one pair dataframe from a dict of per-view clustered dataframes."""
+	pairs_per_view: List[pd.DataFrame] = []
+	for view in include_views:
+		clustered_df = clustered_views[view]
+		pairs_df = build_dpo_pairs_from_clustered_dataframe(
+			clustered_df=clustered_df,
+			pairing_strategy=pairing_strategy,
+			min_positive_delta=min_positive_delta,
+			min_delta_margin=min_delta_margin,
+			source_view=view,
+		)
+		pairs_per_view.append(pairs_df)
+
+	if not pairs_per_view:
+		return pd.DataFrame(columns=PAIR_COLUMNS)
+
+	all_pairs = pd.concat(pairs_per_view, ignore_index=True)
+	if deduplicate_across_views and not all_pairs.empty:
+		all_pairs = all_pairs.drop_duplicates(
+			subset=["chosen_sequence", "rejected_sequence"],
+			keep="first",
+		).reset_index(drop=True)
+
+	return all_pairs
+
+
+def build_split_pair_dataframes_from_raw(
+	pairing_strategy: PairingStrategy = "positive_vs_tail",
+	include_views: Sequence[str] = ("mut1", "mut2"),
+	raw_csv_path: Path = None,
+	processed_dir: Path = None,
+	force_rebuild: bool = False,
+	min_positive_delta: float = 0.0,
+	min_delta_margin: float = 0.0,
+	deduplicate_across_views: bool = True,
+	train_frac: float = 0.8,
+	val_frac: float = 0.1,
+	test_frac: float = 0.1,
+	seed: int = RANDOM_SEED,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""Split base D2 rows first, then build DPO pairs inside each split independently."""
+	valid_views = {"mut1", "mut2"}
+	if not include_views:
+		raise ValueError("include_views must contain at least one of: mut1, mut2")
+	for view in include_views:
+		if view not in valid_views:
+			raise ValueError("include_views must contain only: mut1, mut2")
+
+	base_df = load_distance2_dataframe(
+		view="base",
+		raw_csv_path=raw_csv_path,
+		processed_dir=processed_dir,
+		force_rebuild=force_rebuild,
+	)
+	train_base, val_base, test_base = create_train_val_test_split(
+		base_df,
+		train_frac=train_frac,
+		val_frac=val_frac,
+		test_frac=test_frac,
+		seed=seed,
+	)
+
+	train_keys = set(_split_membership_keys(train_base).tolist())
+	val_keys = set(_split_membership_keys(val_base).tolist())
+	test_keys = set(_split_membership_keys(test_base).tolist())
+
+	clustered_sources = {
+		view: load_distance2_dataframe(
+			view=view,
+			raw_csv_path=raw_csv_path,
+			processed_dir=processed_dir,
+			force_rebuild=force_rebuild,
+		)
+		for view in include_views
+	}
+
+	def filtered_views(keys: set) -> Dict[str, pd.DataFrame]:
+		out: Dict[str, pd.DataFrame] = {}
+		for view, df in clustered_sources.items():
+			row_keys = _split_membership_keys(df)
+			out[view] = df[row_keys.isin(keys)].copy()
+		return out
+
+	train_pairs = _build_pairs_for_split_views(
+		clustered_views=filtered_views(train_keys),
+		pairing_strategy=pairing_strategy,
+		include_views=include_views,
+		min_positive_delta=min_positive_delta,
+		min_delta_margin=min_delta_margin,
+		deduplicate_across_views=deduplicate_across_views,
+	)
+	val_pairs = _build_pairs_for_split_views(
+		clustered_views=filtered_views(val_keys),
+		pairing_strategy=pairing_strategy,
+		include_views=include_views,
+		min_positive_delta=min_positive_delta,
+		min_delta_margin=min_delta_margin,
+		deduplicate_across_views=deduplicate_across_views,
+	)
+	test_pairs = _build_pairs_for_split_views(
+		clustered_views=filtered_views(test_keys),
+		pairing_strategy=pairing_strategy,
+		include_views=include_views,
+		min_positive_delta=min_positive_delta,
+		min_delta_margin=min_delta_margin,
+		deduplicate_across_views=deduplicate_across_views,
+	)
+
+	return train_pairs, val_pairs, test_pairs
 
 
 def create_train_val_test_split(

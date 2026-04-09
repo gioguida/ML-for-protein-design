@@ -21,7 +21,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader, Dataset
 
 if __package__:
-    from .dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
+    from .dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from .loss import batch_monitoring_metrics, dpo_loss
     from .model import ESM2PLLScorer
     from .eval import sequence_perplexity
@@ -33,7 +33,7 @@ if __package__:
         setup_train_logger,
     )
 else:  # pragma: no cover
-    from dataset import create_train_val_test_split, default_data_paths, load_dpo_pair_dataframe
+    from dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from loss import batch_monitoring_metrics, dpo_loss
     from model import ESM2PLLScorer
     from eval import sequence_perplexity
@@ -66,7 +66,7 @@ def _pair_collate(batch: Sequence[Tuple[str, str]]) -> List[Tuple[str, str]]:
     return list(batch)
 
 
-def _build_pairs_dataframe(cfg: Any) -> pd.DataFrame:
+def _build_split_pair_dataframes(cfg: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     defaults = default_data_paths()
 
     raw_csv_path = (
@@ -80,7 +80,7 @@ def _build_pairs_dataframe(cfg: Any) -> pd.DataFrame:
         else Path(to_absolute_path(str(cfg.data.processed_dir)))
     )
 
-    return load_dpo_pair_dataframe(
+    return build_split_pair_dataframes_from_raw(
         pairing_strategy=str(cfg.data.pairing_strategy),
         include_views=[str(v) for v in cfg.data.include_views],
         raw_csv_path=raw_csv_path,
@@ -89,6 +89,10 @@ def _build_pairs_dataframe(cfg: Any) -> pd.DataFrame:
         min_positive_delta=float(cfg.data.min_positive_delta),
         min_delta_margin=float(cfg.data.min_delta_margin),
         deduplicate_across_views=bool(cfg.data.deduplicate_across_views),
+        train_frac=float(cfg.data.train_frac),
+        val_frac=float(cfg.data.val_frac),
+        test_frac=float(cfg.data.test_frac),
+        seed=int(cfg.seed),
     )
 
 
@@ -361,19 +365,21 @@ def main(cfg: Any) -> None:
 
     wandb_mod, wandb_run = init_wandb_run(cfg, output_dir, logger, OmegaConf)
 
-    pairs_df = _build_pairs_dataframe(cfg)
-    if pairs_df.empty:
-        raise ValueError("No DPO pairs generated. Adjust data pairing settings.")
+    train_df, val_df, test_df = _build_split_pair_dataframes(cfg)
+    if train_df.empty:
+        raise ValueError("No DPO train pairs generated after split. Adjust data pairing settings.")
+    if val_df.empty:
+        raise ValueError("No DPO validation pairs generated after split. Adjust data pairing settings.")
+    if test_df.empty:
+        raise ValueError("No DPO test pairs generated after split. Adjust data pairing settings.")
 
-    log_pair_diagnostics(logger, pairs_df, preview_count=int(cfg.logging.preview_count))
+    logger.info("Train split pair diagnostics:")
+    log_pair_diagnostics(logger, train_df, preview_count=int(cfg.logging.preview_count))
+    logger.info("Validation split pair diagnostics:")
+    log_pair_diagnostics(logger, val_df, preview_count=int(cfg.logging.preview_count))
+    logger.info("Test split pair diagnostics:")
+    log_pair_diagnostics(logger, test_df, preview_count=int(cfg.logging.preview_count))
 
-    train_df, val_df, test_df = create_train_val_test_split(
-        pairs_df,
-        train_frac=float(cfg.data.train_frac),
-        val_frac=float(cfg.data.val_frac),
-        test_frac=float(cfg.data.test_frac),
-        seed=int(cfg.seed),
-    )
     logger.info("Split sizes | train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
 
     train_loader = _build_dataloader(
