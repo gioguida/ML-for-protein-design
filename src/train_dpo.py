@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -24,7 +25,6 @@ if __package__:
     from .dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from .loss import batch_monitoring_metrics, dpo_loss
     from .model import ESM2PLLScorer
-    from .eval import sequence_perplexity
     from .utils import (
         ModelConfig,
         init_wandb_run,
@@ -36,7 +36,6 @@ else:  # pragma: no cover
     from dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from loss import batch_monitoring_metrics, dpo_loss
     from model import ESM2PLLScorer
-    from eval import sequence_perplexity
     from utils import (
         ModelConfig,
         init_wandb_run,
@@ -345,21 +344,45 @@ def _run_epoch(
 
 
 def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2PLLScorer) -> float:
+    """Compute corpus-level CDR perplexity with full-sequence context.
+
+    This uses:
+        perplexity = exp(total_negative_log_likelihood / total_scored_tokens)
+    where the scored tokens are CDR positions only, while model conditioning
+    still uses left/right context (when scorer is configured with use_context=True).
+    """
     scorer.model.eval()
-    total_perplexity = 0.0
-    num_chosen = 0
+    total_pll = 0.0
+    total_scored_tokens = 0
 
     with torch.no_grad():
         for batch in dataloader:
             chosen_seqs = [pair[0] for pair in batch]
-            try:
-                perplexities = sequence_perplexity(chosen_seqs, scorer=scorer, cdr_only=True)
-                total_perplexity += float(perplexities.sum().item())
-                num_chosen += len(chosen_seqs)
-            except ValueError:
+            if not chosen_seqs:
                 continue
 
-    return total_perplexity / max(1, num_chosen)
+            # scorer.pseudo_log_likelihood requires equal lengths per call.
+            # Group inside each batch so we don't skip mixed-length batches.
+            by_len: Dict[int, List[str]] = {}
+            for seq in chosen_seqs:
+                by_len.setdefault(len(seq), []).append(seq)
+
+            for cdr_len, seq_group in by_len.items():
+                if cdr_len <= 0:
+                    continue
+                pll_scores = scorer.pseudo_log_likelihood(
+                    seq_group,
+                    cdr_only=True,
+                    use_grad=False,
+                )
+                total_pll += float(pll_scores.sum().item())
+                total_scored_tokens += int(cdr_len) * len(seq_group)
+
+    if total_scored_tokens <= 0:
+        raise ValueError("No valid CDR tokens were evaluated for perplexity.")
+
+    avg_nll = -total_pll / float(total_scored_tokens)
+    return float(math.exp(avg_nll))
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")

@@ -45,11 +45,14 @@ class ESM2PLLScorer:
 
 	def tokenize_sequences(self, sequences: Sequence[str]) -> torch.Tensor:
 		"""Tokenize a list of sequences, adding context if configured."""
+		# ESM tokenizers are residue-level; explicit spacing avoids ambiguous splitting.
+		normalized = ["".join(seq.split()) for seq in sequences]
 		if self.config.use_context:
-			sequences = [add_context(seq) for seq in sequences]
+			normalized = [add_context(seq) for seq in normalized]
+		spaced = [" ".join(list(seq)) for seq in normalized]
 
 		encoding = self.tokenizer(
-			list(sequences),
+			spaced,
 			return_tensors="pt",
 			padding=True,
 			add_special_tokens=True,
