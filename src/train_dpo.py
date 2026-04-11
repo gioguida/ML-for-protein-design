@@ -102,18 +102,29 @@ def _build_dataloader(
     shuffle: bool,
     seed: int,
     num_workers: int,
+    pin_memory: bool = False,
+    persistent_workers: bool = False,
+    prefetch_factor: Optional[int] = None,
 ) -> DataLoader:
     dataset = PairDataset(pairs_df)
     generator = torch.Generator()
     generator.manual_seed(int(seed))
+    loader_kwargs: Dict[str, Any] = {
+        "dataset": dataset,
+        "batch_size": int(batch_size),
+        "shuffle": bool(shuffle),
+        "num_workers": int(num_workers),
+        "collate_fn": _pair_collate,
+        "generator": generator,
+        "drop_last": False,
+        "pin_memory": bool(pin_memory),
+        "persistent_workers": bool(persistent_workers) and int(num_workers) > 0,
+    }
+    if int(num_workers) > 0 and prefetch_factor is not None and int(prefetch_factor) > 0:
+        loader_kwargs["prefetch_factor"] = int(prefetch_factor)
+
     return DataLoader(
-        dataset,
-        batch_size=int(batch_size),
-        shuffle=bool(shuffle),
-        num_workers=int(num_workers),
-        collate_fn=_pair_collate,
-        generator=generator,
-        drop_last=False,
+        **loader_kwargs,
     )
 
 
@@ -388,6 +399,9 @@ def main(cfg: Any) -> None:
         shuffle=True,
         seed=int(cfg.seed),
         num_workers=int(cfg.training.num_workers),
+        pin_memory=bool(getattr(cfg.training, "pin_memory", False)),
+        persistent_workers=bool(getattr(cfg.training, "persistent_workers", False)),
+        prefetch_factor=getattr(cfg.training, "prefetch_factor", None),
     )
     val_loader = _build_dataloader(
         val_df,
@@ -395,6 +409,9 @@ def main(cfg: Any) -> None:
         shuffle=False,
         seed=int(cfg.seed) + 1,
         num_workers=int(cfg.training.num_workers),
+        pin_memory=bool(getattr(cfg.training, "pin_memory", False)),
+        persistent_workers=bool(getattr(cfg.training, "persistent_workers", False)),
+        prefetch_factor=getattr(cfg.training, "prefetch_factor", None),
     )
     test_loader = _build_dataloader(
         test_df,
@@ -402,6 +419,9 @@ def main(cfg: Any) -> None:
         shuffle=False,
         seed=int(cfg.seed) + 2,
         num_workers=int(cfg.training.num_workers),
+        pin_memory=bool(getattr(cfg.training, "pin_memory", False)),
+        persistent_workers=bool(getattr(cfg.training, "persistent_workers", False)),
+        prefetch_factor=getattr(cfg.training, "prefetch_factor", None),
     )
 
     policy, reference = _build_scorers(cfg)
