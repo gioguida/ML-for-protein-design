@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Dataset
 
 if __package__:
     from .dataset import build_split_pair_dataframes_from_raw, default_data_paths
-    from .loss import batch_monitoring_metrics, dpo_loss
+    from .loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from .model import ESM2PLLScorer
     from .utils import (
         ModelConfig,
@@ -34,7 +34,7 @@ if __package__:
     )
 else:  # pragma: no cover
     from dataset import build_split_pair_dataframes_from_raw, default_data_paths
-    from loss import batch_monitoring_metrics, dpo_loss
+    from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from model import ESM2PLLScorer
     from utils import (
         ModelConfig,
@@ -108,6 +108,10 @@ def _build_split_pair_dataframes(cfg: Any) -> Tuple[pd.DataFrame, pd.DataFrame, 
         min_delta_margin=float(cfg.data.min_delta_margin),
         gap=float(getattr(cfg.data, "gap", 0.5)),
         wt_pairs_frac=float(getattr(cfg.data, "wt_pairs_frac", 0.1)),
+        cross_pairs_frac=float(getattr(cfg.data, "cross_pairs_frac", 0.1)),
+        strong_pos_threshold=float(getattr(cfg.data, "strong_pos_threshold", 1.0)),
+        strong_neg_threshold=float(getattr(cfg.data, "strong_neg_threshold", -5.0)),
+        min_score_margin=float(getattr(cfg.data, "min_score_margin", 0.1)),
         deduplicate_across_views=bool(cfg.data.deduplicate_across_views),
         train_frac=float(cfg.data.train_frac),
         val_frac=float(cfg.data.val_frac),
@@ -251,7 +255,9 @@ def _run_epoch(
     policy: ESM2PLLScorer,
     reference: ESM2PLLScorer,
     dataloader: DataLoader,
+    loss: str, 
     beta: float,
+    temperature: float,
     optimizer: Optional[torch.optim.Optimizer],
     grad_clip_norm: float,
     logger: logging.Logger,
@@ -283,13 +289,23 @@ def _run_epoch(
             global_step += 1
 
         try:
-            loss = dpo_loss(
-                batch,
-                beta=beta,
-                scorer=policy,
-                reference=reference,
-                policy_use_grad=is_train,
-            )
+            if loss == "dpo":
+                loss = dpo_loss(
+                    batch,
+                    beta=beta,
+                    scorer=policy,
+                    reference=reference,
+                    policy_use_grad=is_train,
+                )
+            elif loss == "weighted_dpo":
+                loss = weighted_dpo_loss(
+                    batch,
+                    beta=beta,
+                    temperature=temperature,
+                    scorer=policy,
+                    reference=reference,
+                    policy_use_grad=is_train,
+                )
             if track_metrics:
                 with torch.no_grad():
                     batch_metrics = batch_monitoring_metrics(
@@ -503,7 +519,9 @@ def main(cfg: Any) -> None:
             policy=policy,
             reference=reference,
             dataloader=train_loader,
+            loss=str(cfg.training.loss),
             beta=float(cfg.training.beta),
+            temperature=float(cfg.training.temperature),
             optimizer=optimizer,
             grad_clip_norm=float(cfg.training.grad_clip_norm),
             logger=logger,
@@ -518,7 +536,9 @@ def main(cfg: Any) -> None:
             policy=policy,
             reference=reference,
             dataloader=val_loader,
+            loss=str(cfg.training.loss),
             beta=float(cfg.training.beta),
+            temperature=float(cfg.training.temperature),
             optimizer=None,
             grad_clip_norm=0.0,
             logger=logger,
@@ -640,6 +660,8 @@ def main(cfg: Any) -> None:
         reference=reference,
         dataloader=test_loader,
         beta=float(cfg.training.beta),
+        temperature=float(cfg.training.temperature),
+        loss=str(cfg.training.loss),
         optimizer=None,
         grad_clip_norm=0.0,
         logger=logger,

@@ -12,10 +12,10 @@ import numpy as np
 
 if __package__:
 	from .data_processing import build_processed_views
-	from .utils import WILD_TYPE
+	from .utils import WILD_TYPE, _gap_pairs
 else:  # pragma: no cover
 	from data_processing import build_processed_views
-	from utils import WILD_TYPE
+	from utils import WILD_TYPE, _gap_pairs
 
 RANDOM_SEED = 42
 
@@ -198,90 +198,73 @@ def _pair_cluster_both_structured_strategies(
 
 
 def _pair_delta_based(
-		sequences_df: pd.DataFrame,
-		delta_col: str,
-		seq_col: str,
-		gap: float,
-		wt_pairs_frac: float,
-) ->  List[PairTuple]:
-	"""Pair sequences by a configurable rank gap and optional WT-boundary anchors."""
-	if not 0.0 <= float(gap) <= 1.0:
-		raise ValueError("gap must be in [0.0, 1.0].")
-	if not 0.0 <= float(wt_pairs_frac) <= 1.0:
-		raise ValueError("wt_pairs_frac must be in [0.0, 1.0].")
+    sequences_df: pd.DataFrame,
+    delta_col: str,
+    seq_col: str,
+    gap: float,
+    wt_pairs_frac: float,
+    cross_pairs_frac: float = 0.1,
+    strong_pos_threshold: float = 1.0,
+    strong_neg_threshold: float = -5.0,
+    min_score_margin: float = 0.1,
+) -> List[PairTuple]:
 
-	sorted_df = sequences_df.sort_values(by=delta_col, ascending=False).reset_index(drop=True)
-	n = len(sorted_df)
-	if n <= 1:
-		return []
+    n = len(sequences_df)
+    if n <= 1:
+        return []
 
-	if n % 2 != 0:
-		sorted_df = sorted_df.iloc[:-1].reset_index(drop=True)
-		n -= 1
-		if n <= 1:
-			return []
+    positives = (sequences_df[sequences_df[delta_col].astype(float) > 0]
+                 .sort_values(delta_col, ascending=False).reset_index(drop=True))
+    negatives = (sequences_df[sequences_df[delta_col].astype(float) < 0]
+                 .sort_values(delta_col, ascending=False).reset_index(drop=True))
 
-	wt_pairs = int(float(wt_pairs_frac) * n)
+    wt = {"aa": WILD_TYPE, "score": 0.0}
+    all_pairs: List[PairTuple] = []
 
-	# Calculate step size based on gap [0.0 to 1.0]
-	step = int(1 + float(gap) * ((n // 2) - 1))
+    # 1 Within-positive pairs (fine-grained: good vs better) 
+    all_pairs.extend(_gap_pairs(positives, delta_col, seq_col, gap))
 
-	paired = np.zeros(n, dtype=bool)
-	pairs: List[PairTuple] = []
+    # 2 Within-negative pairs (subsampled to ~2x positives) 
+    neg_sub_n = min(len(negatives), 2 * len(positives))
+    neg_sub = (negatives.sample(n=neg_sub_n, replace=False)
+               .sort_values(delta_col, ascending=False).reset_index(drop=True))
+    all_pairs.extend(_gap_pairs(neg_sub, delta_col, seq_col, gap))
 
-	# Create systematic variant-vs-variant pairs.
-	for i in range(n):
-		if paired[i]:
-			continue
+    # 3 WT-anchored pairs 
+    num_wt = int(wt_pairs_frac * n)
+    num_pos_wt = num_wt // 2
+    num_neg_wt = num_wt - num_pos_wt
 
-		chosen = sorted_df.iloc[i]
-		chosen_delta = float(chosen[delta_col])
-		rejected_idx = i + step
+    strong_pos = positives[positives[delta_col].astype(float) > strong_pos_threshold]
+    if len(strong_pos) > 0 and num_pos_wt > 0:
+        sampled = strong_pos.sample(n=min(num_pos_wt, len(strong_pos)), replace=False)
+        for _, row in sampled.iterrows():
+            winner = {"aa": row[seq_col], "score": float(row[delta_col])}
+            all_pairs.append((winner, wt))
 
-		# If gap index is already taken/out-of-range, move forward.
-		while rejected_idx < n and paired[rejected_idx]:
-			rejected_idx += 1
+    strong_neg = negatives[negatives[delta_col].astype(float) < strong_neg_threshold]
+    if len(strong_neg) > 0 and num_neg_wt > 0:
+        sampled = strong_neg.sample(n=min(num_neg_wt, len(strong_neg)), replace=False)
+        for _, row in sampled.iterrows():
+            loser = {"aa": row[seq_col], "score": float(row[delta_col])}
+            all_pairs.append((wt, loser))
 
-		# If no forward candidate exists, search backward from the tail.
-		if rejected_idx >= n:
-			rejected_idx = n - 1
-			while rejected_idx > i and paired[rejected_idx]:
-				rejected_idx -= 1
+    # 4 Cross-class pairs (positive vs negative)
+    num_cross = int(cross_pairs_frac * n)
+    if len(positives) > 0 and len(negatives) > 0 and num_cross > 0:
+        cross_pos = positives.sample(n=min(num_cross, len(positives)),
+                                     replace=len(positives) < num_cross)
+        cross_neg = negatives.sample(n=min(num_cross, len(negatives)), replace=False)
+        for p_row, n_row in zip(cross_pos.itertuples(), cross_neg.itertuples()):
+            winner = {"aa": getattr(p_row, seq_col), "score": float(getattr(p_row, delta_col))}
+            loser  = {"aa": getattr(n_row, seq_col), "score": float(getattr(n_row, delta_col))}
+            all_pairs.append((winner, loser))
 
-		if rejected_idx > i and not paired[rejected_idx]:
-			rejected = sorted_df.iloc[rejected_idx]
-			rejected_delta = float(rejected[delta_col])
-			winner = {"aa": chosen["aa"], "score": chosen_delta}
-			loser = {"aa": rejected["aa"], "score": rejected_delta}
-			pairs.append((winner, loser))
-			paired[i] = True
-			paired[rejected_idx] = True
+    # Filter noisy pairs with tiny score differences 
+    all_pairs = [(w, l) for w, l in all_pairs
+                 if (w["score"] - l["score"]) >= min_score_margin]
 
-	# Create WT-anchored boundary pairs.
-	if wt_pairs > 0:
-		wt = {"aa": WILD_TYPE, "score": 0.0}
-
-		num_pos_wt = wt_pairs // 2
-		num_wt_neg = wt_pairs - num_pos_wt
-
-		positives = sorted_df[sorted_df[delta_col].astype(float) > 0.0]
-		boundary_positives = positives.tail(num_pos_wt)
-		for _, pos_seq in boundary_positives.iterrows():
-			pos_seq_delta = float(pos_seq[delta_col])
-			pos_seq_aa = pos_seq[seq_col]
-			winner = {"aa": pos_seq_aa, "score": pos_seq_delta}
-			pairs.append((winner, wt))  # chosen=positive, rejected=WT
-
-		negatives = sorted_df[sorted_df[delta_col].astype(float) < 0.0]
-		boundary_negatives = negatives.head(num_wt_neg)
-		for _, neg_seq in boundary_negatives.iterrows():
-			neg_seq_delta = float(neg_seq[delta_col])
-			neg_seq_aa = neg_seq[seq_col]
-			loser = {"aa": neg_seq_aa, "score": neg_seq_delta}
-			pairs.append((wt, loser))  # chosen=WT, rejected=negative
-
-	return pairs
-
+    return all_pairs
 		
 def build_dpo_pairs_from_clustered_dataframe(
 	clustered_df: pd.DataFrame,
@@ -290,6 +273,10 @@ def build_dpo_pairs_from_clustered_dataframe(
 	min_delta_margin: float = 0.0,
 	gap: float = 0.5,
 	wt_pairs_frac: float = 0.1,
+	cross_pairs_frac: float = 0.1,
+	strong_pos_threshold: float = 1.0,
+	strong_neg_threshold: float = -5.0,
+	min_score_margin: float = 0.1,
 	source_view: str = "",
 ) -> pd.DataFrame:
 	"""Build DPO preference pairs from one clustered dataframe."""
@@ -335,6 +322,10 @@ def build_dpo_pairs_from_clustered_dataframe(
 				seq_col=seq_col,
 				gap=gap, 
 				wt_pairs_frac=wt_pairs_frac, 
+				cross_pairs_frac=cross_pairs_frac,
+				strong_pos_threshold=strong_pos_threshold,
+				strong_neg_threshold=strong_neg_threshold,
+				min_score_margin=min_score_margin,
 			)
 			
 		for pair_rank, (chosen, rejected) in enumerate(cluster_pairs):
@@ -371,6 +362,10 @@ def load_dpo_pair_dataframe(
 	min_delta_margin: float = 0.0,
 	gap: float = 0.5,
 	wt_pairs_frac: float = 0.1,
+	cross_pairs_frac: float = 0.1,
+	strong_pos_threshold: float = 1.0,
+	strong_neg_threshold: float = -5.0,
+	min_score_margin: float = 0.1,
 	deduplicate_across_views: bool = True,
 ) -> pd.DataFrame:
 	"""Load clustered views and build a DPO pair dataframe."""
@@ -397,6 +392,10 @@ def load_dpo_pair_dataframe(
 			min_delta_margin=min_delta_margin,
 			gap=gap,
 			wt_pairs_frac=wt_pairs_frac,
+			cross_pairs_frac=cross_pairs_frac,
+			strong_pos_threshold=strong_pos_threshold,
+			strong_neg_threshold=strong_neg_threshold,
+			min_score_margin=min_score_margin,
 			source_view=view,
 		)
 		pairs_per_view.append(pairs_df)
@@ -424,6 +423,10 @@ def load_dpo_sequence_pairs(
 	min_delta_margin: float = 0.0,
 	gap: float = 0.5,
 	wt_pairs_frac: float = 0.1,
+	cross_pairs_frac: float = 0.1,
+	strong_pos_threshold: float = 1.0,
+	strong_neg_threshold: float = -5.0,
+	min_score_margin: float = 0.1,
 	deduplicate_across_views: bool = True,
 ) -> List[PairTuple]:
 	"""Return DPO preference pairs as ({aa, score}, {aa, score}) tuples."""
@@ -437,6 +440,10 @@ def load_dpo_sequence_pairs(
 		min_delta_margin=min_delta_margin,
 		gap=gap,
 		wt_pairs_frac=wt_pairs_frac,
+		cross_pairs_frac=cross_pairs_frac,
+		strong_pos_threshold=strong_pos_threshold,
+		strong_neg_threshold=strong_neg_threshold,
+		min_score_margin=min_score_margin,
 		deduplicate_across_views=deduplicate_across_views,
 	)
 	return [
@@ -477,6 +484,10 @@ def _build_pairs_for_split_views(
 	min_delta_margin: float,
 	gap: float,
 	wt_pairs_frac: float,
+	cross_pairs_frac: float,
+	strong_pos_threshold: float,
+	strong_neg_threshold: float,
+	min_score_margin: float,
 	deduplicate_across_views: bool,
 ) -> pd.DataFrame:
 	"""Build one pair dataframe from a dict of per-view clustered dataframes."""
@@ -490,6 +501,10 @@ def _build_pairs_for_split_views(
 			min_delta_margin=min_delta_margin,
 			gap=gap,
 			wt_pairs_frac=wt_pairs_frac,
+			cross_pairs_frac=cross_pairs_frac,
+			strong_pos_threshold=strong_pos_threshold,
+			strong_neg_threshold=strong_neg_threshold,
+			min_score_margin=min_score_margin,
 			source_view=view,
 		)
 		pairs_per_view.append(pairs_df)
@@ -517,6 +532,10 @@ def build_split_pair_dataframes_from_raw(
 	min_delta_margin: float = 0.0,
 	gap: float = 0.5,
 	wt_pairs_frac: float = 0.1,
+	cross_pairs_frac: float = 0.1,
+	strong_pos_threshold: float = 1.0,
+	strong_neg_threshold: float = -5.0,
+	min_score_margin: float = 0.1,
 	deduplicate_across_views: bool = True,
 	train_frac: float = 0.8,
 	val_frac: float = 0.1,
@@ -574,6 +593,10 @@ def build_split_pair_dataframes_from_raw(
 		min_delta_margin=min_delta_margin,
 		gap=gap,
 		wt_pairs_frac=wt_pairs_frac,
+		cross_pairs_frac=cross_pairs_frac,
+		strong_pos_threshold=strong_pos_threshold,
+		strong_neg_threshold=strong_neg_threshold,
+		min_score_margin=min_score_margin,
 		deduplicate_across_views=deduplicate_across_views,
 	)
 	val_pairs = _build_pairs_for_split_views(
@@ -584,6 +607,10 @@ def build_split_pair_dataframes_from_raw(
 		min_delta_margin=min_delta_margin,
 		gap=gap,
 		wt_pairs_frac=wt_pairs_frac,
+		cross_pairs_frac=cross_pairs_frac,
+		strong_pos_threshold=strong_pos_threshold,
+		strong_neg_threshold=strong_neg_threshold,
+		min_score_margin=min_score_margin,
 		deduplicate_across_views=deduplicate_across_views,
 	)
 	test_pairs = _build_pairs_for_split_views(
@@ -594,6 +621,10 @@ def build_split_pair_dataframes_from_raw(
 		min_delta_margin=min_delta_margin,
 		gap=gap,
 		wt_pairs_frac=wt_pairs_frac,
+		cross_pairs_frac=cross_pairs_frac,
+		strong_pos_threshold=strong_pos_threshold,
+		strong_neg_threshold=strong_neg_threshold,
+		min_score_margin=min_score_margin,
 		deduplicate_across_views=deduplicate_across_views,
 	)
 

@@ -112,6 +112,7 @@ def dpo_loss(
 def weighted_dpo_loss(
     pair: PairBatchLike,
     beta: float,
+    temperature: float,
     scorer: ESM2PLLScorer, 
     reference: ESM2PLLScorer,
     policy_use_grad: bool = True,
@@ -159,7 +160,7 @@ def weighted_dpo_loss(
         delta_score = w_masked_pll - l_masked_pll
         delta_ref_score = ref_w_masked_pll - ref_l_masked_pll
         weights = torch.softmax(
-            torch.tensor([r_w, r_l], dtype=delta_score.dtype, device=delta_score.device),
+            torch.tensor([r_w / temperature, r_l / temperature], dtype=delta_score.dtype, device=delta_score.device),
             dim=0,
         )
         losses.append(
