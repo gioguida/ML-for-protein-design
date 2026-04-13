@@ -1,0 +1,282 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+DPO output dir: /cluster/scratch/gguidarini/outputs
+DPO best-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models
+DPO last-model export dir: /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models
+W&B dir: /cluster/scratch/gguidarini/dpo_outputs/2026-04-12/20-03-19/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-ts-02
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Sun Apr 12 20:03:27 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:E3:00.0 Off |                    0 |
+| N/A   40C    P0             47W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-12 20:03:33,919 | INFO | Starting DPO training run
+2026-04-12 20:03:33,925 | INFO | Saved resolved config to /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/resolved_config.yaml
+2026-04-12 20:03:35,005 | INFO | W&B run name: esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-128__lr-1e-05__beta-0.04__s-42
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run dnrgpxnw
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/wandb/run-20260412_200335-dnrgpxnw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-128__lr-1e-05__beta-0.04__s-42
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/dnrgpxnw
+2026-04-12 20:03:39,828 | INFO | Train split pair diagnostics:
+2026-04-12 20:03:39,830 | INFO | Pair stats | n=17915 | margin mean=16.3251 median=16.9546 min=5.0141 max=22.5497
+2026-04-12 20:03:39,832 | INFO | Pairs per view: mut2:9055, mut1:8860
+2026-04-12 20:03:39,832 | INFO | Validation split pair diagnostics:
+2026-04-12 20:03:39,833 | INFO | Pair stats | n=1932 | margin mean=15.6426 median=16.5857 min=5.0118 max=21.2069
+2026-04-12 20:03:39,834 | INFO | Pairs per view: mut2:977, mut1:955
+2026-04-12 20:03:39,835 | INFO | Test split pair diagnostics:
+2026-04-12 20:03:39,836 | INFO | Pair stats | n=2001 | margin mean=15.6321 median=16.6596 min=5.0099 max=21.0662
+2026-04-12 20:03:39,837 | INFO | Pairs per view: mut1:1007, mut2:994
+2026-04-12 20:03:39,837 | INFO | Split sizes | train=17915 val=1932 test=2001
+[2026-04-12 20:03:40,048][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-12 20:03:40,060][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:40,212][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-12 20:03:40,222][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:40,342][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-12 20:03:40,463][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-12 20:03:40,615][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-12 20:03:40,617][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-12 20:03:40,626][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:40,759][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 8894.34it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-12 20:03:41,483][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-12 20:03:41,492][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:41,616][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-12 20:03:41,627][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:41,774][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-12 20:03:41,922][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-12 20:03:42,060][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-12 20:03:42,069][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-12 20:03:42,185][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 6113.19it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+2026-04-12 20:06:34,147 | INFO | step=20 train_loss=0.561346
+2026-04-12 20:09:22,117 | INFO | step=40 train_loss=0.466701
+2026-04-12 20:12:10,315 | INFO | step=60 train_loss=0.409376
+2026-04-12 20:14:58,425 | INFO | step=80 train_loss=0.347011
+2026-04-12 20:17:46,592 | INFO | step=100 train_loss=0.334350
+2026-04-12 20:20:34,490 | INFO | step=120 train_loss=0.340348
+2026-04-12 20:23:21,883 | INFO | step=140 train_loss=0.323811
+2026-04-12 20:32:58,940 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.421663 | val_loss=0.326774 | val_acc=0.9736 | val_margin=1.0755 | val_kl=-109.3676 | val_ppl=887.0530 | train_batches=140 | val_batches=16
+2026-04-12 20:33:00,313 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 20:33:01,492 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 20:35:49,043 | INFO | step=20 train_loss=0.282972
+2026-04-12 20:38:37,094 | INFO | step=40 train_loss=0.265832
+2026-04-12 20:41:25,033 | INFO | step=60 train_loss=0.291572
+2026-04-12 20:44:13,252 | INFO | step=80 train_loss=0.277569
+2026-04-12 20:47:01,376 | INFO | step=100 train_loss=0.232165
+2026-04-12 20:49:49,341 | INFO | step=120 train_loss=0.241655
+2026-04-12 20:52:36,944 | INFO | step=140 train_loss=0.235638
+2026-04-12 21:02:14,792 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.273262 | val_loss=0.269656 | val_acc=0.9752 | val_margin=1.3550 | val_kl=-140.3721 | val_ppl=710.7778 | train_batches=140 | val_batches=16
+2026-04-12 21:02:16,037 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 21:02:17,520 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 21:05:04,737 | INFO | step=20 train_loss=0.249509
+2026-04-12 21:07:53,071 | INFO | step=40 train_loss=0.236498
+2026-04-12 21:10:41,086 | INFO | step=60 train_loss=0.219865
+2026-04-12 21:13:28,762 | INFO | step=80 train_loss=0.251359
+2026-04-12 21:16:16,711 | INFO | step=100 train_loss=0.232871
+2026-04-12 21:19:04,709 | INFO | step=120 train_loss=0.223933
+2026-04-12 21:21:52,477 | INFO | step=140 train_loss=0.217243
+2026-04-12 21:31:29,291 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.231384 | val_loss=0.241328 | val_acc=0.9772 | val_margin=1.5100 | val_kl=-181.0354 | val_ppl=1109.9769 | train_batches=140 | val_batches=16
+2026-04-12 21:31:30,589 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 21:31:31,806 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 21:34:19,017 | INFO | step=20 train_loss=0.199459
+2026-04-12 21:37:07,203 | INFO | step=40 train_loss=0.198063
+2026-04-12 21:39:55,522 | INFO | step=60 train_loss=0.227879
+2026-04-12 21:42:43,414 | INFO | step=80 train_loss=0.217393
+2026-04-12 21:45:31,217 | INFO | step=100 train_loss=0.180954
+2026-04-12 21:48:19,156 | INFO | step=120 train_loss=0.216109
+2026-04-12 21:51:06,472 | INFO | step=140 train_loss=0.195897
+2026-04-12 22:00:43,853 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.207339 | val_loss=0.222624 | val_acc=0.9788 | val_margin=1.6225 | val_kl=-182.0383 | val_ppl=274.1852 | train_batches=140 | val_batches=16
+2026-04-12 22:00:45,336 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 22:00:46,563 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 22:03:33,694 | INFO | step=20 train_loss=0.190613
+2026-04-12 22:06:21,552 | INFO | step=40 train_loss=0.225136
+2026-04-12 22:09:09,434 | INFO | step=60 train_loss=0.181910
+2026-04-12 22:11:57,469 | INFO | step=80 train_loss=0.195606
+2026-04-12 22:14:45,287 | INFO | step=100 train_loss=0.188030
+2026-04-12 22:17:32,956 | INFO | step=120 train_loss=0.176590
+2026-04-12 22:20:20,472 | INFO | step=140 train_loss=0.181629
+2026-04-12 22:29:57,846 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.189375 | val_loss=0.207114 | val_acc=0.9803 | val_margin=1.7208 | val_kl=-196.8231 | val_ppl=181.0666 | train_batches=140 | val_batches=16
+2026-04-12 22:29:59,087 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 22:30:00,338 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 22:32:47,713 | INFO | step=20 train_loss=0.178151
+2026-04-12 22:35:35,751 | INFO | step=40 train_loss=0.161964
+2026-04-12 22:38:23,815 | INFO | step=60 train_loss=0.182131
+2026-04-12 22:41:11,776 | INFO | step=80 train_loss=0.161986
+2026-04-12 22:43:59,830 | INFO | step=100 train_loss=0.172593
+2026-04-12 22:46:48,144 | INFO | step=120 train_loss=0.154092
+2026-04-12 22:49:35,854 | INFO | step=140 train_loss=0.162615
+2026-04-12 22:59:13,577 | INFO | Epoch 6 | lr=1.000e-05 | train_loss=0.173142 | val_loss=0.191287 | val_acc=0.9855 | val_margin=1.8055 | val_kl=-208.8116 | val_ppl=85.6756 | train_batches=140 | val_batches=16
+2026-04-12 22:59:14,815 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 22:59:16,043 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 23:02:03,144 | INFO | step=20 train_loss=0.142215
+2026-04-12 23:04:51,184 | INFO | step=40 train_loss=0.158441
+2026-04-12 23:07:39,329 | INFO | step=60 train_loss=0.158848
+2026-04-12 23:10:27,359 | INFO | step=80 train_loss=0.160065
+2026-04-12 23:13:15,619 | INFO | step=100 train_loss=0.168540
+2026-04-12 23:16:03,520 | INFO | step=120 train_loss=0.154532
+2026-04-12 23:18:50,953 | INFO | step=140 train_loss=0.152771
+2026-04-12 23:28:28,222 | INFO | Epoch 7 | lr=1.000e-05 | train_loss=0.160382 | val_loss=0.181968 | val_acc=0.9865 | val_margin=1.8666 | val_kl=-232.8469 | val_ppl=126.9565 | train_batches=140 | val_batches=16
+2026-04-12 23:28:29,544 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 23:28:30,801 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-12 23:31:17,756 | INFO | step=20 train_loss=0.156737
+2026-04-12 23:34:05,783 | INFO | step=40 train_loss=0.141714
+2026-04-12 23:36:53,791 | INFO | step=60 train_loss=0.153723
+2026-04-12 23:39:41,551 | INFO | step=80 train_loss=0.144059
+2026-04-12 23:42:29,643 | INFO | step=100 train_loss=0.146839
+2026-04-12 23:45:17,737 | INFO | step=120 train_loss=0.152215
+2026-04-12 23:48:05,471 | INFO | step=140 train_loss=0.146979
+2026-04-12 23:57:41,756 | INFO | Epoch 8 | lr=1.000e-05 | train_loss=0.149939 | val_loss=0.172809 | val_acc=0.9876 | val_margin=1.9413 | val_kl=-245.8573 | val_ppl=133.7298 | train_batches=140 | val_batches=16
+2026-04-12 23:57:42,990 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-12 23:57:44,256 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 00:00:31,440 | INFO | step=20 train_loss=0.160871
+2026-04-13 00:03:19,385 | INFO | step=40 train_loss=0.142224
+2026-04-13 00:06:07,149 | INFO | step=60 train_loss=0.140581
+2026-04-13 00:08:54,767 | INFO | step=80 train_loss=0.129634
+2026-04-13 00:11:42,164 | INFO | step=100 train_loss=0.150629
+2026-04-13 00:14:27,019 | INFO | step=120 train_loss=0.132690
+2026-04-13 00:17:11,497 | INFO | step=140 train_loss=0.140570
+2026-04-13 00:26:42,502 | INFO | Epoch 9 | lr=1.000e-05 | train_loss=0.142799 | val_loss=0.164990 | val_acc=0.9891 | val_margin=1.9968 | val_kl=-246.9125 | val_ppl=64.3878 | train_batches=140 | val_batches=16
+2026-04-13 00:26:43,734 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 00:26:44,970 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 00:29:29,009 | INFO | step=20 train_loss=0.131959
+2026-04-13 00:32:13,747 | INFO | step=40 train_loss=0.135280
+2026-04-13 00:34:58,647 | INFO | step=60 train_loss=0.149233
+2026-04-13 00:37:43,455 | INFO | step=80 train_loss=0.130826
+2026-04-13 00:40:28,456 | INFO | step=100 train_loss=0.141573
+2026-04-13 00:43:13,342 | INFO | step=120 train_loss=0.147359
+2026-04-13 00:45:57,935 | INFO | step=140 train_loss=0.132060
+2026-04-13 00:55:29,134 | INFO | Epoch 10 | lr=1.000e-05 | train_loss=0.134545 | val_loss=0.159052 | val_acc=0.9902 | val_margin=2.0473 | val_kl=-258.4963 | val_ppl=88.4742 | train_batches=140 | val_batches=16
+2026-04-13 00:55:30,380 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 00:55:31,628 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 00:58:15,746 | INFO | step=20 train_loss=0.129046
+2026-04-13 01:01:01,011 | INFO | step=40 train_loss=0.132308
+2026-04-13 01:03:46,106 | INFO | step=60 train_loss=0.120983
+2026-04-13 01:06:30,958 | INFO | step=80 train_loss=0.130735
+2026-04-13 01:09:15,841 | INFO | step=100 train_loss=0.128453
+2026-04-13 01:12:00,753 | INFO | step=120 train_loss=0.110885
+2026-04-13 01:14:45,285 | INFO | step=140 train_loss=0.120820
+2026-04-13 01:24:15,955 | INFO | Epoch 11 | lr=1.000e-05 | train_loss=0.130043 | val_loss=0.157084 | val_acc=0.9881 | val_margin=2.0605 | val_kl=-229.0929 | val_ppl=16.1478 | train_batches=140 | val_batches=16
+2026-04-13 01:24:17,207 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 01:24:18,447 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 01:27:02,386 | INFO | step=20 train_loss=0.115382
+2026-04-13 01:29:47,260 | INFO | step=40 train_loss=0.126809
+2026-04-13 01:32:32,278 | INFO | step=60 train_loss=0.122956
+2026-04-13 01:35:17,043 | INFO | step=80 train_loss=0.121139
+2026-04-13 01:38:02,048 | INFO | step=100 train_loss=0.109251
+2026-04-13 01:40:46,947 | INFO | step=120 train_loss=0.132794
+2026-04-13 01:43:31,395 | INFO | step=140 train_loss=0.122957
+2026-04-13 01:53:02,780 | INFO | Epoch 12 | lr=1.000e-05 | train_loss=0.124808 | val_loss=0.148153 | val_acc=0.9896 | val_margin=2.1205 | val_kl=-244.2028 | val_ppl=15.8282 | train_batches=140 | val_batches=16
+2026-04-13 01:53:04,024 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 01:53:05,263 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 01:55:49,103 | INFO | step=20 train_loss=0.121105
+2026-04-13 01:58:33,765 | INFO | step=40 train_loss=0.149270
+2026-04-13 02:01:18,738 | INFO | step=60 train_loss=0.125099
+2026-04-13 02:04:03,757 | INFO | step=80 train_loss=0.118475
+2026-04-13 02:06:48,627 | INFO | step=100 train_loss=0.121517
+2026-04-13 02:09:33,284 | INFO | step=120 train_loss=0.112714
+2026-04-13 02:12:17,468 | INFO | step=140 train_loss=0.124347
+2026-04-13 02:21:48,702 | INFO | Epoch 13 | lr=1.000e-05 | train_loss=0.121472 | val_loss=0.145267 | val_acc=0.9902 | val_margin=2.1731 | val_kl=-264.1949 | val_ppl=28.2324 | train_batches=140 | val_batches=16
+2026-04-13 02:21:49,935 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 02:21:51,434 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 02:24:35,526 | INFO | step=20 train_loss=0.126744
+2026-04-13 02:27:20,555 | INFO | step=40 train_loss=0.117583
+2026-04-13 02:30:05,689 | INFO | step=60 train_loss=0.112276
+2026-04-13 02:32:50,649 | INFO | step=80 train_loss=0.131589
+2026-04-13 02:35:35,477 | INFO | step=100 train_loss=0.116387
+2026-04-13 02:38:20,288 | INFO | step=120 train_loss=0.114916
+2026-04-13 02:41:04,737 | INFO | step=140 train_loss=0.123350
+2026-04-13 02:50:36,288 | INFO | Epoch 14 | lr=1.000e-05 | train_loss=0.115584 | val_loss=0.142081 | val_acc=0.9912 | val_margin=2.2043 | val_kl=-302.9399 | val_ppl=212.9764 | train_batches=140 | val_batches=16
+2026-04-13 02:50:37,523 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 02:50:38,747 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 02:53:22,738 | INFO | step=20 train_loss=0.122287
+2026-04-13 02:56:07,541 | INFO | step=40 train_loss=0.105116
+2026-04-13 02:58:52,546 | INFO | step=60 train_loss=0.116803
+2026-04-13 03:01:37,548 | INFO | step=80 train_loss=0.105223
+2026-04-13 03:04:22,535 | INFO | step=100 train_loss=0.110567
+2026-04-13 03:07:07,610 | INFO | step=120 train_loss=0.101814
+2026-04-13 03:09:51,988 | INFO | step=140 train_loss=0.112522
+2026-04-13 03:19:24,371 | INFO | Epoch 15 | lr=1.000e-05 | train_loss=0.112282 | val_loss=0.133894 | val_acc=0.9917 | val_margin=2.2529 | val_kl=-289.9024 | val_ppl=44.1449 | train_batches=140 | val_batches=16
+2026-04-13 03:19:25,811 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 03:19:27,123 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 03:19:27,605 | INFO | Loaded best checkpoint for final test evaluation: /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/checkpoints/best.pt
+2026-04-13 03:19:28,277 | INFO | Exported best checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_best_models/best.pt
+2026-04-13 03:19:28,962 | INFO | Exported last checkpoint to /cluster/home/gguidarini/protein-design/outputs/2026-04-12/20-03-19/dpo_last_models/last.pt
+2026-04-13 03:28:09,249 | INFO | Test metrics | loss=0.127471 | reward_acc=0.9925 | reward_margin=2.2134 | implicit_kl=-287.6500 | batches=16 | skipped=0
+2026-04-13 03:28:09,253 | INFO | Computing perplexity on test set (chosen sequences)...
+2026-04-13 03:29:22,335 | INFO | Test Chosen Perplexity: 41.4062
+2026-04-13 03:29:22,351 | INFO | Saved history to /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/history.csv
+2026-04-13 03:29:22,351 | INFO | Saved summary to /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/summary.json
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading output.log; uploading wandb-summary.json
+wandb: 
+wandb: Run history:
+wandb:                 epoch ▁▁▁▁▁▁▁▃▃▃▃▃▃▃▃▃▄▄▅▅▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇██
+wandb:                    lr ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                  step ▁▁▁▂▂▂▂▂▃▃▃▃▄▄▄▄▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇████
+wandb:    test/best_val_loss ▁
+wandb:   test/num_test_pairs ▁
+wandb:  test/num_train_pairs ▁
+wandb:    test/num_val_pairs ▁
+wandb:     test/test_batches ▁
+wandb: test/test_implicit_kl ▁
+wandb:        test/test_loss ▁
+wandb:                   +21 ...
+wandb: 
+wandb: Run summary:
+wandb:        best_val_loss 0.13389
+wandb:                epoch 15
+wandb:                   lr 1e-05
+wandb:       num_test_pairs 2001
+wandb:      num_train_pairs 17915
+wandb:        num_val_pairs 1932
+wandb:                 step 2100
+wandb:   test/best_val_loss 0.13389
+wandb:  test/num_test_pairs 2001
+wandb: test/num_train_pairs 17915
+wandb:                  +33 ...
+wandb: 
+wandb: 🚀 View run esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-128__lr-1e-05__beta-0.04__s-42 at: https://wandb.ai/gguidarini-eth-zurich/dpo/runs/dnrgpxnw
+wandb: ⭐️ View project at: https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: /cluster/scratch/gguidarini/outputs/2026-04-12/20-03-33/wandb/run-20260412_200335-dnrgpxnw/logs

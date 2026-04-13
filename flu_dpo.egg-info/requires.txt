@@ -1,0 +1,11 @@
+hydra-core
+numpy
+omegaconf
+pandas
+safetensors
+torch
+transformers
+wandb
+
+[dev]
+pytest
