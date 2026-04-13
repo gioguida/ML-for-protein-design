@@ -1,10 +1,14 @@
-import argparse
 import sys
+import pandas as pd
+import numpy as np
 from pathlib import Path
+from typing import List, Tuple
+from utils import WILD_TYPE, PairTuple
+import warnings
 
 class test_config:
     def __init__(self):
-        self.pairing_strategy = "both_structured"  # "positive_vs_tail", "positive_only_extremes", "both_structured", "delta_based"
+        self.pairing_strategy = "delta_based"  # "positive_vs_tail", "positive_only_extremes", "both_structured", "delta_based"
         self.preview_count = 0
         self.include_views = ("mut1", "mut2")
         self.force_rebuild = False

@@ -265,6 +265,7 @@ def _pair_delta_based(
                  if (w["score"] - l["score"]) >= min_score_margin]
 
     return all_pairs
+
 		
 def build_dpo_pairs_from_clustered_dataframe(
 	clustered_df: pd.DataFrame,

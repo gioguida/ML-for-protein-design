@@ -211,24 +211,25 @@ def _gap_pairs(
 	seq_col: str, 
 	gap: float
 	) -> List[PairTuple]:
-    """Pair with uniform rank gap across all pairs, per ProteinDPO paper."""
-    n = len(sorted_df)
-    if n < 2:
-        return []
+	"""Pair with uniform rank gap across all pairs."""
+	n = len(sorted_df)
+	if n < 2:
+		return []
 
-    k = 1 + int(gap * (n // 2 - 1))  # rank gap: 1 at gap=0, n//2 at gap=1
-    block_size = 2 * k
+	k = 1 + int(gap * (n // 2 - 1))  # rank gap: 1 at gap=0, n//2 at gap=1
+	block_size = 2 * k
 
-    pairs: List[PairTuple] = []
-    for block_start in range(0, n, block_size):
-        if block_start + block_size > n:
-            break  # drop incomplete block
-        for i in range(k):
-            w = sorted_df.iloc[block_start + i]
-            l = sorted_df.iloc[block_start + k + i]
-            winner = {"aa": w[seq_col], "score": float(w[delta_col])}
-            loser  = {"aa": l[seq_col], "score": float(l[delta_col])}
-            pairs.append((winner, loser))
+	pairs: List[PairTuple] = []
+	for block_start in range(0, n, block_size):
+		for i in range(k):
+			# drop incomplete pairs at the end of the list
+			if block_start + k + i >= n:
+				break
+			w = sorted_df.iloc[block_start + i]
+			l = sorted_df.iloc[block_start + k + i]
+			winner = {"aa": w[seq_col], "score": float(w[delta_col])}
+			loser  = {"aa": l[seq_col], "score": float(l[delta_col])}
+			pairs.append((winner, loser))
 
-    return pairs
+	return pairs
 	

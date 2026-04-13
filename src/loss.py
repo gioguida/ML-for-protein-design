@@ -307,6 +307,7 @@ def batch_monitoring_metrics(
         "num_pairs": float(valid_pairs),
     }
 
+
 def sequence_perplexity(
         sequence: str,
         scorer: ESM2PLLScorer,
