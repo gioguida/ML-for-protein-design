@@ -1,0 +1,162 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+DPO output dir: /cluster/scratch/gguidarini/outputs
+DPO best-model export dir: /cluster/scratch/gguidarini/outputs/2026-04-13/17-57-05/dpo_best_models
+DPO last-model export dir: /cluster/scratch/gguidarini/outputs/2026-04-13/17-57-05/dpo_last_models
+W&B dir: /cluster/scratch/gguidarini/dpo_outputs/2026-04-13/17-57-05/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-ts-01
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Mon Apr 13 17:57:09 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:63:00.0 Off |                    0 |
+| N/A   36C    P0             43W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-13 17:57:15,475 | INFO | Starting DPO training run
+2026-04-13 17:57:15,482 | INFO | Saved resolved config to /cluster/scratch/gguidarini/outputs/2026-04-13/17-57-15/resolved_config.yaml
+2026-04-13 17:57:16,479 | INFO | W&B run name: esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-200__lr-1e-05__beta-0.04__s-42
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run f6qqqabb
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/outputs/2026-04-13/17-57-15/wandb/run-20260413_175717-f6qqqabb
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-200__lr-1e-05__beta-0.04__s-42
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/f6qqqabb
+2026-04-13 17:57:21,135 | INFO | Train split pair diagnostics:
+2026-04-13 17:57:21,137 | INFO | Pair stats | n=17915 | margin mean=16.3251 median=16.9546 min=5.0141 max=22.5497
+2026-04-13 17:57:21,140 | INFO | Pairs per view: mut2:9055, mut1:8860
+2026-04-13 17:57:21,140 | INFO | Validation split pair diagnostics:
+2026-04-13 17:57:21,141 | INFO | Pair stats | n=1932 | margin mean=15.6426 median=16.5857 min=5.0118 max=21.2069
+2026-04-13 17:57:21,142 | INFO | Pairs per view: mut2:977, mut1:955
+2026-04-13 17:57:21,142 | INFO | Test split pair diagnostics:
+2026-04-13 17:57:21,143 | INFO | Pair stats | n=2001 | margin mean=15.6321 median=16.6596 min=5.0099 max=21.0662
+2026-04-13 17:57:21,143 | INFO | Pairs per view: mut1:1007, mut2:994
+2026-04-13 17:57:21,144 | INFO | Split sizes | train=17915 val=1932 test=2001
+[2026-04-13 17:57:21,371][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 17:57:21,381][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:21,499][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-13 17:57:21,501][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-13 17:57:21,510][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:21,628][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-13 17:57:21,744][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-13 17:57:21,861][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 17:57:21,870][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:21,989][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 35240.72it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-13 17:57:22,565][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 17:57:22,574][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:22,690][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 17:57:22,700][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:22,821][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-13 17:57:22,934][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-13 17:57:23,050][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 17:57:23,060][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 17:57:23,182][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 25427.95it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Error executing job with overrides: ['output_dir=/cluster/scratch/gguidarini/outputs', 'checkpointing.best_export_dir=/cluster/scratch/gguidarini/outputs/2026-04-13/17-57-05/dpo_best_models', 'checkpointing.last_export_dir=/cluster/scratch/gguidarini/outputs/2026-04-13/17-57-05/dpo_last_models']
+Traceback (most recent call last):
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 518, in main
+    train_metrics, global_step = _run_epoch(
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 301, in _run_epoch
+    loss = weighted_dpo_loss(
+  File "/cluster/home/gguidarini/protein-design/src/loss.py", line 140, in weighted_dpo_loss
+    l_masked_pll = scorer.masked_pseudo_log_likelihood(
+  File "/cluster/home/gguidarini/protein-design/src/model.py", line 199, in masked_pseudo_log_likelihood
+    log_probs = self.forward_log_probs(chunk_tokens)
+  File "/cluster/home/gguidarini/protein-design/src/model.py", line 72, in forward_log_probs
+    logits = self.forward_logits(tokens)
+  File "/cluster/home/gguidarini/protein-design/src/model.py", line 64, in forward_logits
+    outputs = self.model(input_ids=tokens)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/utils/generic.py", line 876, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 767, in forward
+    outputs = self.esm(
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/utils/generic.py", line 952, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 663, in forward
+    encoder_outputs = self.encoder(
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/utils/generic.py", line 876, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 503, in forward
+    hidden_states = layer_module(
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 454, in forward
+    attention_output = self.attention(
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 395, in forward
+    attn_output, _ = self.self(
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/transformers/models/esm/modeling_esm.py", line 334, in forward
+    key_layer = self.key(current_states).view(hidden_shape).transpose(1, 2)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/cluster/home/gguidarini/protein-design/.venv/lib/python3.10/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 MiB. GPU 0 has a total capacity of 79.25 GiB of which 960.00 KiB is free. Including non-PyTorch memory, this process has 79.24 GiB memory in use. Of the allocated memory 78.74 GiB is allocated by PyTorch, and 14.77 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mesm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-200__lr-1e-05__beta-0.04__s-42[0m at: [34mhttps://wandb.ai/gguidarini-eth-zurich/dpo/runs/f6qqqabb[0m
+[1;34mwandb[0m: Find logs at: [1;35m../../../scratch/gguidarini/outputs/2026-04-13/17-57-15/wandb/run-20260413_175717-f6qqqabb/logs[0m

@@ -1,0 +1,249 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+DPO output dir: /cluster/scratch/gguidarini/outputs
+DPO best-model export dir: /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models
+DPO last-model export dir: /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models
+W&B dir: /cluster/scratch/gguidarini/dpo_outputs/2026-04-13/18-15-28/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-ts-01
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Mon Apr 13 18:15:32 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:64:00.0 Off |                    0 |
+| N/A   32C    P0             45W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-13 18:15:38,270 | INFO | Starting DPO training run
+2026-04-13 18:15:38,276 | INFO | Saved resolved config to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-38/resolved_config.yaml
+2026-04-13 18:15:39,298 | INFO | W&B run name: esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-128__lr-1e-05__beta-0.04__s-42
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run h2x3idrg
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-38/wandb/run-20260413_181539-h2x3idrg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-t12-35m-ur50d__both-structured__views-mut1-mut2__ep-15__bs-128__lr-1e-05__beta-0.04__s-42
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/h2x3idrg
+2026-04-13 18:15:43,897 | INFO | Train split pair diagnostics:
+2026-04-13 18:15:43,900 | INFO | Pair stats | n=17915 | margin mean=16.3251 median=16.9546 min=5.0141 max=22.5497
+2026-04-13 18:15:43,902 | INFO | Pairs per view: mut2:9055, mut1:8860
+2026-04-13 18:15:43,903 | INFO | Validation split pair diagnostics:
+2026-04-13 18:15:43,904 | INFO | Pair stats | n=1932 | margin mean=15.6426 median=16.5857 min=5.0118 max=21.2069
+2026-04-13 18:15:43,905 | INFO | Pairs per view: mut2:977, mut1:955
+2026-04-13 18:15:43,906 | INFO | Test split pair diagnostics:
+2026-04-13 18:15:43,907 | INFO | Pair stats | n=2001 | margin mean=15.6321 median=16.6596 min=5.0099 max=21.0662
+2026-04-13 18:15:43,908 | INFO | Pairs per view: mut1:1007, mut2:994
+2026-04-13 18:15:43,908 | INFO | Split sizes | train=17915 val=1932 test=2001
+[2026-04-13 18:15:44,127][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:44,139][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:44,256][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:44,266][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:44,384][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-13 18:15:44,502][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-13 18:15:44,625][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:44,635][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:44,755][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-13 18:15:44,757][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 31678.59it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-13 18:15:45,283][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:45,293][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:45,410][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:45,420][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:45,538][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-13 18:15:45,656][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-13 18:15:45,771][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-13 18:15:45,781][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-13 18:15:45,897][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 32542.28it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+2026-04-13 18:18:53,982 | INFO | step=20 train_loss=0.561357
+2026-04-13 18:21:59,162 | INFO | step=40 train_loss=0.466708
+2026-04-13 18:25:05,373 | INFO | step=60 train_loss=0.409442
+2026-04-13 18:28:11,052 | INFO | step=80 train_loss=0.347015
+2026-04-13 18:31:15,604 | INFO | step=100 train_loss=0.334368
+2026-04-13 18:34:46,564 | INFO | step=120 train_loss=0.340288
+2026-04-13 18:38:19,380 | INFO | step=140 train_loss=0.323791
+2026-04-13 18:48:10,648 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.421677 | val_loss=0.326817 | val_acc=0.9736 | val_margin=1.0755 | val_kl=-109.3072 | val_ppl=884.0529 | train_batches=140 | val_batches=16
+2026-04-13 18:48:11,928 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 18:48:13,162 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 18:51:26,921 | INFO | step=20 train_loss=0.282969
+2026-04-13 18:54:42,427 | INFO | step=40 train_loss=0.265751
+2026-04-13 18:57:46,895 | INFO | step=60 train_loss=0.291394
+2026-04-13 19:00:50,403 | INFO | step=80 train_loss=0.276930
+2026-04-13 19:03:54,692 | INFO | step=100 train_loss=0.239650
+2026-04-13 19:06:58,043 | INFO | step=120 train_loss=0.242795
+2026-04-13 19:10:02,409 | INFO | step=140 train_loss=0.235326
+2026-04-13 19:19:56,653 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.273686 | val_loss=0.274615 | val_acc=0.9767 | val_margin=1.3290 | val_kl=-124.9046 | val_ppl=405.2580 | train_batches=140 | val_batches=16
+2026-04-13 19:19:58,004 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 19:19:59,268 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 19:23:15,332 | INFO | step=20 train_loss=0.252668
+2026-04-13 19:26:29,949 | INFO | step=40 train_loss=0.237451
+2026-04-13 19:29:29,293 | INFO | step=60 train_loss=0.215049
+2026-04-13 19:32:24,500 | INFO | step=80 train_loss=0.250421
+2026-04-13 19:35:20,986 | INFO | step=100 train_loss=0.230775
+2026-04-13 19:38:23,157 | INFO | step=120 train_loss=0.224144
+2026-04-13 19:41:19,371 | INFO | step=140 train_loss=0.217856
+2026-04-13 19:51:07,138 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.231311 | val_loss=0.239584 | val_acc=0.9798 | val_margin=1.5174 | val_kl=-162.9777 | val_ppl=385.7831 | train_batches=140 | val_batches=16
+2026-04-13 19:51:08,424 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 19:51:09,690 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 19:54:10,722 | INFO | step=20 train_loss=0.197298
+2026-04-13 19:57:13,745 | INFO | step=40 train_loss=0.197806
+2026-04-13 20:00:27,894 | INFO | step=60 train_loss=0.222047
+2026-04-13 20:03:48,076 | INFO | step=80 train_loss=0.217290
+2026-04-13 20:07:06,820 | INFO | step=100 train_loss=0.176182
+2026-04-13 20:10:24,870 | INFO | step=120 train_loss=0.211922
+2026-04-13 20:13:41,822 | INFO | step=140 train_loss=0.197845
+2026-04-13 20:23:30,404 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.205348 | val_loss=0.221800 | val_acc=0.9777 | val_margin=1.6262 | val_kl=-194.8824 | val_ppl=493.7360 | train_batches=140 | val_batches=16
+2026-04-13 20:23:31,721 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 20:23:32,961 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 20:26:35,905 | INFO | step=20 train_loss=0.179320
+2026-04-13 20:29:56,119 | INFO | step=40 train_loss=0.219909
+2026-04-13 20:33:09,793 | INFO | step=60 train_loss=0.187033
+2026-04-13 20:36:11,606 | INFO | step=80 train_loss=0.196686
+2026-04-13 20:39:19,764 | INFO | step=100 train_loss=0.200312
+2026-04-13 20:42:22,731 | INFO | step=120 train_loss=0.199714
+2026-04-13 20:45:29,748 | INFO | step=140 train_loss=0.180681
+2026-04-13 20:55:24,173 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.191788 | val_loss=0.213735 | val_acc=0.9788 | val_margin=1.6769 | val_kl=-221.0210 | val_ppl=987.7941 | train_batches=140 | val_batches=16
+2026-04-13 20:55:25,505 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 20:55:26,752 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 20:58:27,844 | INFO | step=20 train_loss=0.181112
+2026-04-13 21:01:29,806 | INFO | step=40 train_loss=0.159552
+2026-04-13 21:04:31,955 | INFO | step=60 train_loss=0.181638
+2026-04-13 21:07:33,319 | INFO | step=80 train_loss=0.165876
+2026-04-13 21:10:35,153 | INFO | step=100 train_loss=0.170679
+2026-04-13 21:13:39,574 | INFO | step=120 train_loss=0.160679
+2026-04-13 21:16:40,988 | INFO | step=140 train_loss=0.163165
+2026-04-13 21:26:29,549 | INFO | Epoch 6 | lr=1.000e-05 | train_loss=0.175475 | val_loss=0.192931 | val_acc=0.9860 | val_margin=1.7901 | val_kl=-193.0710 | val_ppl=44.9663 | train_batches=140 | val_batches=16
+2026-04-13 21:26:30,784 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 21:26:32,005 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 21:29:32,702 | INFO | step=20 train_loss=0.140080
+2026-04-13 21:32:39,048 | INFO | step=40 train_loss=0.159838
+2026-04-13 21:35:44,402 | INFO | step=60 train_loss=0.160333
+2026-04-13 21:39:03,714 | INFO | step=80 train_loss=0.159798
+2026-04-13 21:42:05,651 | INFO | step=100 train_loss=0.168725
+2026-04-13 21:45:07,510 | INFO | step=120 train_loss=0.167050
+2026-04-13 21:48:08,768 | INFO | step=140 train_loss=0.156746
+2026-04-13 21:57:58,631 | INFO | Epoch 7 | lr=1.000e-05 | train_loss=0.163243 | val_loss=0.184854 | val_acc=0.9865 | val_margin=1.8464 | val_kl=-238.7126 | val_ppl=209.6065 | train_batches=140 | val_batches=16
+2026-04-13 21:57:59,924 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 21:58:01,145 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 22:01:01,548 | INFO | step=20 train_loss=0.158279
+2026-04-13 22:04:03,375 | INFO | step=40 train_loss=0.143356
+2026-04-13 22:07:05,331 | INFO | step=60 train_loss=0.156652
+2026-04-13 22:10:07,521 | INFO | step=80 train_loss=0.148678
+2026-04-13 22:13:09,539 | INFO | step=100 train_loss=0.149337
+2026-04-13 22:16:12,088 | INFO | step=120 train_loss=0.162121
+2026-04-13 22:19:11,926 | INFO | step=140 train_loss=0.144728
+2026-04-13 22:29:00,402 | INFO | Epoch 8 | lr=1.000e-05 | train_loss=0.153089 | val_loss=0.172915 | val_acc=0.9876 | val_margin=1.9364 | val_kl=-234.8573 | val_ppl=70.6679 | train_batches=140 | val_batches=16
+2026-04-13 22:29:01,686 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 22:29:02,926 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 22:32:02,657 | INFO | step=20 train_loss=0.140559
+2026-04-13 22:35:05,007 | INFO | step=40 train_loss=0.142521
+2026-04-13 22:38:08,417 | INFO | step=60 train_loss=0.147094
+2026-04-13 22:41:16,732 | INFO | step=80 train_loss=0.140683
+2026-04-13 22:44:29,395 | INFO | step=100 train_loss=0.167610
+2026-04-13 22:47:37,200 | INFO | step=120 train_loss=0.142693
+2026-04-13 22:50:39,438 | INFO | step=140 train_loss=0.142652
+2026-04-13 23:00:28,286 | INFO | Epoch 9 | lr=1.000e-05 | train_loss=0.146354 | val_loss=0.170962 | val_acc=0.9876 | val_margin=1.9570 | val_kl=-264.3998 | val_ppl=288.8476 | train_batches=140 | val_batches=16
+2026-04-13 23:00:29,576 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 23:00:30,928 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 23:03:30,738 | INFO | step=20 train_loss=0.134103
+2026-04-13 23:06:33,026 | INFO | step=40 train_loss=0.139397
+2026-04-13 23:09:34,113 | INFO | step=60 train_loss=0.151537
+2026-04-13 23:12:36,652 | INFO | step=80 train_loss=0.132305
+2026-04-13 23:15:38,301 | INFO | step=100 train_loss=0.148529
+2026-04-13 23:18:39,919 | INFO | step=120 train_loss=0.146396
+2026-04-13 23:21:42,168 | INFO | step=140 train_loss=0.129847
+2026-04-13 23:31:30,304 | INFO | Epoch 10 | lr=1.000e-05 | train_loss=0.136934 | val_loss=0.159572 | val_acc=0.9896 | val_margin=2.0399 | val_kl=-251.9623 | val_ppl=59.5882 | train_batches=140 | val_batches=16
+2026-04-13 23:31:31,542 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-13 23:31:32,887 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-13 23:34:32,810 | INFO | step=20 train_loss=0.126286
+2026-04-13 23:37:37,421 | INFO | step=40 train_loss=0.135038
+2026-04-13 23:40:38,268 | INFO | step=60 train_loss=0.124098
+2026-04-13 23:43:39,659 | INFO | step=80 train_loss=0.125312
+2026-04-13 23:46:40,570 | INFO | step=100 train_loss=0.133181
+2026-04-13 23:49:41,432 | INFO | step=120 train_loss=0.112526
+2026-04-13 23:52:43,221 | INFO | step=140 train_loss=0.120215
+2026-04-14 00:02:31,596 | INFO | Epoch 11 | lr=1.000e-05 | train_loss=0.130343 | val_loss=0.153719 | val_acc=0.9896 | val_margin=2.0859 | val_kl=-242.3039 | val_ppl=23.1278 | train_batches=140 | val_batches=16
+2026-04-14 00:02:32,935 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-14 00:02:34,250 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 00:05:34,724 | INFO | step=20 train_loss=0.115198
+2026-04-14 00:08:36,219 | INFO | step=40 train_loss=0.135188
+2026-04-14 00:11:38,856 | INFO | step=60 train_loss=0.125336
+2026-04-14 00:14:39,407 | INFO | step=80 train_loss=0.124248
+2026-04-14 00:17:40,669 | INFO | step=100 train_loss=0.116873
+2026-04-14 00:20:41,891 | INFO | step=120 train_loss=0.135789
+2026-04-14 00:23:41,187 | INFO | step=140 train_loss=0.125704
+2026-04-14 00:33:28,467 | INFO | Epoch 12 | lr=1.000e-05 | train_loss=0.128903 | val_loss=0.149702 | val_acc=0.9917 | val_margin=2.1278 | val_kl=-269.4657 | val_ppl=57.7297 | train_batches=140 | val_batches=16
+2026-04-14 00:33:29,741 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-14 00:33:30,967 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 00:36:31,213 | INFO | step=20 train_loss=0.122731
+2026-04-14 00:39:34,363 | INFO | step=40 train_loss=0.132202
+2026-04-14 00:42:37,625 | INFO | step=60 train_loss=0.129251
+2026-04-14 00:45:38,725 | INFO | step=80 train_loss=0.119442
+2026-04-14 00:48:46,268 | INFO | step=100 train_loss=0.123652
+2026-04-14 00:51:57,190 | INFO | step=120 train_loss=0.112796
+2026-04-14 00:55:11,517 | INFO | step=140 train_loss=0.125282
+2026-04-14 01:04:59,743 | INFO | Epoch 13 | lr=1.000e-05 | train_loss=0.122915 | val_loss=0.162596 | val_acc=0.9865 | val_margin=2.0712 | val_kl=-330.4916 | val_ppl=4259.8330 | train_batches=140 | val_batches=16
+2026-04-14 01:05:01,193 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 01:08:08,467 | INFO | step=20 train_loss=0.128606
+2026-04-14 01:11:22,177 | INFO | step=40 train_loss=0.115889
+2026-04-14 01:14:38,701 | INFO | step=60 train_loss=0.113345
+2026-04-14 01:17:43,436 | INFO | step=80 train_loss=0.131536
+2026-04-14 01:20:53,764 | INFO | step=100 train_loss=0.115201
+2026-04-14 01:24:11,753 | INFO | step=120 train_loss=0.116757
+2026-04-14 01:27:23,490 | INFO | step=140 train_loss=0.124116
+2026-04-14 01:37:13,319 | INFO | Epoch 14 | lr=1.000e-05 | train_loss=0.118538 | val_loss=0.140552 | val_acc=0.9912 | val_margin=2.2164 | val_kl=-279.0197 | val_ppl=49.0107 | train_batches=140 | val_batches=16
+2026-04-14 01:37:14,641 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-14 01:37:15,913 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 01:40:16,958 | INFO | step=20 train_loss=0.118127
+2026-04-14 01:43:20,282 | INFO | step=40 train_loss=0.104483
+2026-04-14 01:46:22,851 | INFO | step=60 train_loss=0.117620
+2026-04-14 01:49:39,255 | INFO | step=80 train_loss=0.105988
+2026-04-14 01:52:41,338 | INFO | step=100 train_loss=0.114182
+2026-04-14 01:55:43,622 | INFO | step=120 train_loss=0.102816
+2026-04-14 01:58:45,448 | INFO | step=140 train_loss=0.115659
+2026-04-14 02:08:33,912 | INFO | Epoch 15 | lr=1.000e-05 | train_loss=0.113198 | val_loss=0.134258 | val_acc=0.9917 | val_margin=2.2487 | val_kl=-277.4019 | val_ppl=24.9953 | train_batches=140 | val_batches=16
+2026-04-14 02:08:35,227 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-14 02:08:36,527 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 02:08:36,882 | INFO | Loaded best checkpoint for final test evaluation: /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-38/checkpoints/best.pt
+2026-04-14 02:08:37,608 | INFO | Exported best checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_best_models/best.pt
+2026-04-14 02:08:38,335 | INFO | Exported last checkpoint to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-28/dpo_last_models/last.pt
+2026-04-14 02:17:33,552 | INFO | Test metrics | loss=0.129013 | reward_acc=0.9930 | reward_margin=2.2078 | implicit_kl=-274.1407 | batches=16 | skipped=0
+2026-04-14 02:17:33,557 | INFO | Computing perplexity on test set (chosen sequences)...
+2026-04-14 02:18:47,578 | INFO | Test Chosen Perplexity: 23.2564
+2026-04-14 02:18:47,595 | INFO | Saved history to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-38/history.csv
+2026-04-14 02:18:47,596 | INFO | Saved summary to /cluster/scratch/gguidarini/outputs/2026-04-13/18-15-38/summary.json
+wandb: uploading data; updating run metadata
+wandb: uploading data
