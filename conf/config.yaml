@@ -70,6 +70,8 @@ wandb:
   project: dpo
   entity: null
   run_name: null  # null => auto-name: model + pairing strategy + views + epochs + batch/lr/beta + seed
+  init_timeout: 180
+  fallback_mode: offline  # offline | disable
   tags: []
   notes: null
 

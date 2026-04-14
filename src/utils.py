@@ -149,16 +149,48 @@ def init_wandb_run(cfg: Any, output_dir: Path, logger: logging.Logger, omegaconf
 	run_name = configured_name or _default_wandb_run_name(cfg)
 	logger.info("W&B run name: %s", run_name)
 
-	run = wandb.init(
-		project=str(cfg.wandb.project),
-		entity=None if cfg.wandb.entity is None else str(cfg.wandb.entity),
-		name=run_name,
-		tags=None if cfg.wandb.tags is None else list(cfg.wandb.tags),
-		notes=None if cfg.wandb.notes is None else str(cfg.wandb.notes),
-		dir=str(output_dir),
-		config=omegaconf_cls.to_container(cfg, resolve=True),
+	init_timeout = int(getattr(cfg.wandb, "init_timeout", 120))
+	fallback_mode = str(getattr(cfg.wandb, "fallback_mode", "offline")).strip().lower()
+	init_kwargs = {
+		"project": str(cfg.wandb.project),
+		"entity": None if cfg.wandb.entity is None else str(cfg.wandb.entity),
+		"name": run_name,
+		"tags": None if cfg.wandb.tags is None else list(cfg.wandb.tags),
+		"notes": None if cfg.wandb.notes is None else str(cfg.wandb.notes),
+		"dir": str(output_dir),
+		"config": omegaconf_cls.to_container(cfg, resolve=True),
+		"settings": wandb.Settings(init_timeout=init_timeout),
+	}
+
+	try:
+		run = wandb.init(**init_kwargs)
+		return wandb, run
+	except Exception as exc:  # pragma: no cover - depends on network/runtime env
+		logger.warning(
+			"W&B online init failed (%s). Fallback mode is '%s'.",
+			exc,
+			fallback_mode,
+		)
+
+	if fallback_mode == "offline":
+		try:
+			run = wandb.init(mode="offline", **init_kwargs)
+			logger.warning("Continuing with W&B in offline mode.")
+			return wandb, run
+		except Exception as exc:  # pragma: no cover - depends on runtime env
+			logger.warning("W&B offline init failed (%s). Disabling W&B logging.", exc)
+			return None, None
+
+	if fallback_mode in {"disable", "disabled", "none"}:
+		logger.warning("Continuing without W&B logging.")
+		return None, None
+
+	logger.warning(
+		"Unknown wandb.fallback_mode='%s'. Expected 'offline' or 'disable'. "
+		"Continuing without W&B logging.",
+		fallback_mode,
 	)
-	return wandb, run
+	return None, None
 
 
 def log_pair_diagnostics(logger: logging.Logger, pairs_df: pd.DataFrame, preview_count: int = 5) -> None:
