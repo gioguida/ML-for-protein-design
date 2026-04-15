@@ -3,6 +3,9 @@ defaults:
 
 seed: 42
 
+run:
+  base_name: null  # optional base name; final run name is <base_name>_<YYYYMMDD_HHMMSS>
+
 data:
   raw_csv: data/raw/M22_binding_enrichment.csv
   processed_dir: data/processed
@@ -59,17 +62,18 @@ checkpointing:
   dir: checkpoints
   best_filename: best.pt
   last_filename: last.pt
+  step_prefix: step
   best_export_dir: ${oc.env:DPO_BEST_MODEL_DIR,null}
   best_export_filename: best.pt
   last_export_dir: ${oc.env:DPO_LAST_MODEL_DIR,null}
   last_export_filename: last.pt
 
-output_dir: ${oc.env:DPO_OUTPUT_DIR,outputs}
+output_dir: ${oc.env:TRAIN_DIR,${oc.env:DPO_OUTPUT_DIR,outputs}}
 wandb:
   enabled: true
   project: dpo
   entity: null
-  run_name: null  # null => auto-name: model + pairing strategy + views + epochs + batch/lr/beta + seed
+  run_name: null  # treated as base run name when run.base_name is null
   init_timeout: 180
   fallback_mode: offline  # offline | disable
   tags: []

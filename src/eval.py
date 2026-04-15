@@ -3,14 +3,14 @@ import torch
 from typing import Dict, List, Sequence
 
 if __package__:
-    from .model import ESM2PLLScorer
+    from .model import ESM2
 else:  # pragma: no cover
-    from model import ESM2PLLScorer
+    from model import ESM2
 
 
 def sequence_perplexity(
     sequences: Sequence[str], 
-    scorer: ESM2PLLScorer,
+    scorer: ESM2,
     cdr_only: bool = True
 ) -> torch.Tensor:
     """
@@ -43,7 +43,7 @@ def sequence_perplexity(
 
 def corpus_perplexity(
     sequences: Sequence[str],
-    scorer: ESM2PLLScorer,
+    scorer: ESM2,
     cdr_only: bool = True,
 ) -> float:
     """Compute corpus-level perplexity as exp(total_nll / total_scored_tokens).

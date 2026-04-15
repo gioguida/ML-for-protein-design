@@ -9,7 +9,7 @@ import torch
 from pathlib import Path
 from typing import List
 
-from src.model import ESM2PLLScorer
+from src.model import ESM2
 from src.dataset import (
     create_train_val_test_split
     )
@@ -40,7 +40,7 @@ def _diff_positions(winner: str, loser: str) -> List[int]:
     return [idx for idx, (w_char, l_char) in enumerate(zip(winner, loser)) if w_char != l_char]
 
 
-def _assert_mask_position_mapping(sequence: str, diff_positions: List[int], scorer: ESM2PLLScorer) -> None:
+def _assert_mask_position_mapping(sequence: str, diff_positions: List[int], scorer: ESM2) -> None:
     if not diff_positions:
         return
 
@@ -63,7 +63,7 @@ def _assert_mask_position_mapping(sequence: str, diff_positions: List[int], scor
         raise AssertionError("CDR-position masking and token-position masking do not match.")
 
 
-def _assert_perplexity_formula(chosen_seqs: List[str], scorer: ESM2PLLScorer) -> None:
+def _assert_perplexity_formula(chosen_seqs: List[str], scorer: ESM2) -> None:
     perplexities = sequence_perplexity(chosen_seqs, scorer=scorer, cdr_only=True)
     pll_scores = scorer.pseudo_log_likelihood(chosen_seqs, cdr_only=True, use_grad=False)
     cdr_len = float(len(chosen_seqs[0]))
@@ -136,14 +136,14 @@ def main():
     if test_df.empty:
         raise ValueError("Test split is empty; cannot verify model/perplexity behavior.")
 
-    policy = ESM2PLLScorer(policy_cfg)
+    policy = ESM2(policy_cfg)
     _load_checkpoint(
         checkpoint_path=Path(FINE_TUNED_CHECKPOINT_PATH),
         policy=policy,
         optimizer=None,
         scheduler=None,
     )
-    reference = ESM2PLLScorer(reference_cfg)
+    reference = ESM2(reference_cfg)
 
     for param in reference.model.parameters():
         param.requires_grad_(False)

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
 import importlib
 import logging
 from pathlib import Path
+import re
 from typing import Any, List, Optional, Sequence, Tuple, TypedDict
 
 import pandas as pd
@@ -108,33 +110,79 @@ def setup_train_logger(output_dir: Path, level_name: str, logger_name: str = "dp
 
 
 def _infer_model_label(esm_model_path: Any) -> str:
-	"""Infer a compact model label from model file path (e.g., esm2_150m -> esm2-150m)."""
-	model_name = Path(str(esm_model_path)).stem.lower()
-	for token in ("safetensors", "checkpoint", "model"):
-		model_name = model_name.replace(token, "")
-	model_name = model_name.strip(" _-.")
-	model_name = model_name.replace("_", "-")
-	return model_name or "esm2-unknown"
+	"""Infer model label as esm2-<millions>M from model path when possible."""
+	model_name = Path(str(esm_model_path)).stem
+	model_name_lc = model_name.lower()
+
+	# Common ESM2 patterns: esm2_t12_35M_UR50D, esm2_t36_3B_UR50D
+	match = re.search(r"esm2[^/]*?_(\d+(?:\.\d+)?)([mb])\b", model_name_lc)
+	if match is None:
+		match = re.search(r"(\d+(?:\.\d+)?)([mb])\b", model_name_lc)
+
+	if match is None:
+		return "esm2-unknownM"
+
+	value = float(match.group(1))
+	unit = match.group(2)
+	millions = value if unit == "m" else value * 1000.0
+
+	if float(millions).is_integer():
+		million_text = str(int(millions))
+	else:
+		million_text = f"{millions:g}"
+
+	return f"esm2-{million_text}M"
 
 
 def _default_wandb_run_name(cfg: Any) -> str:
-	"""Create a professional default W&B run name from key training/data settings."""
+	"""Create default base run name used by W&B and local/archive run directories."""
 	model_label = _infer_model_label(cfg.model.esm_model_path)
-	pairing = str(cfg.data.pairing_strategy).replace("_", "-")
-	views = "-".join(str(v) for v in cfg.data.include_views)
+	pairing = str(cfg.data.pairing_strategy)
+	loss_name = str(cfg.training.loss)
 	epochs = int(cfg.training.num_epochs)
 	batch_size = int(cfg.training.batch_size)
 	lr = float(cfg.training.lr)
 	beta = float(cfg.training.beta)
-	seed = int(cfg.seed)
+	temp_part = ""
+	if loss_name == "weighted_dpo":
+		temp_part = f"__loss-{float(cfg.training.temperature):g}"
 
 	return (
-		f"{model_label}__{pairing}__views-{views}__ep-{epochs}"
-		f"__bs-{batch_size}__lr-{lr:.0e}__beta-{beta:g}__s-{seed}"
+		f"{model_label}"
+		f"__{pairing}"
+		f"__{loss_name}"
+		f"{temp_part}"
+		f"__ep-{epochs}"
+		f"__bs-{batch_size}"
+		f"__lr-{lr:g}"
+		f"__beta-{beta:g}"
 	)
 
 
-def init_wandb_run(cfg: Any, output_dir: Path, logger: logging.Logger, omegaconf_cls: Any) -> Tuple[Optional[Any], Optional[Any]]:
+def resolve_base_run_name(cfg: Any) -> str:
+	"""Resolve base run name from config, falling back to the existing auto naming logic."""
+	configured_base = None
+	if hasattr(cfg, "run") and getattr(cfg.run, "base_name", None) is not None:
+		configured_base = str(cfg.run.base_name).strip()
+	if not configured_base and getattr(cfg.wandb, "run_name", None) is not None:
+		configured_base = str(cfg.wandb.run_name).strip()
+	return configured_base or _default_wandb_run_name(cfg)
+
+
+def build_full_run_name(cfg: Any, timestamp: Optional[str] = None) -> str:
+	"""Build canonical run name: <base_run_name>_<YYYYMMDD_HHMMSS>."""
+	base_name = resolve_base_run_name(cfg).replace("/", "-").replace("\\", "-").replace(" ", "_")
+	ts = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+	return f"{base_name}_{ts}"
+
+
+def init_wandb_run(
+	cfg: Any,
+	output_dir: Path,
+	logger: logging.Logger,
+	omegaconf_cls: Any,
+	run_name: Optional[str] = None,
+) -> Tuple[Optional[Any], Optional[Any]]:
 	"""Initialize Weights & Biases run if enabled in config."""
 	if not bool(cfg.wandb.enabled):
 		return None, None
@@ -145,16 +193,15 @@ def init_wandb_run(cfg: Any, output_dir: Path, logger: logging.Logger, omegaconf
 		logger.warning("wandb is not available; continuing without Weights & Biases logging.")
 		return None, None
 	
-	configured_name = None if cfg.wandb.run_name is None else str(cfg.wandb.run_name).strip()
-	run_name = configured_name or _default_wandb_run_name(cfg)
-	logger.info("W&B run name: %s", run_name)
+	resolved_run_name = run_name or resolve_base_run_name(cfg)
+	logger.info("W&B run name: %s", resolved_run_name)
 
 	init_timeout = int(getattr(cfg.wandb, "init_timeout", 120))
 	fallback_mode = str(getattr(cfg.wandb, "fallback_mode", "offline")).strip().lower()
 	init_kwargs = {
 		"project": str(cfg.wandb.project),
 		"entity": None if cfg.wandb.entity is None else str(cfg.wandb.entity),
-		"name": run_name,
+		"name": resolved_run_name,
 		"tags": None if cfg.wandb.tags is None else list(cfg.wandb.tags),
 		"notes": None if cfg.wandb.notes is None else str(cfg.wandb.notes),
 		"dir": str(output_dir),

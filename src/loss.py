@@ -4,9 +4,9 @@ import numpy as np
 from typing import Any, Dict, List, Sequence, Tuple, TypedDict, Union
 
 if __package__:
-    from .model import ESM2PLLScorer
+    from .model import ESM2
 else:  # pragma: no cover
-    from model import ESM2PLLScorer
+    from model import ESM2
 
 
 def _diff_positions(winner: str, loser: str) -> List[int]:
@@ -58,8 +58,8 @@ def _member_to_score(member: PairMemberLike, require_score: bool = False) -> flo
 def dpo_loss(
     pair: PairBatchLike,
     beta: float, 
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer,
+    scorer: ESM2, 
+    reference: ESM2,
     policy_use_grad: bool = True,
 ) -> torch.Tensor:
     """Compute mean DPO loss over one pair or a batch of pairs."""
@@ -113,8 +113,8 @@ def weighted_dpo_loss(
     pair: PairBatchLike,
     beta: float,
     temperature: float,
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer,
+    scorer: ESM2, 
+    reference: ESM2,
     policy_use_grad: bool = True,
 ) -> torch.Tensor:
     """Compute mean weighted DPO loss over one pair or a batch of pairs."""
@@ -180,8 +180,8 @@ def implicit_reward(
     sequence: str, 
     masked_positions: np.ndarray, 
     beta: float, 
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer
+    scorer: ESM2, 
+    reference: ESM2
 ) -> torch.Tensor:
     """Compute implicit reward for a sequence at given CDR residue positions."""
     positions = [int(pos) for pos in masked_positions]
@@ -205,8 +205,8 @@ def reward_accuracy(
     pair: PairLike, 
     masked_positions: np.ndarray, 
     beta: float, 
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer
+    scorer: ESM2, 
+    reference: ESM2
 ) -> bool:
     """Determine if the reward correctly ranks the winner above the loser."""
     winner, loser = pair
@@ -221,8 +221,8 @@ def reward_margin(
     pair: PairLike, 
     masked_positions: np.ndarray, 
     beta: float, 
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer
+    scorer: ESM2, 
+    reference: ESM2
 ) -> torch.Tensor:
     """Compute the reward margin between winner and loser."""
     winner, loser = pair
@@ -236,8 +236,8 @@ def reward_margin(
 
 def implicit_KL_divergence(
     sequence: str, 
-    scorer: ESM2PLLScorer, 
-    reference: ESM2PLLScorer
+    scorer: ESM2, 
+    reference: ESM2
 ) -> torch.Tensor:
     """Compute the implicit KL divergence for a single sequence."""
     masked_pll = scorer.pseudo_log_likelihood([sequence], use_grad=False).squeeze(0)
@@ -249,8 +249,8 @@ def implicit_KL_divergence(
 def pair_monitoring_metrics(
     pair: PairLike,
     beta: float,
-    scorer: ESM2PLLScorer,
-    reference: ESM2PLLScorer,
+    scorer: ESM2,
+    reference: ESM2,
 ) -> Dict[str, float]:
     """Compute monitoring metrics for a single winner-loser pair."""
     winner, loser = pair
@@ -275,8 +275,8 @@ def pair_monitoring_metrics(
 def batch_monitoring_metrics(
     pairs: PairBatchLike,
     beta: float,
-    scorer: ESM2PLLScorer,
-    reference: ESM2PLLScorer,
+    scorer: ESM2,
+    reference: ESM2,
 ) -> Dict[str, float]:
     """Compute average monitoring metrics over one pair or a batch of pairs."""
     pair_batch = _as_pair_batch(pairs)
@@ -307,22 +307,3 @@ def batch_monitoring_metrics(
         "num_pairs": float(valid_pairs),
     }
 
-
-def sequence_perplexity(
-        sequence: str,
-        scorer: ESM2PLLScorer,
-        reference: ESM2PLLScorer
-) -> Dict[str, float]:
-    """Compute normalized CDR perplexity of one sequence under scorer/reference."""
-    if len(sequence) == 0:
-        raise ValueError("sequence must not be empty")
-
-    cdr_length = float(len(sequence))
-    masked_pll = scorer.pseudo_log_likelihood([sequence], cdr_only=True, use_grad=False).squeeze(0)
-    ref_masked_pll = reference.pseudo_log_likelihood([sequence], cdr_only=True, use_grad=False).squeeze(0)
-    perplexity = torch.exp(-masked_pll / cdr_length)
-    ref_perplexity = torch.exp(-ref_masked_pll / cdr_length)
-    return {
-        "perplexity": float(perplexity.item()),
-        "reference_perplexity": float(ref_perplexity.item()),
-    }

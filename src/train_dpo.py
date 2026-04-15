@@ -12,7 +12,9 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict
 
@@ -24,9 +26,10 @@ from torch.utils.data import DataLoader, Dataset
 if __package__:
     from .dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from .loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
-    from .model import ESM2PLLScorer
+    from .model import ESM2
     from .utils import (
         ModelConfig,
+        build_full_run_name,
         init_wandb_run,
         load_hydra_runtime_modules,
         log_pair_diagnostics,
@@ -35,9 +38,10 @@ if __package__:
 else:  # pragma: no cover
     from dataset import build_split_pair_dataframes_from_raw, default_data_paths
     from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
-    from model import ESM2PLLScorer
+    from model import ESM2
     from utils import (
         ModelConfig,
+        build_full_run_name,
         init_wandb_run,
         load_hydra_runtime_modules,
         log_pair_diagnostics,
@@ -152,7 +156,7 @@ def _build_dataloader(
     )
 
 
-def _build_scorers(cfg: Any) -> Tuple[ESM2PLLScorer, ESM2PLLScorer]:
+def _build_scorers(cfg: Any) -> Tuple[ESM2, ESM2]:
     model_cfg = ModelConfig(
         esm_model_path=str(cfg.model.esm_model_path),
         device=str(cfg.training.device),
@@ -160,8 +164,8 @@ def _build_scorers(cfg: Any) -> Tuple[ESM2PLLScorer, ESM2PLLScorer]:
         pll_mask_chunk_size=int(getattr(cfg.model, "pll_mask_chunk_size", 64)),
     )
 
-    policy = ESM2PLLScorer(model_cfg)
-    reference = ESM2PLLScorer(model_cfg)
+    policy = ESM2(model_cfg)
+    reference = ESM2(model_cfg)
 
     for param in reference.model.parameters():
         param.requires_grad_(False)
@@ -171,7 +175,7 @@ def _build_scorers(cfg: Any) -> Tuple[ESM2PLLScorer, ESM2PLLScorer]:
 
 def _build_optimizer_and_scheduler(
     cfg: Any,
-    policy: ESM2PLLScorer,
+    policy: ESM2,
 ) -> Tuple[torch.optim.Optimizer, Optional[torch.optim.lr_scheduler._LRScheduler]]:
     trainable_params = [p for p in policy.model.parameters() if p.requires_grad]
     if not trainable_params:
@@ -197,7 +201,7 @@ def _build_optimizer_and_scheduler(
 def _save_checkpoint(
     path: Path,
     epoch: int,
-    policy: ESM2PLLScorer,
+    policy: ESM2,
     optimizer: torch.optim.Optimizer,
     scheduler: Optional[torch.optim.lr_scheduler._LRScheduler],
     best_val_loss: float,
@@ -214,7 +218,7 @@ def _save_checkpoint(
 
 def _load_checkpoint(
     checkpoint_path: Path,
-    policy: ESM2PLLScorer,
+    policy: ESM2,
     optimizer: Optional[torch.optim.Optimizer],
     scheduler: Optional[torch.optim.lr_scheduler._LRScheduler],
 ) -> Tuple[int, float]:
@@ -251,9 +255,30 @@ def _export_checkpoint(
     return target_path
 
 
+def _resolve_storage_paths(full_run_name: str) -> Dict[str, Path]:
+    """Resolve storage tiers from env vars with cluster-safe defaults."""
+    user = os.environ.get("USER") or os.environ.get("USERNAME") or "unknown"
+    scratch_dir = Path(
+        os.environ.get("SCRATCH_DIR", f"/cluster/scratch/{user}/protein-design")
+    )
+    train_dir = Path(os.environ.get("TRAIN_DIR", str(scratch_dir / "train")))
+    wandb_dir = Path(os.environ.get("WANDB_DIR", str(scratch_dir / "wandb")))
+    project_dir = Path(
+        os.environ.get("PROJECT_DIR", f"/cluster/project/infk/krause/{user}/protein-design")
+    )
+    return {
+        "scratch_dir": scratch_dir,
+        "train_dir": train_dir,
+        "wandb_dir": wandb_dir,
+        "project_dir": project_dir,
+        "run_dir": train_dir / full_run_name,
+        "archive_dir": project_dir / "checkpoints" / full_run_name,
+    }
+
+
 def _run_epoch(
-    policy: ESM2PLLScorer,
-    reference: ESM2PLLScorer,
+    policy: ESM2,
+    reference: ESM2,
     dataloader: DataLoader,
     loss: str, 
     beta: float,
@@ -383,7 +408,7 @@ def _run_epoch(
     }, global_step
 
 
-def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2PLLScorer) -> float:
+def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2) -> float:
     """Compute corpus-level CDR perplexity with full-sequence context.
 
     This uses:
@@ -427,17 +452,41 @@ def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2PLLScorer) ->
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: Any) -> None:
-    output_dir = Path(HydraConfig.get().runtime.output_dir)
+    # Ensure Hydra runtime is initialized (used by Hydra internals/logging).
+    HydraConfig.get().runtime.output_dir
+
+    full_run_name = build_full_run_name(cfg, timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"))
+    storage = _resolve_storage_paths(full_run_name)
+    output_dir = storage["run_dir"]
+
+    # Keep W&B cache/artifacts on scratch by default.
+    os.environ.setdefault("WANDB_DIR", str(storage["wandb_dir"]))
+
+    for key in ("scratch_dir", "train_dir", "wandb_dir", "run_dir"):
+        storage[key].mkdir(parents=True, exist_ok=True)
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger = setup_train_logger(output_dir=output_dir, level_name=str(cfg.logging.level))
     logger.info("Starting DPO training run")
+    logger.info("Full run name: %s", full_run_name)
+    logger.info("Run directory: %s", output_dir)
+    logger.info("Archive directory: %s", storage["archive_dir"])
 
     resolved_cfg_path = output_dir / "resolved_config.yaml"
+    run_cfg_path = output_dir / "config.yaml"
     OmegaConf.save(cfg, resolved_cfg_path)
+    OmegaConf.save(cfg, run_cfg_path)
     logger.info("Saved resolved config to %s", resolved_cfg_path)
+    logger.info("Saved run config to %s", run_cfg_path)
 
-    wandb_mod, wandb_run = init_wandb_run(cfg, output_dir, logger, OmegaConf)
+    wandb_mod, wandb_run = init_wandb_run(
+        cfg,
+        output_dir,
+        logger,
+        OmegaConf,
+        run_name=full_run_name,
+    )
 
     train_df, val_df, test_df = _build_split_pair_dataframes(cfg)
     if train_df.empty:
@@ -494,10 +543,9 @@ def main(cfg: Any) -> None:
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     best_ckpt = ckpt_dir / str(cfg.checkpointing.best_filename)
     last_ckpt = ckpt_dir / str(cfg.checkpointing.last_filename)
-    best_export_dir = None if cfg.checkpointing.best_export_dir is None else str(cfg.checkpointing.best_export_dir)
-    best_export_filename = str(cfg.checkpointing.best_export_filename)
-    last_export_dir = None if cfg.checkpointing.last_export_dir is None else str(cfg.checkpointing.last_export_dir)
-    last_export_filename = str(cfg.checkpointing.last_export_filename)
+    root_best_ckpt = output_dir / "best.pt"
+    final_ckpt = ckpt_dir / "final.pt"
+    step_prefix = str(getattr(cfg.checkpointing, "step_prefix", "step"))
 
     start_epoch = 1
     best_val_loss = float("inf")
@@ -608,13 +656,8 @@ def main(cfg: Any) -> None:
                 scheduler=scheduler,
                 best_val_loss=best_val_loss,
             )
-            _export_checkpoint(
-                checkpoint_path=best_ckpt,
-                export_dir=best_export_dir,
-                export_filename=best_export_filename,
-                checkpoint_label="best",
-                logger=logger,
-            )
+            shutil.copy2(best_ckpt, root_best_ckpt)
+            logger.info("Updated run best checkpoint at %s", root_best_ckpt)
         else:
             epochs_without_improvement += 1
 
@@ -626,13 +669,10 @@ def main(cfg: Any) -> None:
             scheduler=scheduler,
             best_val_loss=best_val_loss,
         )
-        _export_checkpoint(
-            checkpoint_path=last_ckpt,
-            export_dir=last_export_dir,
-            export_filename=last_export_filename,
-            checkpoint_label="last",
-            logger=logger,
-        )
+        if global_step > 0:
+            step_ckpt = ckpt_dir / f"{step_prefix}_{global_step}.pt"
+            shutil.copy2(last_ckpt, step_ckpt)
+            logger.info("Saved step checkpoint to %s", step_ckpt)
 
         if int(cfg.training.patience) > 0 and epochs_without_improvement >= int(cfg.training.patience):
             logger.info("Early stopping after %d epochs without val improvement.", epochs_without_improvement)
@@ -642,21 +682,11 @@ def main(cfg: Any) -> None:
         _load_checkpoint(best_ckpt, policy=policy, optimizer=None, scheduler=None)
         logger.info("Loaded best checkpoint for final test evaluation: %s", best_ckpt)
 
-    _export_checkpoint(
-        checkpoint_path=best_ckpt,
-        export_dir=best_export_dir,
-        export_filename=best_export_filename,
-        checkpoint_label="best",
-        logger=logger,
-    )
-
-    _export_checkpoint(
-        checkpoint_path=last_ckpt,
-        export_dir=last_export_dir,
-        export_filename=last_export_filename,
-        checkpoint_label="last",
-        logger=logger,
-    )
+    if best_ckpt.exists():
+        shutil.copy2(best_ckpt, root_best_ckpt)
+    if last_ckpt.exists():
+        shutil.copy2(last_ckpt, final_ckpt)
+        logger.info("Saved final checkpoint to %s", final_ckpt)
 
     test_metrics, _ = _run_epoch(
         policy=policy,
@@ -693,6 +723,7 @@ def main(cfg: Any) -> None:
     history_df.to_csv(history_csv_path, index=False)
 
     summary = {
+        "run_name": full_run_name,
         "best_val_loss": float(best_val_loss),
         "test_loss": float(test_metrics["loss"]),
         "test_reward_accuracy": float(test_metrics["reward_accuracy"]),
@@ -709,11 +740,44 @@ def main(cfg: Any) -> None:
 
     summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    best_epoch = min(history, key=lambda row: float(row["val_loss"])) if history else None
+    val_ppl = None if best_epoch is None else best_epoch.get("val_perplexity")
+    if isinstance(val_ppl, float) and math.isnan(val_ppl):
+        val_ppl = None
+
+    metrics_payload = {
+        "run_name": full_run_name,
+        "model": str(cfg.model.esm_model_path),
+        "val_ppl": val_ppl,
+        "spearman_M22": None,
+        "spearman_SI06": None,
+        "spearman_exp": None,
+        "notes": None if cfg.wandb.notes is None else str(cfg.wandb.notes),
+    }
+    metrics_path = output_dir / "metrics.json"
+    metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
+
+    archive_dir = storage["archive_dir"]
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    if root_best_ckpt.exists():
+        archived_best = archive_dir / "best.pt"
+        shutil.copy2(root_best_ckpt, archived_best)
+        logger.info("Archived best checkpoint to %s", archived_best)
+    else:
+        logger.warning("Best checkpoint not found at %s; skipping archive copy.", root_best_ckpt)
+
+    archived_metrics = archive_dir / "metrics.json"
+    shutil.copy2(metrics_path, archived_metrics)
+    logger.info("Archived metrics to %s", archived_metrics)
+
     logger.info("Saved history to %s", history_csv_path)
     logger.info("Saved summary to %s", summary_path)
+    logger.info("Saved metrics to %s", metrics_path)
 
     if wandb_run is not None:
         wandb_mod.log({f"test/{k}": v for k, v in summary.items()})
+        wandb_mod.log({f"metrics/{k}": v for k, v in metrics_payload.items() if k != "run_name"})
         wandb_run.summary.update(summary)
         wandb_run.finish()
 

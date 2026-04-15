@@ -22,7 +22,7 @@ from transformers import AutoTokenizer
 from .utils import LEFT_CONTEXT, ModelConfig, add_context
 
 
-class ESM2PLLScorer:
+class ESM2:
 	"""Thin wrapper around HF ESM masked LM for sequence-level PLL scoring."""
 
 	def __init__(self, config: ModelConfig):
