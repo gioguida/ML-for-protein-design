@@ -115,9 +115,9 @@ def _infer_model_label(esm_model_path: Any) -> str:
 	model_name_lc = model_name.lower()
 
 	# Common ESM2 patterns: esm2_t12_35M_UR50D, esm2_t36_3B_UR50D
-	match = re.search(r"esm2[^/]*?_(\d+(?:\.\d+)?)([mb])\b", model_name_lc)
+	match = re.search(r"esm2[^/]*?_(\d+(?:\.\d+)?)([mb])(?=[^a-z0-9]|$)", model_name_lc)
 	if match is None:
-		match = re.search(r"(\d+(?:\.\d+)?)([mb])\b", model_name_lc)
+		match = re.search(r"(\d+(?:\.\d+)?)([mb])(?=[^a-z0-9]|$)", model_name_lc)
 
 	if match is None:
 		return "esm2-unknownM"

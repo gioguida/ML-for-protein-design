@@ -31,6 +31,7 @@ if __package__:
         default_data_paths,
         validate_delta_based_components,
     )
+    from scripts.data_processing import build_validation_perplexity_csvs
     from .loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from .model import ESM2
     from .utils import (
@@ -50,6 +51,7 @@ else:  # pragma: no cover
         default_data_paths,
         validate_delta_based_components,
     )
+    from scripts.data_processing import build_validation_perplexity_csvs
     from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from model import ESM2
     from utils import (
@@ -493,6 +495,58 @@ def _resolve_processed_dir(cfg: Any) -> Path:
     )
 
 
+def _resolve_raw_csv_path(cfg: Any) -> Path:
+    defaults = default_data_paths()
+    return (
+        defaults["raw_m22"]
+        if cfg.data.raw_csv is None
+        else Path(to_absolute_path(str(cfg.data.raw_csv)))
+    )
+
+
+def _ensure_validation_eval_csvs(cfg: Any, logger: logging.Logger) -> bool:
+    """Ensure val_pos/val_neg CSVs exist for validation PLL and Spearman tracking."""
+    processed_dir = _resolve_processed_dir(cfg)
+    val_pos_path = processed_dir / "val_pos.csv"
+    val_neg_path = processed_dir / "val_neg.csv"
+    if val_pos_path.exists() and val_neg_path.exists():
+        return True
+
+    raw_csv_path = _resolve_raw_csv_path(cfg)
+    try:
+        outputs = build_validation_perplexity_csvs(
+            raw_csv_path=raw_csv_path,
+            processed_dir=processed_dir,
+            cfg=cfg,
+            seed=int(cfg.seed),
+            force=False,
+            verbose=False,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Could not build validation eval CSVs at %s from %s (%s).",
+            processed_dir,
+            raw_csv_path,
+            exc,
+        )
+        return False
+
+    if (not val_pos_path.exists()) or (not val_neg_path.exists()):
+        logger.warning(
+            "Validation eval CSV build finished but files are still missing at %s and %s.",
+            val_pos_path,
+            val_neg_path,
+        )
+        return False
+
+    logger.info(
+        "Prepared validation eval CSVs: val_pos=%s val_neg=%s",
+        outputs["val_pos"],
+        outputs["val_neg"],
+    )
+    return True
+
+
 def _load_sequences_from_csv(csv_path: Path, logger: logging.Logger) -> List[str]:
     if not csv_path.exists():
         raise FileNotFoundError(f"Missing file: {csv_path}")
@@ -509,6 +563,7 @@ def _load_sequences_from_csv(csv_path: Path, logger: logging.Logger) -> List[str
 
 
 def _load_validation_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional[Dict[str, List[str]]]:
+    _ensure_validation_eval_csvs(cfg, logger)
     processed_dir = _resolve_processed_dir(cfg)
     val_pos_path = processed_dir / "val_pos.csv"
     val_neg_path = processed_dir / "val_neg.csv"
@@ -537,6 +592,7 @@ def _load_validation_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional
 
 def _load_validation_spearman_df(cfg: Any, logger: logging.Logger) -> Optional[pd.DataFrame]:
     """Load validation scoring rows used for Spearman tracking."""
+    _ensure_validation_eval_csvs(cfg, logger)
     processed_dir = _resolve_processed_dir(cfg)
     val_pos_path = processed_dir / "val_pos.csv"
     val_neg_path = processed_dir / "val_neg.csv"
@@ -793,6 +849,7 @@ def main(cfg: Any) -> None:
     history: List[Dict[str, float]] = []
     epochs_without_improvement = 0
     global_step = 0
+    _ensure_validation_eval_csvs(cfg, logger)
     val_spearman_df = _load_validation_spearman_df(cfg, logger)
     val_spearman_batch_size = int(getattr(cfg.model, "pll_mask_chunk_size", 64))
 
