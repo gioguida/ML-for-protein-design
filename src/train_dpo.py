@@ -24,6 +24,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader, Dataset
 
 if __package__:
+    from .eval import run_scoring_evaluation
     from .dataset import (
         DELTA_BASED_COMPONENTS,
         build_split_pair_dataframes_from_raw,
@@ -42,6 +43,7 @@ if __package__:
         setup_train_logger,
     )
 else:  # pragma: no cover
+    from eval import run_scoring_evaluation
     from dataset import (
         DELTA_BASED_COMPONENTS,
         build_split_pair_dataframes_from_raw,
@@ -533,6 +535,53 @@ def _load_validation_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional
     }
 
 
+def _load_validation_spearman_df(cfg: Any, logger: logging.Logger) -> Optional[pd.DataFrame]:
+    """Load validation scoring rows used for Spearman tracking."""
+    processed_dir = _resolve_processed_dir(cfg)
+    val_pos_path = processed_dir / "val_pos.csv"
+    val_neg_path = processed_dir / "val_neg.csv"
+
+    if (not val_pos_path.exists()) or (not val_neg_path.exists()):
+        logger.warning(
+            "Validation Spearman sets missing (expected %s and %s). Skipping Spearman logging.",
+            val_pos_path,
+            val_neg_path,
+        )
+        return None
+
+    try:
+        val_pos_df = pd.read_csv(val_pos_path)
+        val_neg_df = pd.read_csv(val_neg_path)
+    except (FileNotFoundError, pd.errors.ParserError) as exc:
+        logger.warning("Could not read validation Spearman sets (%s). Skipping Spearman logging.", exc)
+        return None
+
+    val_df = pd.concat([val_pos_df, val_neg_df], ignore_index=True)
+    required_cols = {"mut", "M22_binding_enrichment_adj"}
+    missing_cols = required_cols.difference(val_df.columns)
+    if missing_cols:
+        logger.warning(
+            "Validation Spearman set missing columns (%s). Skipping Spearman logging.",
+            ", ".join(sorted(missing_cols)),
+        )
+        return None
+
+    if "num_mut" in val_df.columns:
+        val_df = val_df[val_df["num_mut"] == 2].copy()
+
+    enrichment = pd.to_numeric(val_df["M22_binding_enrichment_adj"], errors="coerce")
+    val_df = val_df.loc[enrichment.notna()].copy()
+    val_df["M22_binding_enrichment_adj"] = enrichment.loc[enrichment.notna()].astype(float)
+    val_df["mut"] = val_df["mut"].astype(str).str.strip()
+    val_df = val_df[val_df["mut"] != ""].copy()
+
+    if len(val_df) < 3:
+        logger.warning("Validation Spearman set too small (%d rows). Skipping Spearman logging.", len(val_df))
+        return None
+
+    return val_df.reset_index(drop=True)
+
+
 def _load_test_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional[Dict[str, List[str]]]:
     processed_dir = _resolve_processed_dir(cfg)
     d5_path = processed_dir / "D5.csv"
@@ -744,6 +793,8 @@ def main(cfg: Any) -> None:
     history: List[Dict[str, float]] = []
     epochs_without_improvement = 0
     global_step = 0
+    val_spearman_df = _load_validation_spearman_df(cfg, logger)
+    val_spearman_batch_size = int(getattr(cfg.model, "pll_mask_chunk_size", 64))
 
     for epoch in range(start_epoch, int(cfg.training.num_epochs) + 1):
         train_metrics, global_step = _run_epoch(
@@ -805,6 +856,35 @@ def main(cfg: Any) -> None:
             "train_skipped": float(train_metrics["skipped_batches"]),
             "val_skipped": float(val_metrics["skipped_batches"]),
         }
+
+        if val_spearman_df is not None:
+            try:
+                val_spearman = run_scoring_evaluation(
+                    scorer=policy,
+                    df=val_spearman_df,
+                    enrichment_col="M22_binding_enrichment_adj",
+                    wt_sequence=WILD_TYPE,
+                    batch_size=val_spearman_batch_size,
+                    seed=int(cfg.seed),
+                )
+                epoch_record.update(
+                    {
+                        "val_spearman_avg": float(val_spearman["spearman_avg"]),
+                        "val_spearman_avg_pval": float(val_spearman["spearman_avg_pval"]),
+                        "val_spearman_random": float(val_spearman["spearman_random"]),
+                        "val_spearman_random_pval": float(val_spearman["spearman_random_pval"]),
+                    }
+                )
+                logger.info(
+                    "Validation Spearman | avg=%.4f (p=%.2e) | random=%.4f (p=%.2e)",
+                    float(val_spearman["spearman_avg"]),
+                    float(val_spearman["spearman_avg_pval"]),
+                    float(val_spearman["spearman_random"]),
+                    float(val_spearman["spearman_random_pval"]),
+                )
+            except Exception as exc:
+                logger.warning("Validation Spearman evaluation failed (%s). Skipping this metric.", exc)
+
         history.append(epoch_record)
 
         logger.info(
@@ -955,12 +1035,15 @@ def main(cfg: Any) -> None:
     val_ppl = None if best_epoch is None else best_epoch.get("val_perplexity")
     if isinstance(val_ppl, float) and math.isnan(val_ppl):
         val_ppl = None
+    val_spearman_m22 = None if best_epoch is None else best_epoch.get("val_spearman_avg")
+    if isinstance(val_spearman_m22, float) and math.isnan(val_spearman_m22):
+        val_spearman_m22 = None
 
     metrics_payload = {
         "run_name": full_run_name,
         "model": str(cfg.model.esm_model_path),
         "val_ppl": val_ppl,
-        "spearman_M22": None,
+        "spearman_M22": val_spearman_m22,
         "spearman_SI06": None,
         "spearman_exp": None,
         "notes": None if cfg.wandb.notes is None else str(cfg.wandb.notes),
