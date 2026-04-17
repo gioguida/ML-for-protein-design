@@ -34,6 +34,7 @@ if __package__:
     from .model import ESM2
     from .utils import (
         ModelConfig,
+        WILD_TYPE,
         build_full_run_name,
         init_wandb_run,
         load_hydra_runtime_modules,
@@ -51,6 +52,7 @@ else:  # pragma: no cover
     from model import ESM2
     from utils import (
         ModelConfig,
+        WILD_TYPE,
         build_full_run_name,
         init_wandb_run,
         load_hydra_runtime_modules,
@@ -480,6 +482,154 @@ def _compute_chosen_perplexity(dataloader: DataLoader, scorer: ESM2) -> float:
     return float(math.exp(avg_nll))
 
 
+def _resolve_processed_dir(cfg: Any) -> Path:
+    defaults = default_data_paths()
+    return (
+        defaults["processed_dir"]
+        if cfg.data.processed_dir is None
+        else Path(to_absolute_path(str(cfg.data.processed_dir)))
+    )
+
+
+def _load_sequences_from_csv(csv_path: Path, logger: logging.Logger) -> List[str]:
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Missing file: {csv_path}")
+
+    df = pd.read_csv(csv_path)
+    if "aa" not in df.columns:
+        raise ValueError(f"{csv_path} is missing required column 'aa'.")
+
+    sequences = [str(seq).strip() for seq in df["aa"].dropna().astype(str).tolist()]
+    sequences = [seq for seq in sequences if seq]
+    if len(sequences) == 0:
+        logger.warning("No valid sequences found in %s.", csv_path)
+    return sequences
+
+
+def _load_validation_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional[Dict[str, List[str]]]:
+    processed_dir = _resolve_processed_dir(cfg)
+    val_pos_path = processed_dir / "val_pos.csv"
+    val_neg_path = processed_dir / "val_neg.csv"
+
+    if (not val_pos_path.exists()) or (not val_neg_path.exists()):
+        logger.warning(
+            "Validation PLL sets missing (expected %s and %s). Skipping validation PLL logging.",
+            val_pos_path,
+            val_neg_path,
+        )
+        return None
+
+    try:
+        val_pos = _load_sequences_from_csv(val_pos_path, logger)
+        val_neg = _load_sequences_from_csv(val_neg_path, logger)
+    except (FileNotFoundError, ValueError, pd.errors.ParserError) as exc:
+        logger.warning("Could not load validation PLL sets (%s). Skipping validation PLL logging.", exc)
+        return None
+
+    return {
+        "pll/val_pos": val_pos,
+        "pll/val_neg": val_neg,
+        "pll/val_wt": [WILD_TYPE],
+    }
+
+
+def _load_test_pll_eval_sets(cfg: Any, logger: logging.Logger) -> Optional[Dict[str, List[str]]]:
+    processed_dir = _resolve_processed_dir(cfg)
+    d5_path = processed_dir / "D5.csv"
+    if not d5_path.exists():
+        logger.warning("ED5 processed file missing at %s. Skipping test PLL logging.", d5_path)
+        return None
+
+    try:
+        d5_df = pd.read_csv(d5_path)
+    except pd.errors.ParserError as exc:
+        logger.warning("Could not parse %s (%s). Skipping test PLL logging.", d5_path, exc)
+        return None
+
+    required_cols = {"aa", "M22_binding_enrichment_adj"}
+    missing_cols = required_cols.difference(d5_df.columns)
+    if missing_cols:
+        logger.warning(
+            "%s missing required columns (%s). Skipping test PLL logging.",
+            d5_path,
+            ", ".join(sorted(missing_cols)),
+        )
+        return None
+
+    pos_threshold = float(getattr(getattr(cfg.data, "test", None), "pos_threshold", 0.0))
+    clean_scores = pd.to_numeric(d5_df["M22_binding_enrichment_adj"], errors="coerce")
+    clean_df = d5_df.loc[clean_scores.notna()].copy()
+    clean_df["M22_binding_enrichment_adj"] = clean_scores.loc[clean_scores.notna()].astype(float)
+    clean_df["aa"] = clean_df["aa"].astype(str).str.strip()
+    clean_df = clean_df[clean_df["aa"] != ""].copy()
+
+    test_pos = clean_df[clean_df["M22_binding_enrichment_adj"] > pos_threshold]["aa"].tolist()
+    test_neg = clean_df[clean_df["M22_binding_enrichment_adj"] < 0.0]["aa"].tolist()
+
+    return {
+        "pll/test_pos": test_pos,
+        "pll/test_neg": test_neg,
+        "pll/test_wt": [WILD_TYPE],
+    }
+
+
+def _mean_pll_for_sequences(
+    scorer: ESM2,
+    sequences: Sequence[str],
+    batch_size: int,
+) -> float:
+    valid_sequences = [str(seq).strip() for seq in sequences if str(seq).strip()]
+    if not valid_sequences:
+        return float("nan")
+
+    grouped_by_len: Dict[int, List[str]] = {}
+    for seq in valid_sequences:
+        if len(seq) <= 0:
+            continue
+        grouped_by_len.setdefault(len(seq), []).append(seq)
+
+    if not grouped_by_len:
+        return float("nan")
+
+    scorer.model.eval()
+    total_pll = 0.0
+    total_sequences = 0
+    batch_size = max(1, int(batch_size))
+
+    with torch.no_grad():
+        for _, seq_group in grouped_by_len.items():
+            for start in range(0, len(seq_group), batch_size):
+                batch = seq_group[start : start + batch_size]
+                pll_scores = scorer.pseudo_log_likelihood(
+                    batch,
+                    cdr_only=True,
+                    use_grad=False,
+                )
+                total_pll += float(pll_scores.sum().item())
+                total_sequences += len(batch)
+
+    if total_sequences <= 0:
+        return float("nan")
+    return float(total_pll / float(total_sequences))
+
+
+def evaluate_perplexity(
+    model: ESM2,
+    eval_sets: Dict[str, Sequence[str]],
+    device: str,
+) -> Dict[str, float]:
+    del device  # Device is already configured inside the ESM2 wrapper.
+    sequence_batch_size = int(getattr(model, "pll_mask_chunk_size", 64))
+    metrics: Dict[str, float] = {}
+    for metric_name, sequences in eval_sets.items():
+        metrics[metric_name] = _mean_pll_for_sequences(
+            scorer=model,
+            sequences=sequences,
+            batch_size=sequence_batch_size,
+        )
+    return metrics
+
+
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: Any) -> None:
     # Ensure Hydra runtime is initialized (used by Hydra internals/logging).
@@ -671,6 +821,21 @@ def main(cfg: Any) -> None:
             int(epoch_record["val_batches"]),
         )
 
+        val_eval_sets = _load_validation_pll_eval_sets(cfg, logger)
+        if val_eval_sets is not None:
+            val_pll_metrics = evaluate_perplexity(
+                model=policy,
+                eval_sets=val_eval_sets,
+                device=str(cfg.training.device),
+            )
+            epoch_record.update(val_pll_metrics)
+            logger.info(
+                "Validation PLL | pll/val_pos=%.4f | pll/val_neg=%.4f | pll/val_wt=%.4f",
+                float(val_pll_metrics["pll/val_pos"]),
+                float(val_pll_metrics["pll/val_neg"]),
+                float(val_pll_metrics["pll/val_wt"]),
+            )
+
         if wandb_run is not None:
             wandb_mod.log(epoch_record, step=global_step)
 
@@ -748,6 +913,21 @@ def main(cfg: Any) -> None:
     avg_test_perplexity = _compute_chosen_perplexity(test_loader, policy)
     logger.info("Test Chosen Perplexity: %.4f", avg_test_perplexity)
 
+    test_pll_metrics: Dict[str, float] = {}
+    test_eval_sets = _load_test_pll_eval_sets(cfg, logger)
+    if test_eval_sets is not None:
+        test_pll_metrics = evaluate_perplexity(
+            model=policy,
+            eval_sets=test_eval_sets,
+            device=str(cfg.training.device),
+        )
+        logger.info(
+            "Test PLL (ED5) | pll/test_pos=%.4f | pll/test_neg=%.4f | pll/test_wt=%.4f",
+            float(test_pll_metrics["pll/test_pos"]),
+            float(test_pll_metrics["pll/test_neg"]),
+            float(test_pll_metrics["pll/test_wt"]),
+        )
+
     history_df = pd.DataFrame(history)
     history_csv_path = output_dir / str(cfg.logging.history_csv)
     history_df.to_csv(history_csv_path, index=False)
@@ -806,6 +986,8 @@ def main(cfg: Any) -> None:
     logger.info("Saved metrics to %s", metrics_path)
 
     if wandb_run is not None:
+        if test_pll_metrics:
+            wandb_mod.log(test_pll_metrics, step=global_step)
         wandb_mod.log({f"test/{k}": v for k, v in summary.items()})
         wandb_mod.log({f"metrics/{k}": v for k, v in metrics_payload.items() if k != "run_name"})
         wandb_run.summary.update(summary)

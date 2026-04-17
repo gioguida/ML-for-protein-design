@@ -31,7 +31,7 @@ tea_debug.log
 
 # Data (Avoid checking in data unless explicitly intended)
 # If your datasets are huge, ignore them completely
-# data/
+data/
 
 # Keep data structure but ignore large files if desired
 # data/**/*.csv

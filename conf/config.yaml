@@ -26,6 +26,12 @@ data:
   train_frac: 0.8
   val_frac: 0.1
   test_frac: 0.1
+  val:
+    n_val_pos: 200
+    n_val_neg: 400
+  test:
+    ed5_csv: data/raw/ED5_M22_enrichment.csv
+    pos_threshold: 0.0
 
 model:
   esm_model_path: facebook/esm2_t12_35M_UR50D
