@@ -13,12 +13,14 @@ data:
   pairing_strategy: delta_based   # positive_vs_tail | positive_only_extremes | both_structured | delta_based
   min_positive_delta: 3.0
   min_delta_margin: 5.0
-  gap: 0.5            # used by delta_based, expected in [0.0, 1.0]
-  wt_pairs_frac: 0.1  # used by delta_based, expected in [0.0, 1.0]
-  cross_pairs_frac: 0.1      # used by delta_based, expected in [0.0, 1.0]
-  strong_pos_threshold: 1.0  # used by delta_based for winner>WT anchors
-  strong_neg_threshold: -5.0 # used by delta_based for WT>loser anchors
-  min_score_margin: 0.1      # used by delta_based to filter near-tie pairs
+  delta_based:
+    components: [within_pos, within_neg, wt_anchors, cross]  # toggle to experiment
+    gap: 0.5            # expected in [0.0, 1.0]
+    wt_pairs_frac: 0.1  # expected in [0.0, 1.0]
+    cross_pairs_frac: 0.1      # expected in [0.0, 1.0]
+    strong_pos_threshold: 1.0  # for winner>WT anchors
+    strong_neg_threshold: -5.0 # for WT>loser anchors
+    min_score_margin: 0.1      # filter near-tie pairs
   include_views: [mut1, mut2]
   deduplicate_across_views: true
   train_frac: 0.8

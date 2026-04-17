@@ -24,7 +24,12 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader, Dataset
 
 if __package__:
-    from .dataset import build_split_pair_dataframes_from_raw, default_data_paths
+    from .dataset import (
+        DELTA_BASED_COMPONENTS,
+        build_split_pair_dataframes_from_raw,
+        default_data_paths,
+        validate_delta_based_components,
+    )
     from .loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from .model import ESM2
     from .utils import (
@@ -36,7 +41,12 @@ if __package__:
         setup_train_logger,
     )
 else:  # pragma: no cover
-    from dataset import build_split_pair_dataframes_from_raw, default_data_paths
+    from dataset import (
+        DELTA_BASED_COMPONENTS,
+        build_split_pair_dataframes_from_raw,
+        default_data_paths,
+        validate_delta_based_components,
+    )
     from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
     from model import ESM2
     from utils import (
@@ -102,20 +112,40 @@ def _build_split_pair_dataframes(cfg: Any) -> Tuple[pd.DataFrame, pd.DataFrame, 
         else Path(to_absolute_path(str(cfg.data.processed_dir)))
     )
 
+    pairing_strategy = str(cfg.data.pairing_strategy)
+    delta_cfg = getattr(cfg.data, "delta_based", None)
+
+    def _delta_value(name: str, default: float) -> float:
+        if delta_cfg is not None and getattr(delta_cfg, name, None) is not None:
+            return float(getattr(delta_cfg, name))
+        return float(getattr(cfg.data, name, default))
+
+    if pairing_strategy == "delta_based":
+        if delta_cfg is None:
+            raise ValueError(
+                "data.delta_based is required when data.pairing_strategy='delta_based'."
+            )
+        components = validate_delta_based_components(
+            [str(component) for component in delta_cfg.components]
+        )
+    else:
+        components = DELTA_BASED_COMPONENTS
+
     return build_split_pair_dataframes_from_raw(
-        pairing_strategy=str(cfg.data.pairing_strategy),
+        pairing_strategy=pairing_strategy,
         include_views=[str(v) for v in cfg.data.include_views],
         raw_csv_path=raw_csv_path,
         processed_dir=processed_dir,
         force_rebuild=bool(cfg.data.force_rebuild),
         min_positive_delta=float(cfg.data.min_positive_delta),
         min_delta_margin=float(cfg.data.min_delta_margin),
-        gap=float(getattr(cfg.data, "gap", 0.5)),
-        wt_pairs_frac=float(getattr(cfg.data, "wt_pairs_frac", 0.1)),
-        cross_pairs_frac=float(getattr(cfg.data, "cross_pairs_frac", 0.1)),
-        strong_pos_threshold=float(getattr(cfg.data, "strong_pos_threshold", 1.0)),
-        strong_neg_threshold=float(getattr(cfg.data, "strong_neg_threshold", -5.0)),
-        min_score_margin=float(getattr(cfg.data, "min_score_margin", 0.1)),
+        delta_components=components,
+        gap=_delta_value("gap", 0.5),
+        wt_pairs_frac=_delta_value("wt_pairs_frac", 0.1),
+        cross_pairs_frac=_delta_value("cross_pairs_frac", 0.1),
+        strong_pos_threshold=_delta_value("strong_pos_threshold", 1.0),
+        strong_neg_threshold=_delta_value("strong_neg_threshold", -5.0),
+        min_score_margin=_delta_value("min_score_margin", 0.1),
         deduplicate_across_views=bool(cfg.data.deduplicate_across_views),
         train_frac=float(cfg.data.train_frac),
         val_frac=float(cfg.data.val_frac),

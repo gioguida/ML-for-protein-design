@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.data_processing import organize_and_cluster
+from scripts.data_processing import organize_and_cluster
 
 
 def test_organize_and_cluster_preserves_delta_enrichment_column():
