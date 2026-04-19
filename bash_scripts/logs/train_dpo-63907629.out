@@ -1,0 +1,136 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+SCRATCH_DIR: /cluster/scratch/gguidarini/protein-design
+TRAIN_DIR: /cluster/scratch/gguidarini/protein-design/train
+PROJECT_DIR: /cluster/project/infk/krause/gguidarini/protein-design
+DPO output dir: /cluster/scratch/gguidarini/protein-design/train
+W&B dir: /cluster/scratch/gguidarini/protein-design/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-g6-064
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Fri Apr 17 19:06:38 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:61:00.0 Off |                  Off |
+| 34%   38C    P8             40W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-17 19:06:46,771 | INFO | Starting DPO training run
+2026-04-17 19:06:46,772 | INFO | Full run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646
+2026-04-17 19:06:46,772 | INFO | Run directory: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646
+2026-04-17 19:06:46,772 | INFO | Archive directory: /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646
+2026-04-17 19:06:46,783 | INFO | Saved resolved config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646/resolved_config.yaml
+2026-04-17 19:06:46,783 | INFO | Saved run config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646/config.yaml
+2026-04-17 19:06:47,913 | INFO | W&B run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run ewcda2zq
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646/wandb/run-20260417_190648-ewcda2zq
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/ewcda2zq
+2026-04-17 19:06:53,052 | INFO | Train split pair diagnostics:
+2026-04-17 19:06:53,055 | INFO | Pair stats | n=9174 | margin mean=10.1463 median=10.2884 min=0.1014 max=22.0440
+2026-04-17 19:06:53,057 | INFO | Pairs per view: mut2:4725, mut1:4449
+2026-04-17 19:06:53,057 | INFO | Validation split pair diagnostics:
+2026-04-17 19:06:53,058 | INFO | Pair stats | n=960 | margin mean=10.3845 median=10.7845 min=0.1605 max=19.1695
+2026-04-17 19:06:53,059 | INFO | Pairs per view: mut2:493, mut1:467
+2026-04-17 19:06:53,060 | INFO | Test split pair diagnostics:
+2026-04-17 19:06:53,060 | INFO | Pair stats | n=936 | margin mean=10.1301 median=9.9945 min=0.3775 max=19.5370
+2026-04-17 19:06:53,061 | INFO | Pairs per view: mut2:471, mut1:465
+2026-04-17 19:06:53,061 | INFO | Split sizes | train=9174 val=960 test=936
+[2026-04-17 19:06:53,257][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:53,267][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:53,397][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:53,406][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:53,525][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-17 19:06:53,643][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-17 19:06:53,765][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:53,775][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:53,895][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 3823.48it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-17 19:06:54,725][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:54,733][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:54,847][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:54,857][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:54,972][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-17 19:06:55,088][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-17 19:06:55,201][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:06:55,209][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:06:55,328][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-17 19:06:55,329][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 8414.80it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+2026-04-17 19:06:55,932 | INFO | Prepared validation eval CSVs: val_pos=/cluster/home/gguidarini/protein-design/data/processed/val_pos.csv val_neg=/cluster/home/gguidarini/protein-design/data/processed/val_neg.csv
+2026-04-17 19:07:28,092 | INFO | step=20 train_loss=0.654903
+2026-04-17 19:07:59,036 | INFO | step=40 train_loss=0.551371
+2026-04-17 19:08:29,940 | INFO | step=60 train_loss=0.540869
+2026-04-17 19:09:00,718 | INFO | step=80 train_loss=0.528890
+2026-04-17 19:09:31,628 | INFO | step=100 train_loss=0.462428
+2026-04-17 19:10:02,599 | INFO | step=120 train_loss=0.476435
+2026-04-17 19:10:33,479 | INFO | step=140 train_loss=0.461324
+2026-04-17 19:11:04,397 | INFO | step=160 train_loss=0.450453
+2026-04-17 19:11:35,238 | INFO | step=180 train_loss=0.498271
+2026-04-17 19:12:06,157 | INFO | step=200 train_loss=0.499620
+2026-04-17 19:12:37,102 | INFO | step=220 train_loss=0.391749
+2026-04-17 19:13:08,015 | INFO | step=240 train_loss=0.401726
+2026-04-17 19:13:38,793 | INFO | step=260 train_loss=0.429237
+2026-04-17 19:14:09,652 | INFO | step=280 train_loss=0.397608
+[2026-04-17 19:17:36,042][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:17:39,329][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:17:39,329][src.eval][INFO] - Spearman (average ordering): rho=0.7513, p=nan
+[2026-04-17 19:17:39,331][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:17:42,496][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:17:42,496][src.eval][INFO] - Spearman (random ordering):  rho=0.7503, p=nan
+2026-04-17 19:17:42,496 | INFO | Validation Spearman | avg=0.7513 (p=nan) | random=0.7503 (p=nan)
+2026-04-17 19:17:42,497 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.505414 | val_loss=0.432197 | val_acc=0.8938 | val_margin=0.7212 | val_kl=-88.1680 | val_ppl=592.2203 | train_batches=287 | val_batches=30
+2026-04-17 19:17:57,508 | INFO | Validation PLL | pll/val_pos=-146.1848 | pll/val_neg=-180.9296 | pll/val_wt=-158.5541
+2026-04-17 19:17:58,470 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646/best.pt
+2026-04-17 19:17:59,402 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_190646/checkpoints/step_287.pt
+2026-04-17 19:18:30,189 | INFO | step=20 train_loss=0.440628
+2026-04-17 19:19:00,882 | INFO | step=40 train_loss=0.439508
+2026-04-17 19:19:31,784 | INFO | step=60 train_loss=0.433152
+2026-04-17 19:20:02,603 | INFO | step=80 train_loss=0.431012
+2026-04-17 19:20:33,400 | INFO | step=100 train_loss=0.394620
+2026-04-17 19:21:04,232 | INFO | step=120 train_loss=0.403302
+2026-04-17 19:21:34,916 | INFO | step=140 train_loss=0.449606
+2026-04-17 19:22:05,784 | INFO | step=160 train_loss=0.405354
+2026-04-17 19:22:36,594 | INFO | step=180 train_loss=0.457347
+2026-04-17 19:23:07,469 | INFO | step=200 train_loss=0.395652
+2026-04-17 19:23:38,197 | INFO | step=220 train_loss=0.406981
+2026-04-17 19:24:09,013 | INFO | step=240 train_loss=0.376098
+2026-04-17 19:24:39,869 | INFO | step=260 train_loss=0.421784
+2026-04-17 19:25:10,760 | INFO | step=280 train_loss=0.364332
+[2026-04-17T19:28:31.886+02:00] error: *** JOB 63907629 ON eu-g6-064 CANCELLED AT 2026-04-17T19:28:31 DUE to SIGNAL Terminated ***

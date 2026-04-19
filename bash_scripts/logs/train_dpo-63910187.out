@@ -1,0 +1,515 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+SCRATCH_DIR: /cluster/scratch/gguidarini/protein-design
+TRAIN_DIR: /cluster/scratch/gguidarini/protein-design/train
+PROJECT_DIR: /cluster/project/infk/krause/gguidarini/protein-design
+DPO output dir: /cluster/scratch/gguidarini/protein-design/train
+W&B dir: /cluster/scratch/gguidarini/protein-design/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-g6-025
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Fri Apr 17 19:30:13 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:C1:00.0 Off |                  Off |
+| 34%   38C    P8             26W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-17 19:30:23,057 | INFO | Starting DPO training run
+2026-04-17 19:30:23,058 | INFO | Full run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023
+2026-04-17 19:30:23,058 | INFO | Run directory: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023
+2026-04-17 19:30:23,058 | INFO | Archive directory: /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023
+2026-04-17 19:30:23,071 | INFO | Saved resolved config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/resolved_config.yaml
+2026-04-17 19:30:23,071 | INFO | Saved run config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/config.yaml
+2026-04-17 19:30:24,296 | INFO | W&B run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run as1v3z9l
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/wandb/run-20260417_193024-as1v3z9l
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/as1v3z9l
+2026-04-17 19:30:29,501 | INFO | Train split pair diagnostics:
+2026-04-17 19:30:29,504 | INFO | Pair stats | n=9174 | margin mean=10.1463 median=10.2884 min=0.1014 max=22.0440
+2026-04-17 19:30:29,505 | INFO | Pairs per view: mut2:4725, mut1:4449
+2026-04-17 19:30:29,505 | INFO | Validation split pair diagnostics:
+2026-04-17 19:30:29,506 | INFO | Pair stats | n=960 | margin mean=10.3845 median=10.7845 min=0.1605 max=19.1695
+2026-04-17 19:30:29,506 | INFO | Pairs per view: mut2:493, mut1:467
+2026-04-17 19:30:29,507 | INFO | Test split pair diagnostics:
+2026-04-17 19:30:29,507 | INFO | Pair stats | n=936 | margin mean=10.1301 median=9.9945 min=0.3775 max=19.5370
+2026-04-17 19:30:29,508 | INFO | Pairs per view: mut2:471, mut1:465
+2026-04-17 19:30:29,508 | INFO | Split sizes | train=9174 val=960 test=936
+[2026-04-17 19:30:29,700][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:30:29,711][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:29,831][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-17 19:30:29,832][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-17 19:30:29,840][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:29,971][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-17 19:30:30,089][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-17 19:30:30,212][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:30:30,222][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:30,339][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 4603.88it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-17 19:30:31,196][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:30:31,204][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:31,318][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:30:31,328][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:31,440][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-17 19:30:31,557][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-17 19:30:31,670][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-17 19:30:31,679][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-17 19:30:31,799][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 7623.68it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+2026-04-17 19:31:04,021 | INFO | step=20 train_loss=0.654903
+2026-04-17 19:31:34,886 | INFO | step=40 train_loss=0.551371
+2026-04-17 19:32:05,745 | INFO | step=60 train_loss=0.540869
+2026-04-17 19:32:36,697 | INFO | step=80 train_loss=0.528890
+2026-04-17 19:33:07,337 | INFO | step=100 train_loss=0.462428
+2026-04-17 19:33:38,201 | INFO | step=120 train_loss=0.476435
+2026-04-17 19:34:08,982 | INFO | step=140 train_loss=0.461324
+2026-04-17 19:34:39,747 | INFO | step=160 train_loss=0.450453
+2026-04-17 19:35:10,637 | INFO | step=180 train_loss=0.498271
+2026-04-17 19:35:41,351 | INFO | step=200 train_loss=0.499620
+2026-04-17 19:36:12,168 | INFO | step=220 train_loss=0.391749
+2026-04-17 19:36:43,313 | INFO | step=240 train_loss=0.401726
+2026-04-17 19:37:14,255 | INFO | step=260 train_loss=0.429237
+2026-04-17 19:37:44,832 | INFO | step=280 train_loss=0.397608
+[2026-04-17 19:41:10,980][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:41:14,252][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:41:14,253][src.eval][INFO] - Spearman (average ordering): rho=0.7513, p=nan
+[2026-04-17 19:41:14,255][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:41:17,439][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:41:17,439][src.eval][INFO] - Spearman (random ordering):  rho=0.7503, p=nan
+2026-04-17 19:41:17,440 | INFO | Validation Spearman | avg=0.7513 (p=nan) | random=0.7503 (p=nan)
+2026-04-17 19:41:17,440 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.505414 | val_loss=0.432197 | val_acc=0.8938 | val_margin=0.7212 | val_kl=-88.1680 | val_ppl=592.2203 | train_batches=287 | val_batches=30
+2026-04-17 19:41:32,335 | INFO | Validation Perplexity | ppl/val_pos=441.8779 | ppl/val_neg=1879.4502 | ppl/val_wt=739.8301
+2026-04-17 19:41:33,263 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 19:41:34,187 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_287.pt
+2026-04-17 19:42:05,274 | INFO | step=20 train_loss=0.440628
+2026-04-17 19:42:36,482 | INFO | step=40 train_loss=0.439508
+2026-04-17 19:43:07,335 | INFO | step=60 train_loss=0.433152
+2026-04-17 19:43:38,300 | INFO | step=80 train_loss=0.431012
+2026-04-17 19:44:09,262 | INFO | step=100 train_loss=0.394620
+2026-04-17 19:44:40,270 | INFO | step=120 train_loss=0.403302
+2026-04-17 19:45:11,072 | INFO | step=140 train_loss=0.449606
+2026-04-17 19:45:42,014 | INFO | step=160 train_loss=0.405354
+2026-04-17 19:46:12,943 | INFO | step=180 train_loss=0.457347
+2026-04-17 19:46:44,094 | INFO | step=200 train_loss=0.395652
+2026-04-17 19:47:15,220 | INFO | step=220 train_loss=0.406981
+2026-04-17 19:47:46,241 | INFO | step=240 train_loss=0.376098
+2026-04-17 19:48:17,293 | INFO | step=260 train_loss=0.421784
+2026-04-17 19:48:48,309 | INFO | step=280 train_loss=0.364332
+[2026-04-17 19:52:14,048][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:52:17,210][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:52:17,210][src.eval][INFO] - Spearman (average ordering): rho=0.7963, p=nan
+[2026-04-17 19:52:17,212][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 19:52:20,389][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 19:52:20,389][src.eval][INFO] - Spearman (random ordering):  rho=0.7912, p=nan
+2026-04-17 19:52:20,390 | INFO | Validation Spearman | avg=0.7963 (p=nan) | random=0.7912 (p=nan)
+2026-04-17 19:52:20,390 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.416175 | val_loss=0.395584 | val_acc=0.9000 | val_margin=0.8815 | val_kl=-86.8358 | val_ppl=260.9818 | train_batches=287 | val_batches=30
+2026-04-17 19:52:35,295 | INFO | Validation Perplexity | ppl/val_pos=123.7876 | ppl/val_neg=5815.9567 | ppl/val_wt=44.0897
+2026-04-17 19:52:36,234 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 19:52:37,138 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_574.pt
+2026-04-17 19:53:08,143 | INFO | step=20 train_loss=0.415367
+2026-04-17 19:53:39,242 | INFO | step=40 train_loss=0.377176
+2026-04-17 19:54:10,264 | INFO | step=60 train_loss=0.428581
+2026-04-17 19:54:41,338 | INFO | step=80 train_loss=0.375190
+2026-04-17 19:55:12,276 | INFO | step=100 train_loss=0.332355
+2026-04-17 19:55:43,379 | INFO | step=120 train_loss=0.355767
+2026-04-17 19:56:14,446 | INFO | step=140 train_loss=0.400824
+2026-04-17 19:56:45,486 | INFO | step=160 train_loss=0.368012
+2026-04-17 19:57:16,381 | INFO | step=180 train_loss=0.389838
+2026-04-17 19:57:47,510 | INFO | step=200 train_loss=0.381628
+2026-04-17 19:58:18,586 | INFO | step=220 train_loss=0.333110
+2026-04-17 19:58:49,646 | INFO | step=240 train_loss=0.421693
+2026-04-17 19:59:20,719 | INFO | step=260 train_loss=0.333891
+2026-04-17 19:59:51,621 | INFO | step=280 train_loss=0.346825
+[2026-04-17 20:03:18,241][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:03:21,414][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:03:21,415][src.eval][INFO] - Spearman (average ordering): rho=0.7753, p=nan
+[2026-04-17 20:03:21,416][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:03:24,600][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:03:24,601][src.eval][INFO] - Spearman (random ordering):  rho=0.7608, p=nan
+2026-04-17 20:03:24,601 | INFO | Validation Spearman | avg=0.7753 (p=nan) | random=0.7608 (p=nan)
+2026-04-17 20:03:24,602 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.380504 | val_loss=0.367023 | val_acc=0.8979 | val_margin=1.0372 | val_kl=-146.8904 | val_ppl=1766.2499 | train_batches=287 | val_batches=30
+2026-04-17 20:03:39,505 | INFO | Validation Perplexity | ppl/val_pos=517.3058 | ppl/val_neg=143810.6375 | ppl/val_wt=24.6702
+2026-04-17 20:03:40,454 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:03:41,385 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_861.pt
+2026-04-17 20:04:12,306 | INFO | step=20 train_loss=0.409521
+2026-04-17 20:04:43,225 | INFO | step=40 train_loss=0.307424
+2026-04-17 20:05:14,348 | INFO | step=60 train_loss=0.350583
+2026-04-17 20:05:45,376 | INFO | step=80 train_loss=0.358435
+2026-04-17 20:06:16,406 | INFO | step=100 train_loss=0.402762
+2026-04-17 20:06:47,455 | INFO | step=120 train_loss=0.387605
+2026-04-17 20:07:18,397 | INFO | step=140 train_loss=0.331437
+2026-04-17 20:07:49,477 | INFO | step=160 train_loss=0.431358
+2026-04-17 20:08:20,539 | INFO | step=180 train_loss=0.242127
+2026-04-17 20:08:51,577 | INFO | step=200 train_loss=0.332465
+2026-04-17 20:09:22,534 | INFO | step=220 train_loss=0.421292
+2026-04-17 20:09:53,648 | INFO | step=240 train_loss=0.336838
+2026-04-17 20:10:24,709 | INFO | step=260 train_loss=0.370191
+2026-04-17 20:10:55,748 | INFO | step=280 train_loss=0.414580
+[2026-04-17 20:14:21,921][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:14:25,090][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:14:25,091][src.eval][INFO] - Spearman (average ordering): rho=0.7673, p=nan
+[2026-04-17 20:14:25,092][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:14:28,275][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:14:28,276][src.eval][INFO] - Spearman (random ordering):  rho=0.7365, p=nan
+2026-04-17 20:14:28,276 | INFO | Validation Spearman | avg=0.7673 (p=nan) | random=0.7365 (p=nan)
+2026-04-17 20:14:28,276 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.357621 | val_loss=0.362765 | val_acc=0.8875 | val_margin=1.0862 | val_kl=-215.8955 | val_ppl=25009.8989 | train_batches=287 | val_batches=30
+2026-04-17 20:14:43,163 | INFO | Validation Perplexity | ppl/val_pos=3871.9641 | ppl/val_neg=2664123.9675 | ppl/val_wt=23.2587
+2026-04-17 20:14:44,129 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:14:45,065 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_1148.pt
+2026-04-17 20:15:15,948 | INFO | step=20 train_loss=0.310530
+2026-04-17 20:15:46,948 | INFO | step=40 train_loss=0.414432
+2026-04-17 20:16:18,008 | INFO | step=60 train_loss=0.332305
+2026-04-17 20:16:49,100 | INFO | step=80 train_loss=0.379025
+2026-04-17 20:17:20,089 | INFO | step=100 train_loss=0.372869
+2026-04-17 20:17:51,188 | INFO | step=120 train_loss=0.398980
+2026-04-17 20:18:22,523 | INFO | step=140 train_loss=0.397280
+2026-04-17 20:18:53,836 | INFO | step=160 train_loss=0.393536
+2026-04-17 20:19:24,982 | INFO | step=180 train_loss=0.316717
+2026-04-17 20:19:56,304 | INFO | step=200 train_loss=0.388060
+2026-04-17 20:20:27,453 | INFO | step=220 train_loss=0.269941
+2026-04-17 20:20:58,569 | INFO | step=240 train_loss=0.263604
+2026-04-17 20:21:29,645 | INFO | step=260 train_loss=0.260432
+2026-04-17 20:22:00,616 | INFO | step=280 train_loss=0.316432
+[2026-04-17 20:25:27,368][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:25:30,544][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:25:30,544][src.eval][INFO] - Spearman (average ordering): rho=0.8076, p=nan
+[2026-04-17 20:25:30,546][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:25:33,735][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:25:33,735][src.eval][INFO] - Spearman (random ordering):  rho=0.8043, p=nan
+2026-04-17 20:25:33,736 | INFO | Validation Spearman | avg=0.8076 (p=nan) | random=0.8043 (p=nan)
+2026-04-17 20:25:33,736 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.338057 | val_loss=0.343091 | val_acc=0.9115 | val_margin=1.1712 | val_kl=-107.5105 | val_ppl=71.2386 | train_batches=287 | val_batches=30
+2026-04-17 20:25:48,626 | INFO | Validation Perplexity | ppl/val_pos=20.0766 | ppl/val_neg=421570.0700 | ppl/val_wt=5.6811
+2026-04-17 20:25:49,575 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:25:50,518 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_1435.pt
+2026-04-17 20:26:21,542 | INFO | step=20 train_loss=0.323228
+2026-04-17 20:26:52,684 | INFO | step=40 train_loss=0.416521
+2026-04-17 20:27:23,678 | INFO | step=60 train_loss=0.304291
+2026-04-17 20:27:54,785 | INFO | step=80 train_loss=0.398844
+2026-04-17 20:28:25,828 | INFO | step=100 train_loss=0.264535
+2026-04-17 20:28:57,034 | INFO | step=120 train_loss=0.357397
+2026-04-17 20:29:28,202 | INFO | step=140 train_loss=0.297293
+2026-04-17 20:29:59,541 | INFO | step=160 train_loss=0.312533
+2026-04-17 20:30:30,660 | INFO | step=180 train_loss=0.301247
+2026-04-17 20:31:01,779 | INFO | step=200 train_loss=0.337807
+2026-04-17 20:31:32,869 | INFO | step=220 train_loss=0.233231
+2026-04-17 20:32:03,823 | INFO | step=240 train_loss=0.242996
+2026-04-17 20:32:34,794 | INFO | step=260 train_loss=0.278118
+2026-04-17 20:33:05,876 | INFO | step=280 train_loss=0.222730
+[2026-04-17 20:36:32,787][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:36:35,969][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:36:35,969][src.eval][INFO] - Spearman (average ordering): rho=0.8210, p=nan
+[2026-04-17 20:36:35,971][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:36:39,152][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:36:39,152][src.eval][INFO] - Spearman (random ordering):  rho=0.8180, p=nan
+2026-04-17 20:36:39,152 | INFO | Validation Spearman | avg=0.8210 (p=nan) | random=0.8180 (p=nan)
+2026-04-17 20:36:39,153 | INFO | Epoch 6 | lr=1.000e-05 | train_loss=0.324670 | val_loss=0.336821 | val_acc=0.9135 | val_margin=1.2051 | val_kl=-98.9122 | val_ppl=41.1371 | train_batches=287 | val_batches=30
+2026-04-17 20:36:54,041 | INFO | Validation Perplexity | ppl/val_pos=13.7001 | ppl/val_neg=451063.1084 | ppl/val_wt=4.5799
+2026-04-17 20:36:54,986 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:36:55,927 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_1722.pt
+2026-04-17 20:37:26,706 | INFO | step=20 train_loss=0.368848
+2026-04-17 20:37:57,756 | INFO | step=40 train_loss=0.426671
+2026-04-17 20:38:28,869 | INFO | step=60 train_loss=0.327305
+2026-04-17 20:38:59,920 | INFO | step=80 train_loss=0.281448
+2026-04-17 20:39:30,874 | INFO | step=100 train_loss=0.396943
+2026-04-17 20:40:01,918 | INFO | step=120 train_loss=0.334546
+2026-04-17 20:40:33,043 | INFO | step=140 train_loss=0.317483
+2026-04-17 20:41:04,104 | INFO | step=160 train_loss=0.315960
+2026-04-17 20:41:35,241 | INFO | step=180 train_loss=0.319524
+2026-04-17 20:42:06,165 | INFO | step=200 train_loss=0.220364
+2026-04-17 20:42:37,196 | INFO | step=220 train_loss=0.290254
+2026-04-17 20:43:08,259 | INFO | step=240 train_loss=0.294224
+2026-04-17 20:43:39,332 | INFO | step=260 train_loss=0.385873
+2026-04-17 20:44:10,282 | INFO | step=280 train_loss=0.326498
+[2026-04-17 20:47:37,059][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:47:40,223][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:47:40,223][src.eval][INFO] - Spearman (average ordering): rho=0.8005, p=nan
+[2026-04-17 20:47:40,225][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:47:43,408][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:47:43,408][src.eval][INFO] - Spearman (random ordering):  rho=0.7831, p=nan
+2026-04-17 20:47:43,409 | INFO | Validation Spearman | avg=0.8005 (p=nan) | random=0.7831 (p=nan)
+2026-04-17 20:47:43,409 | INFO | Epoch 7 | lr=1.000e-05 | train_loss=0.315832 | val_loss=0.326945 | val_acc=0.8927 | val_margin=1.3095 | val_kl=-262.6055 | val_ppl=33461.8253 | train_batches=287 | val_batches=30
+2026-04-17 20:47:58,318 | INFO | Validation Perplexity | ppl/val_pos=1657.2906 | ppl/val_neg=114512472.5301 | ppl/val_wt=5.8774
+2026-04-17 20:47:59,276 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:48:00,215 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_2009.pt
+2026-04-17 20:48:31,126 | INFO | step=20 train_loss=0.279697
+2026-04-17 20:49:02,190 | INFO | step=40 train_loss=0.325957
+2026-04-17 20:49:33,200 | INFO | step=60 train_loss=0.314718
+2026-04-17 20:50:04,285 | INFO | step=80 train_loss=0.385030
+2026-04-17 20:50:35,378 | INFO | step=100 train_loss=0.357340
+2026-04-17 20:51:06,428 | INFO | step=120 train_loss=0.313854
+2026-04-17 20:51:37,456 | INFO | step=140 train_loss=0.438072
+2026-04-17 20:52:08,350 | INFO | step=160 train_loss=0.303980
+2026-04-17 20:52:39,392 | INFO | step=180 train_loss=0.353278
+2026-04-17 20:53:10,433 | INFO | step=200 train_loss=0.331427
+2026-04-17 20:53:41,481 | INFO | step=220 train_loss=0.329903
+2026-04-17 20:54:12,392 | INFO | step=240 train_loss=0.249611
+2026-04-17 20:54:43,459 | INFO | step=260 train_loss=0.279604
+2026-04-17 20:55:14,546 | INFO | step=280 train_loss=0.333560
+[2026-04-17 20:58:41,150][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:58:44,328][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:58:44,329][src.eval][INFO] - Spearman (average ordering): rho=0.8217, p=nan
+[2026-04-17 20:58:44,333][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 20:58:47,524][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 20:58:47,525][src.eval][INFO] - Spearman (random ordering):  rho=0.8143, p=nan
+2026-04-17 20:58:47,525 | INFO | Validation Spearman | avg=0.8217 (p=nan) | random=0.8143 (p=nan)
+2026-04-17 20:58:47,526 | INFO | Epoch 8 | lr=1.000e-05 | train_loss=0.303955 | val_loss=0.308245 | val_acc=0.9240 | val_margin=1.3748 | val_kl=-162.5145 | val_ppl=131.4577 | train_batches=287 | val_batches=30
+2026-04-17 20:59:02,413 | INFO | Validation Perplexity | ppl/val_pos=24.8998 | ppl/val_neg=24898728.6283 | ppl/val_wt=3.7232
+2026-04-17 20:59:03,362 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 20:59:04,298 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_2296.pt
+2026-04-17 20:59:35,117 | INFO | step=20 train_loss=0.290502
+2026-04-17 21:00:06,137 | INFO | step=40 train_loss=0.327879
+2026-04-17 21:00:37,189 | INFO | step=60 train_loss=0.234521
+2026-04-17 21:01:08,245 | INFO | step=80 train_loss=0.340676
+2026-04-17 21:01:39,351 | INFO | step=100 train_loss=0.327730
+2026-04-17 21:02:10,296 | INFO | step=120 train_loss=0.306121
+2026-04-17 21:02:41,339 | INFO | step=140 train_loss=0.321819
+2026-04-17 21:03:12,379 | INFO | step=160 train_loss=0.220883
+2026-04-17 21:03:43,445 | INFO | step=180 train_loss=0.335167
+2026-04-17 21:04:14,341 | INFO | step=200 train_loss=0.293439
+2026-04-17 21:04:45,348 | INFO | step=220 train_loss=0.303835
+2026-04-17 21:05:16,413 | INFO | step=240 train_loss=0.360948
+2026-04-17 21:05:47,465 | INFO | step=260 train_loss=0.408215
+2026-04-17 21:06:18,416 | INFO | step=280 train_loss=0.339507
+[2026-04-17 21:09:44,820][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:09:47,984][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:09:47,984][src.eval][INFO] - Spearman (average ordering): rho=0.8035, p=nan
+[2026-04-17 21:09:47,986][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:09:51,174][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:09:51,174][src.eval][INFO] - Spearman (random ordering):  rho=0.7762, p=nan
+2026-04-17 21:09:51,175 | INFO | Validation Spearman | avg=0.8035 (p=nan) | random=0.7762 (p=nan)
+2026-04-17 21:09:51,175 | INFO | Epoch 9 | lr=1.000e-05 | train_loss=0.294671 | val_loss=0.324904 | val_acc=0.9000 | val_margin=1.3485 | val_kl=-287.7205 | val_ppl=65700.3759 | train_batches=287 | val_batches=30
+2026-04-17 21:10:06,068 | INFO | Validation Perplexity | ppl/val_pos=1788.6740 | ppl/val_neg=511897750.6800 | ppl/val_wt=5.3085
+2026-04-17 21:10:07,015 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_2583.pt
+2026-04-17 21:10:37,968 | INFO | step=20 train_loss=0.330164
+2026-04-17 21:11:08,994 | INFO | step=40 train_loss=0.309046
+2026-04-17 21:11:39,875 | INFO | step=60 train_loss=0.284645
+2026-04-17 21:12:10,937 | INFO | step=80 train_loss=0.263220
+2026-04-17 21:12:42,000 | INFO | step=100 train_loss=0.286251
+2026-04-17 21:13:13,014 | INFO | step=120 train_loss=0.230832
+2026-04-17 21:13:44,068 | INFO | step=140 train_loss=0.305848
+2026-04-17 21:14:14,971 | INFO | step=160 train_loss=0.208248
+2026-04-17 21:14:46,023 | INFO | step=180 train_loss=0.330724
+2026-04-17 21:15:17,131 | INFO | step=200 train_loss=0.253330
+2026-04-17 21:15:48,289 | INFO | step=220 train_loss=0.309732
+2026-04-17 21:16:19,249 | INFO | step=240 train_loss=0.271175
+2026-04-17 21:16:50,254 | INFO | step=260 train_loss=0.278728
+2026-04-17 21:17:21,235 | INFO | step=280 train_loss=0.341781
+[2026-04-17 21:20:47,915][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:20:51,098][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:20:51,099][src.eval][INFO] - Spearman (average ordering): rho=0.8222, p=nan
+[2026-04-17 21:20:51,100][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:20:54,291][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:20:54,291][src.eval][INFO] - Spearman (random ordering):  rho=0.8104, p=nan
+2026-04-17 21:20:54,292 | INFO | Validation Spearman | avg=0.8222 (p=nan) | random=0.8104 (p=nan)
+2026-04-17 21:20:54,293 | INFO | Epoch 10 | lr=1.000e-05 | train_loss=0.285298 | val_loss=0.288004 | val_acc=0.9333 | val_margin=1.5057 | val_kl=-186.5072 | val_ppl=157.2970 | train_batches=287 | val_batches=30
+2026-04-17 21:21:09,197 | INFO | Validation Perplexity | ppl/val_pos=21.7054 | ppl/val_neg=150772356.9551 | ppl/val_wt=4.0298
+2026-04-17 21:21:10,156 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 21:21:11,082 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_2870.pt
+2026-04-17 21:21:41,959 | INFO | step=20 train_loss=0.254108
+2026-04-17 21:22:13,018 | INFO | step=40 train_loss=0.174944
+2026-04-17 21:22:44,016 | INFO | step=60 train_loss=0.268786
+2026-04-17 21:23:15,066 | INFO | step=80 train_loss=0.213523
+2026-04-17 21:23:46,045 | INFO | step=100 train_loss=0.276718
+2026-04-17 21:24:17,116 | INFO | step=120 train_loss=0.321149
+2026-04-17 21:24:48,168 | INFO | step=140 train_loss=0.269156
+2026-04-17 21:25:19,306 | INFO | step=160 train_loss=0.229644
+2026-04-17 21:25:50,388 | INFO | step=180 train_loss=0.230076
+2026-04-17 21:26:21,378 | INFO | step=200 train_loss=0.291365
+2026-04-17 21:26:52,448 | INFO | step=220 train_loss=0.330836
+2026-04-17 21:27:23,461 | INFO | step=240 train_loss=0.303817
+2026-04-17 21:27:54,527 | INFO | step=260 train_loss=0.220731
+2026-04-17 21:28:25,399 | INFO | step=280 train_loss=0.284763
+[2026-04-17 21:31:52,278][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:31:55,457][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:31:55,457][src.eval][INFO] - Spearman (average ordering): rho=0.8186, p=nan
+[2026-04-17 21:31:55,461][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:31:58,651][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:31:58,651][src.eval][INFO] - Spearman (random ordering):  rho=0.8083, p=nan
+2026-04-17 21:31:58,651 | INFO | Validation Spearman | avg=0.8186 (p=nan) | random=0.8083 (p=nan)
+2026-04-17 21:31:58,652 | INFO | Epoch 11 | lr=1.000e-05 | train_loss=0.275065 | val_loss=0.282591 | val_acc=0.9271 | val_margin=1.5706 | val_kl=-233.0674 | val_ppl=1102.9926 | train_batches=287 | val_batches=30
+2026-04-17 21:32:13,560 | INFO | Validation Perplexity | ppl/val_pos=93.9006 | ppl/val_neg=867422944.9871 | ppl/val_wt=4.4020
+2026-04-17 21:32:14,500 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 21:32:15,425 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_3157.pt
+2026-04-17 21:32:46,347 | INFO | step=20 train_loss=0.262383
+2026-04-17 21:33:17,386 | INFO | step=40 train_loss=0.309309
+2026-04-17 21:33:48,310 | INFO | step=60 train_loss=0.281052
+2026-04-17 21:34:19,324 | INFO | step=80 train_loss=0.265513
+2026-04-17 21:34:50,441 | INFO | step=100 train_loss=0.233838
+2026-04-17 21:35:21,576 | INFO | step=120 train_loss=0.265434
+2026-04-17 21:35:52,535 | INFO | step=140 train_loss=0.232342
+2026-04-17 21:36:23,571 | INFO | step=160 train_loss=0.331790
+2026-04-17 21:36:54,566 | INFO | step=180 train_loss=0.237973
+2026-04-17 21:37:25,593 | INFO | step=200 train_loss=0.298807
+2026-04-17 21:37:56,639 | INFO | step=220 train_loss=0.342334
+2026-04-17 21:38:27,477 | INFO | step=240 train_loss=0.203004
+2026-04-17 21:38:58,506 | INFO | step=260 train_loss=0.354766
+2026-04-17 21:39:29,489 | INFO | step=280 train_loss=0.193110
+[2026-04-17 21:42:56,436][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:42:59,599][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:42:59,599][src.eval][INFO] - Spearman (average ordering): rho=0.8124, p=nan
+[2026-04-17 21:42:59,601][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:43:02,788][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:43:02,788][src.eval][INFO] - Spearman (random ordering):  rho=0.8108, p=nan
+2026-04-17 21:43:02,788 | INFO | Validation Spearman | avg=0.8124 (p=nan) | random=0.8108 (p=nan)
+2026-04-17 21:43:02,789 | INFO | Epoch 12 | lr=1.000e-05 | train_loss=0.266799 | val_loss=0.272234 | val_acc=0.9260 | val_margin=1.6336 | val_kl=-252.4049 | val_ppl=1144.1225 | train_batches=287 | val_batches=30
+2026-04-17 21:43:17,674 | INFO | Validation Perplexity | ppl/val_pos=81.9177 | ppl/val_neg=3849126047.4746 | ppl/val_wt=5.7295
+2026-04-17 21:43:18,628 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 21:43:19,551 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_3444.pt
+2026-04-17 21:43:50,393 | INFO | step=20 train_loss=0.252333
+2026-04-17 21:44:21,446 | INFO | step=40 train_loss=0.298813
+2026-04-17 21:44:52,568 | INFO | step=60 train_loss=0.284997
+2026-04-17 21:45:23,661 | INFO | step=80 train_loss=0.197112
+2026-04-17 21:45:54,761 | INFO | step=100 train_loss=0.303080
+2026-04-17 21:46:25,687 | INFO | step=120 train_loss=0.250917
+2026-04-17 21:46:56,684 | INFO | step=140 train_loss=0.182376
+2026-04-17 21:47:27,713 | INFO | step=160 train_loss=0.238549
+2026-04-17 21:47:58,728 | INFO | step=180 train_loss=0.278888
+2026-04-17 21:48:29,699 | INFO | step=200 train_loss=0.209181
+2026-04-17 21:49:00,816 | INFO | step=220 train_loss=0.271816
+2026-04-17 21:49:31,910 | INFO | step=240 train_loss=0.185781
+2026-04-17 21:50:02,950 | INFO | step=260 train_loss=0.280592
+2026-04-17 21:50:33,971 | INFO | step=280 train_loss=0.265711
+[2026-04-17 21:54:00,366][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:54:03,548][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:54:03,549][src.eval][INFO] - Spearman (average ordering): rho=0.8234, p=nan
+[2026-04-17 21:54:03,551][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 21:54:06,741][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 21:54:06,742][src.eval][INFO] - Spearman (random ordering):  rho=0.8151, p=nan
+2026-04-17 21:54:06,742 | INFO | Validation Spearman | avg=0.8234 (p=nan) | random=0.8151 (p=nan)
+2026-04-17 21:54:06,743 | INFO | Epoch 13 | lr=1.000e-05 | train_loss=0.256446 | val_loss=0.277037 | val_acc=0.9271 | val_margin=1.6278 | val_kl=-262.1944 | val_ppl=1343.5338 | train_batches=287 | val_batches=30
+2026-04-17 21:54:21,637 | INFO | Validation Perplexity | ppl/val_pos=66.1993 | ppl/val_neg=8107071175.6332 | ppl/val_wt=5.4320
+2026-04-17 21:54:22,551 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_3731.pt
+2026-04-17 21:54:53,495 | INFO | step=20 train_loss=0.226467
+2026-04-17 21:55:24,808 | INFO | step=40 train_loss=0.347958
+2026-04-17 21:55:55,816 | INFO | step=60 train_loss=0.243769
+2026-04-17 21:56:26,783 | INFO | step=80 train_loss=0.288238
+2026-04-17 21:56:57,911 | INFO | step=100 train_loss=0.259158
+2026-04-17 21:57:29,016 | INFO | step=120 train_loss=0.305440
+2026-04-17 21:58:00,068 | INFO | step=140 train_loss=0.280174
+2026-04-17 21:58:30,999 | INFO | step=160 train_loss=0.243022
+2026-04-17 21:59:02,109 | INFO | step=180 train_loss=0.244600
+2026-04-17 21:59:33,169 | INFO | step=200 train_loss=0.333345
+2026-04-17 22:00:04,279 | INFO | step=220 train_loss=0.315379
+2026-04-17 22:00:35,354 | INFO | step=240 train_loss=0.220780
+2026-04-17 22:01:06,311 | INFO | step=260 train_loss=0.251338
+2026-04-17 22:01:37,294 | INFO | step=280 train_loss=0.365025
+[2026-04-17 22:05:03,858][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 22:05:07,025][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 22:05:07,026][src.eval][INFO] - Spearman (average ordering): rho=0.8259, p=nan
+[2026-04-17 22:05:07,027][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 22:05:10,221][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 22:05:10,221][src.eval][INFO] - Spearman (random ordering):  rho=0.8239, p=nan
+2026-04-17 22:05:10,222 | INFO | Validation Spearman | avg=0.8259 (p=nan) | random=0.8239 (p=nan)
+2026-04-17 22:05:10,222 | INFO | Epoch 14 | lr=1.000e-05 | train_loss=0.253975 | val_loss=0.270986 | val_acc=0.9313 | val_margin=1.6364 | val_kl=-203.8850 | val_ppl=90.5606 | train_batches=287 | val_batches=30
+2026-04-17 22:05:25,114 | INFO | Validation Perplexity | ppl/val_pos=14.2837 | ppl/val_neg=2021039762.8884 | ppl/val_wt=6.9876
+2026-04-17 22:05:26,058 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 22:05:27,061 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_4018.pt
+2026-04-17 22:05:58,130 | INFO | step=20 train_loss=0.342213
+2026-04-17 22:06:29,273 | INFO | step=40 train_loss=0.214150
+2026-04-17 22:07:00,577 | INFO | step=60 train_loss=0.315815
+2026-04-17 22:07:31,720 | INFO | step=80 train_loss=0.255771
+2026-04-17 22:08:02,733 | INFO | step=100 train_loss=0.239475
+2026-04-17 22:08:33,633 | INFO | step=120 train_loss=0.203714
+2026-04-17 22:09:04,690 | INFO | step=140 train_loss=0.204139
+2026-04-17 22:09:35,724 | INFO | step=160 train_loss=0.213681
+2026-04-17 22:10:06,795 | INFO | step=180 train_loss=0.249595
+2026-04-17 22:10:37,916 | INFO | step=200 train_loss=0.267229
+2026-04-17 22:11:08,875 | INFO | step=220 train_loss=0.273709
+2026-04-17 22:11:40,145 | INFO | step=240 train_loss=0.216213
+2026-04-17 22:12:11,454 | INFO | step=260 train_loss=0.227647
+2026-04-17 22:12:42,710 | INFO | step=280 train_loss=0.261032
+[2026-04-17 22:16:08,906][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 22:16:12,074][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 22:16:12,075][src.eval][INFO] - Spearman (average ordering): rho=0.8164, p=nan
+[2026-04-17 22:16:12,076][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-17 22:16:15,256][src.eval][WARNING] - scipy is not installed; returning Spearman rho with p-value set to NaN.
+[2026-04-17 22:16:15,257][src.eval][INFO] - Spearman (random ordering):  rho=0.8113, p=nan
+2026-04-17 22:16:15,257 | INFO | Validation Spearman | avg=0.8164 (p=nan) | random=0.8113 (p=nan)
+2026-04-17 22:16:15,257 | INFO | Epoch 15 | lr=1.000e-05 | train_loss=0.246182 | val_loss=0.267492 | val_acc=0.9302 | val_margin=1.6881 | val_kl=-228.2135 | val_ppl=180.1067 | train_batches=287 | val_batches=30
+2026-04-17 22:16:30,146 | INFO | Validation Perplexity | ppl/val_pos=22.1689 | ppl/val_neg=7060604649.1097 | ppl/val_wt=4.6892
+2026-04-17 22:16:31,055 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 22:16:31,948 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/step_4305.pt
+2026-04-17 22:16:32,207 | INFO | Loaded best checkpoint for final test evaluation: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/best.pt
+2026-04-17 22:16:33,150 | INFO | Saved final checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/checkpoints/final.pt
+2026-04-17 22:19:21,430 | INFO | Test metrics | loss=0.278701 | reward_acc=0.9103 | reward_margin=1.6542 | implicit_kl=-214.4652 | batches=30 | skipped=0
+2026-04-17 22:19:21,431 | INFO | Computing perplexity on test set (chosen sequences)...
+2026-04-17 22:19:44,634 | INFO | Test Chosen Perplexity: 110.4613
+2026-04-17 22:19:44,637 | WARNING | ED5 processed file missing at /cluster/home/gguidarini/protein-design/data/processed/D5.csv. Skipping test perplexity logging.
+2026-04-17 22:19:45,262 | INFO | Archived best checkpoint to /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/best.pt
+2026-04-17 22:19:45,265 | INFO | Archived metrics to /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/metrics.json
+2026-04-17 22:19:45,266 | INFO | Saved history to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/history.csv
+2026-04-17 22:19:45,266 | INFO | Saved summary to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/summary.json
+2026-04-17 22:19:45,266 | INFO | Saved metrics to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/metrics.json
+wandb: uploading console lines 421-422; updating run metadata
+wandb: uploading console lines 421-422; uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading console lines 421-422; uploading output.log; uploading wandb-summary.json
+wandb: uploading console lines 421-422
+wandb: uploading history steps 224-225, summary, console lines 423-429
+wandb: 
+wandb: Run history:
+wandb:                epoch ▁▁▁▁▁▂▂▂▂▃▃▃▃▃▃▅▅▅▅▅▅▅▅▅▅▅▅▆▆▆▇▇▇▇▇▇▇███
+wandb:                   lr ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: metrics/spearman_M22 ▁
+wandb:      metrics/val_ppl ▁
+wandb:          ppl/val_neg ▁▁▁▁▁▁▁▁▁▁▂▄█▃▇
+wandb:          ppl/val_pos ▂▁▂█▁▁▄▁▄▁▁▁▁▁▁
+wandb:           ppl/val_wt █▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                 step ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇▇█████
+wandb:   test/best_val_loss ▁
+wandb:  test/num_test_pairs ▁
+wandb:                  +30 ...
+wandb: 
+wandb: Run summary:
+wandb:        best_val_loss 0.26749
+wandb:                epoch 15
+wandb:                   lr 1e-05
+wandb:        metrics/model facebook/esm2_t12_35...
+wandb: metrics/spearman_M22 0.81639
+wandb:      metrics/val_ppl 180.10668
+wandb:       num_test_pairs 936
+wandb:      num_train_pairs 9174
+wandb:        num_val_pairs 960
+wandb:          ppl/val_neg 7060604649.10972
+wandb:                  +45 ...
+wandb: 
+wandb: 🚀 View run esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023 at: https://wandb.ai/gguidarini-eth-zurich/dpo/runs/as1v3z9l
+wandb: ⭐️ View project at: https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_193023/wandb/run-20260417_193024-as1v3z9l/logs

@@ -1,0 +1,63 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+SCRATCH_DIR: /cluster/scratch/gguidarini/protein-design
+TRAIN_DIR: /cluster/scratch/gguidarini/protein-design/train
+PROJECT_DIR: /cluster/project/infk/krause/gguidarini/protein-design
+DPO output dir: /cluster/scratch/gguidarini/protein-design/train
+W&B dir: /cluster/scratch/gguidarini/protein-design/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-g6-002
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Fri Apr 17 18:33:41 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:21:00.0 Off |                  Off |
+| 38%   41C    P8             24W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-17 18:33:51,417 | INFO | Starting DPO training run
+2026-04-17 18:33:51,419 | INFO | Full run name: esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351
+2026-04-17 18:33:51,419 | INFO | Run directory: /cluster/scratch/gguidarini/protein-design/train/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351
+2026-04-17 18:33:51,419 | INFO | Archive directory: /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351
+2026-04-17 18:33:51,432 | INFO | Saved resolved config to /cluster/scratch/gguidarini/protein-design/train/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351/resolved_config.yaml
+2026-04-17 18:33:51,432 | INFO | Saved run config to /cluster/scratch/gguidarini/protein-design/train/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351/config.yaml
+2026-04-17 18:33:52,893 | INFO | W&B run name: esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run yy1oiwxr
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/protein-design/train/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351/wandb/run-20260417_183353-yy1oiwxr
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/yy1oiwxr
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 720, in main
+    train_df, val_df, test_df = _build_split_pair_dataframes(cfg)
+  File "/cluster/home/gguidarini/protein-design/src/train_dpo.py", line 132, in _build_split_pair_dataframes
+    components = validate_delta_based_components(
+  File "/cluster/home/gguidarini/protein-design/src/dataset.py", line 233, in validate_delta_based_components
+    raise ValueError(
+ValueError: Invalid data.delta_based.components value(s): c, o, r, s. Valid components: within_pos, within_neg, wt_anchors, cross
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mesm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351[0m at: [34mhttps://wandb.ai/gguidarini-eth-zurich/dpo/runs/yy1oiwxr[0m
+[1;34mwandb[0m: Find logs at: [1;35m../../../scratch/gguidarini/protein-design/train/esm2-unknownM__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260417_183351/wandb/run-20260417_183353-yy1oiwxr/logs[0m
