@@ -7,14 +7,14 @@ run:
   base_name: null  # optional base name; final run name is <base_name>_<YYYYMMDD_HHMMSS>
 
 data:
-  raw_csv: data/raw/M22_binding_enrichment.csv
+  raw_csv: data/raw/ED2_M22_binding_enrichment.csv
   processed_dir: data/processed
   force_rebuild: false
   pairing_strategy: delta_based   # positive_vs_tail | positive_only_extremes | both_structured | delta_based
   min_positive_delta: 3.0
   min_delta_margin: 5.0
   delta_based:
-    components: [cross, wt_anchors]   #[within_pos, within_neg, wt_anchors, cross] toggle to experiment
+    components: [cross]   #[within_pos, within_neg, wt_anchors, cross] toggle to experiment
     gap: 0.5            # expected in [0.0, 1.0]
     wt_pairs_frac: 0.1  # expected in [0.0, 1.0]
     cross_pairs_frac: 0.1      # expected in [0.0, 1.0]

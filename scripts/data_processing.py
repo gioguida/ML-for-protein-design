@@ -6,12 +6,21 @@ import numpy as np
 import pandas as pd
 
 
+WT_M22_BINDING_ENRICHMENT = 5.190013461
+DELTA_M22_BINDING_ENRICHMENT_COL = "delta_M22_binding_enrichment_adj"
+M22_BINDING_ENRICHMENT_ADJ_COL = "M22_binding_enrichment_adj"
+
 REQUIRED_RAW_COLUMNS = {
     "aa",
     "num_mut",
     "mut",
     "M22_binding_count_adj",
     "M22_non_binding_count_adj",
+}
+
+RAW_COLUMN_ALIASES = {
+    "M22_binding_count_adj": ("count_ED2M22pos",),
+    "M22_non_binding_count_adj": ("count_ED2M22neg",),
 }
 
 REQUIRED_ED5_COLUMNS = {
@@ -22,18 +31,58 @@ REQUIRED_ED5_COLUMNS = {
 }
 
 
+def _normalize_raw_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize alternate raw-schema column names into canonical names."""
+    normalized = df.copy()
+    for canonical_name, aliases in RAW_COLUMN_ALIASES.items():
+        if canonical_name in normalized.columns:
+            continue
+        for alias in aliases:
+            if alias in normalized.columns:
+                normalized[canonical_name] = normalized[alias]
+                break
+    return normalized
+
+
+def ensure_delta_m22_binding_enrichment(
+    df: pd.DataFrame,
+    wt_binding_enrichment: float = WT_M22_BINDING_ENRICHMENT,
+) -> pd.DataFrame:
+    """Ensure delta enrichment exists, deriving it from adjusted enrichment if needed."""
+    out = df.copy()
+
+    if DELTA_M22_BINDING_ENRICHMENT_COL in out.columns:
+        out[DELTA_M22_BINDING_ENRICHMENT_COL] = pd.to_numeric(
+            out[DELTA_M22_BINDING_ENRICHMENT_COL],
+            errors="coerce",
+        ).astype(float)
+        return out
+
+    if M22_BINDING_ENRICHMENT_ADJ_COL not in out.columns:
+        raise ValueError(
+            "Raw data is missing required enrichment column(s): "
+            f"expected '{DELTA_M22_BINDING_ENRICHMENT_COL}' or "
+            f"'{M22_BINDING_ENRICHMENT_ADJ_COL}'."
+        )
+
+    enrichment = pd.to_numeric(out[M22_BINDING_ENRICHMENT_ADJ_COL], errors="coerce").astype(float)
+    out[M22_BINDING_ENRICHMENT_ADJ_COL] = enrichment
+    out[DELTA_M22_BINDING_ENRICHMENT_COL] = enrichment - float(wt_binding_enrichment)
+    return out
+
+
 def _read_raw_data(raw_csv_path: Union[str, Path]) -> pd.DataFrame:
     """Read raw M22 data and validate required columns."""
     raw_csv_path = Path(raw_csv_path)
     if not raw_csv_path.exists():
         raise FileNotFoundError(f"Raw data file not found: {raw_csv_path}")
 
-    df = pd.read_csv(raw_csv_path)
+    df = _normalize_raw_columns(pd.read_csv(raw_csv_path))
     missing_cols = REQUIRED_RAW_COLUMNS.difference(df.columns)
     if missing_cols:
         missing = ", ".join(sorted(missing_cols))
         raise ValueError(f"Raw data file is missing required columns: {missing}")
-    return df
+    return ensure_delta_m22_binding_enrichment(df)
 
 
 def get_distance2_data(raw_input: Union[pd.DataFrame, str, Path]) -> Tuple[pd.DataFrame, float, float]:
@@ -42,7 +91,15 @@ def get_distance2_data(raw_input: Union[pd.DataFrame, str, Path]) -> Tuple[pd.Da
     The totals are computed on the full raw dataset (not only distance-2),
     matching your current enrichment normalization logic.
     """
-    df = raw_input if isinstance(raw_input, pd.DataFrame) else _read_raw_data(raw_input)
+    if isinstance(raw_input, pd.DataFrame):
+        df = ensure_delta_m22_binding_enrichment(_normalize_raw_columns(raw_input))
+    else:
+        df = _read_raw_data(raw_input)
+
+    df = df.copy()
+    df["num_mut"] = pd.to_numeric(df["num_mut"], errors="coerce")
+    df["M22_binding_count_adj"] = pd.to_numeric(df["M22_binding_count_adj"], errors="coerce")
+    df["M22_non_binding_count_adj"] = pd.to_numeric(df["M22_non_binding_count_adj"], errors="coerce")
     df_filtered = df[df["num_mut"] == 2].copy()
     n_bind = float(df["M22_binding_count_adj"].sum())
     n_non_bind = float(df["M22_non_binding_count_adj"].sum())
@@ -77,21 +134,18 @@ def build_perplexity_eval_sets(
     seed: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Build fixed-size val_pos/val_neg subsets from the validation split."""
-    if "delta_M22_binding_enrichment_adj" not in df_val.columns:
-        raise ValueError(
-            "Validation dataframe is missing required column: delta_M22_binding_enrichment_adj"
-        )
+    df_val = ensure_delta_m22_binding_enrichment(df_val)
 
     min_positive_delta = float(cfg.data.min_positive_delta)
     n_val_pos = int(getattr(cfg.data.val, "n_val_pos", 200))
     n_val_neg = int(getattr(cfg.data.val, "n_val_neg", 400))
 
-    delta_scores = pd.to_numeric(df_val["delta_M22_binding_enrichment_adj"], errors="coerce")
+    delta_scores = pd.to_numeric(df_val[DELTA_M22_BINDING_ENRICHMENT_COL], errors="coerce")
     valid_rows = df_val.loc[delta_scores.notna()].copy()
-    valid_rows["delta_M22_binding_enrichment_adj"] = delta_scores.loc[delta_scores.notna()].astype(float)
+    valid_rows[DELTA_M22_BINDING_ENRICHMENT_COL] = delta_scores.loc[delta_scores.notna()].astype(float)
 
-    pos_pool = valid_rows[valid_rows["delta_M22_binding_enrichment_adj"] > min_positive_delta]
-    neg_pool = valid_rows[valid_rows["delta_M22_binding_enrichment_adj"] < 0.0]
+    pos_pool = valid_rows[valid_rows[DELTA_M22_BINDING_ENRICHMENT_COL] > min_positive_delta]
+    neg_pool = valid_rows[valid_rows[DELTA_M22_BINDING_ENRICHMENT_COL] < 0.0]
 
     if n_val_pos > 0 and len(pos_pool) > 0:
         val_pos = pos_pool.sample(
@@ -355,13 +409,50 @@ def build_processed_views(
         "d2_clustered_mut2": processed_dir / "D2_clustered_mut2.csv",
     }
 
+    required_output_columns = {
+        "d2": {"aa", "num_mut", "mut", DELTA_M22_BINDING_ENRICHMENT_COL},
+        "d2_clustered_mut1": {
+            "aa",
+            "num_mut",
+            "mut",
+            DELTA_M22_BINDING_ENRICHMENT_COL,
+            "cluster_idx",
+        },
+        "d2_clustered_mut2": {
+            "aa",
+            "num_mut",
+            "mut",
+            DELTA_M22_BINDING_ENRICHMENT_COL,
+            "cluster_idx",
+        },
+    }
+
+    outputs_have_expected_schema = True
+    for key, output_path in output_paths.items():
+        if not output_path.exists():
+            outputs_have_expected_schema = False
+            break
+        try:
+            columns = set(pd.read_csv(output_path, nrows=0).columns)
+        except Exception:
+            outputs_have_expected_schema = False
+            break
+        if not required_output_columns[key].issubset(columns):
+            outputs_have_expected_schema = False
+            break
+
     raw_mtime = raw_csv_path.stat().st_mtime
     all_outputs_exist = all(path.exists() for path in output_paths.values())
     outputs_are_fresh = all(
         path.stat().st_mtime >= raw_mtime for path in output_paths.values() if path.exists()
     )
 
-    should_rebuild = force or (not all_outputs_exist) or (not outputs_are_fresh)
+    should_rebuild = (
+        force
+        or (not all_outputs_exist)
+        or (not outputs_are_fresh)
+        or (not outputs_have_expected_schema)
+    )
     if not should_rebuild:
         if verbose:
             print("Processed views are up to date. Reusing existing files.")
@@ -448,5 +539,3 @@ if __name__ == "__main__":
         force=args.force,
         verbose=True,
     )
-
-
