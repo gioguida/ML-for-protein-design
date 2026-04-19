@@ -1,270 +1,185 @@
-# protein-design — ESM2 Evotuning Pipeline
+# protein-design — ESM2 training pipeline
 
-Continued masked language model (MLM) pretraining of ESM2 on human IgG
-heavy chain sequences from the [Observed Antibody Space (OAS)](https://opig.stats.ox.ac.uk/webapps/oas/)
-database. The goal is to bias ESM2 towards antibody sequence space before
-downstream fine-tuning for antibody design tasks.
+Continued masked-language-model pretraining of ESM2 on antibody sequences,
+with a unified pipeline that chains evotuning → domain finetune → TTT into
+a single declarative config.
 
-All instructions below are for the **ETH Euler cluster**.
+Target platform: **ETH Euler cluster**.
 
 ---
 
-## Prerequisites (one-time setup)
-
-### 1. Install dependencies
+## Quickstart
 
 ```bash
-uv sync
+# One sbatch, one pipeline name. Chains every stage in a single allocation.
+sbatch bash_scripts/train.sbatch evotuning                 # OAS evotuning only
+sbatch bash_scripts/train.sbatch evotune_c05_ttt           # evotune → C05 → TTT
+sbatch bash_scripts/train.sbatch c05 \
+    pipeline.init_from=$PROJECT_DIR/checkpoints/<evo_run>/best.pt
 ```
 
-### 2. Configure environment
+Pipelines live in `conf/pipeline/`. Add a new YAML there to define a new
+chain; no new sbatch needed.
+
+---
+
+## One-time setup
 
 ```bash
-cp .env.template .env
+uv sync                                  # install deps
+cp .env.template .env.local              # fill in cluster paths (see below)
+source .venv/bin/activate && wandb login # on a login node
 ```
 
-Edit `.env` with your actual paths:
+`.env.local`:
 
 ```
 SCRATCH_DIR=/cluster/scratch/$USER/protein-design
 PROJECT_DIR=/cluster/project/infk/krause/$USER/protein-design
-TRAIN_DIR=/cluster/scratch/$USER/protein-design/train
+TRAIN_DIR=$SCRATCH_DIR/train
 WANDB_PROJECT=protein-design-evotuning
-WANDB_DIR=/cluster/scratch/$USER/protein-design/wandb
-```
-
-### 3. Log in to Weights & Biases
-
-```bash
-source .venv/bin/activate
-wandb login   # paste your token from https://wandb.ai/authorize
-```
-
-### 4. Create logs directory
-
-```bash
-mkdir -p logs
+WANDB_DIR=$SCRATCH_DIR/wandb
 ```
 
 ---
 
 ## Storage layout
 
-| What | Where | Why |
-|------|-------|-----|
-| Code | `~/protein-design/` (home) | Persistent, small |
-| Raw/intermediate data | `$SCRATCH_DIR` | Large, ephemeral ok |
-| Training runs | `$TRAIN_DIR/{run_name}/` | Large, scratch |
-| Archived best checkpoints | `$PROJECT_DIR/checkpoints/` | Persistent |
-| Training datasets | `$PROJECT_DIR/datasets/` | Persistent |
-| Scoring datasets | `$PROJECT_DIR/datasets/scoring/` | Persistent |
-| Reports & plots | `$PROJECT_DIR/reports/` | Persistent |
-| W&B cache | `$WANDB_DIR` (scratch) | Large, synced to cloud |
-| SLURM logs | `logs/` (project root) | Small, gitignored |
+| What | Where |
+|---|---|
+| Code | `~/protein-design/` |
+| Raw/intermediate data | `$SCRATCH_DIR` |
+| Training runs | `$TRAIN_DIR/<run_name>/` |
+| Archived checkpoints | `$PROJECT_DIR/checkpoints/<run_name>/` |
+| Datasets | `$PROJECT_DIR/datasets/` |
+| Reports & plots | `~/protein-design/plots/`, `~/protein-design/reports/` |
+| SLURM logs | `bash_scripts/logs/` |
 
 ---
 
-## Pipeline
+## Training
 
-### Step 1 — Download OAS data
+A **pipeline** is a list of stages. Each stage names a `task` (hyperparams
+in `conf/task/`) and a `data` group (`conf/data/`). The output checkpoint
+of stage *n* is automatically threaded as the `finetune` input to stage
+*n+1*.
 
-**Get the URL list** (do this on your local machine):
+Available pipelines (`conf/pipeline/`):
 
-1. Go to https://opig.stats.ox.ac.uk/webapps/oas/oas_unpaired/
-2. Set filters: **Species = Human**, **Chain = Heavy**, **Isotype = IGHG**
-3. Click Search, then download the `bulk_download.sh` script from the results page
-4. Extract the URLs:
-   ```bash
-   grep -o 'https://[^ ]*' bulk_download.sh > oas_ighg_urls.txt
-   ```
-5. Copy to Euler:
-   ```bash
-   scp oas_ighg_urls.txt euler:/cluster/home/$USER/protein-design/
-   ```
+| Pipeline | Stages |
+|---|---|
+| `evotuning` | evotuning on OAS |
+| `c05` | C05-5k finetune (needs `pipeline.init_from=...`) |
+| `ttt` | TTT on one CDRH3 (needs `pipeline.init_from=...`) |
+| `evotune_c05_ttt` | all three, chained |
 
-**Submit the download job on Euler:**
+Submit with:
 
 ```bash
-sbatch bash_scripts/download_oas.sbatch
+sbatch bash_scripts/train.sbatch <pipeline> [hydra overrides...]
 ```
 
-Expected output: ~2196 `.csv.gz` files in `$SCRATCH_DIR/oas_raw/`
-
----
-
-### Step 2 — Filter sequences
-
-Reads all `.csv.gz` files and applies quality filters:
-- **Productive** rearrangements only
-- **ANARCI status**: rejects truncated, insertion-containing sequences
-- **CDR3 present**: non-null, non-empty `cdr3_aa`
-- **Minimum length**: ≥ 50 amino acids
+Any Hydra override works. To tweak a specific stage, use
+`pipeline.stages.<i>.overrides.<key>=<value>`:
 
 ```bash
-sbatch bash_scripts/filter_oas.sbatch
+sbatch bash_scripts/train.sbatch evotune_c05_ttt \
+    pipeline.stages.1.overrides.training.learning_rate=1e-4
 ```
 
-Expected: ~60–80% of raw sequences pass, resulting in tens of millions of sequences.
+Each stage writes to `$TRAIN_DIR/<pipeline_name>__<stage_name>_<timestamp>/`
+and archives the handoff checkpoint to
+`$PROJECT_DIR/checkpoints/<same_name>/`.
 
 ---
 
-### Step 3 — Deduplicate with MMseqs2
+## Evaluation
 
-Clusters sequences at **99% identity** and keeps one representative per cluster.
+Score an existing checkpoint against the D2 datasets without retraining:
 
 ```bash
-sbatch bash_scripts/mmseqs2.sbatch
+sbatch bash_scripts/eval.sbatch $PROJECT_DIR/checkpoints/<run>/best.pt scoring=d2
 ```
 
-Expected: 30–60% reduction, leaving ~5–20M unique sequences.
-
-> Steps 2 and 3 can be run in a single job: `sbatch bash_scripts/prepare_oas.sbatch`
+Writes `eval_metrics.json` next to the checkpoint.
 
 ---
 
-### Step 4 — Find optimal batch size (recommended before first full run)
+## Data preparation
 
-Before committing to a long training job, run this interactively on the target GPU to find
-the maximum batch size that fits in VRAM. This matters because training at a small batch size
-(e.g. 32) can leave the GPU at <5% utilization, making jobs 10–20× slower than necessary.
+Everything under `bash_scripts/utils/` is one-off data-prep:
 
-**When to run this:**
-- Before your first training run on a new GPU type
-- After changing the model size (`model_name`) or sequence length (`max_seq_len`)
-- After switching to a different `--gres=gpumem:Xg` allocation
+| Script | Purpose |
+|---|---|
+| `utils/download_oas.sbatch` | Download OAS `.csv.gz` files |
+| `utils/filter_oas.sbatch` | Filter sequences → FASTA |
+| `utils/mmseqs2.sbatch` | Dedup at 99% identity |
+| `utils/prepare_oas.sbatch` | Filter + dedup combined |
+| `utils/clean_d2.sbatch` | Filter D2 enrichment data |
+| `utils/search_c05.sbatch` | MMseqs2 search for C05-like seqs |
+| `utils/plot_cdrh3_lengths.sbatch` | CDRH3 length histogram |
+
+Full OAS setup:
+
+```bash
+# Local: export OAS URL list, scp oas_ighg_urls.txt to cluster
+sbatch bash_scripts/utils/download_oas.sbatch   # → $SCRATCH_DIR/oas_raw/
+sbatch bash_scripts/utils/prepare_oas.sbatch    # filter + dedup in one job
+```
+
+---
+
+## Find optimal batch size (before first real run)
 
 ```bash
 srun --gpus=1 --gres=gpumem:24g --mem-per-cpu=4G --pty \
-    uv run python scripts/find_max_batch_size.py --config configs/evotuning_base.yaml
+    uv run python scripts/find_max_batch_size.py
 ```
 
-The script sweeps batch sizes (32 → 64 → 128 → ...) and prints a table of throughput and
-VRAM usage at each step, stopping at the first OOM. It then recommends a `batch_size` and
-`gradient_accumulation_steps` to paste into your config.
-
-**How to apply the results:**
-
-1. Set `batch_size` in your config to the reported max (or half it for headroom)
-2. Adjust `gradient_accumulation_steps` to keep the effective batch size around 512
-3. Scale `learning_rate` with the square root of the effective batch size change —
-   e.g. if effective batch grows 4×, multiply lr by √4 = 2
-
-Example result on a Quadro RTX 6000 (24 GB) with `esm2_t12_35M_UR50D`, `max_seq_len=256`:
-
-| Batch | Throughput | Status |
-|-------|------------|--------|
-| 32    | 16 seq/s   | OK     |
-| 64    | 295 seq/s  | OK     |
-| 128   | 321 seq/s  | OK     |
-| 256   | 324 seq/s  | OK     |
-| 512   | —          | OOM    |
-
-→ Recommended: `batch_size: 256`, `gradient_accumulation_steps: 2`, `learning_rate: 2.0e-5`
-
-> The VRAM column in the output shows post-backward memory (model footprint only), not the
-> peak during the forward pass. The OOM boundary is the reliable signal, not the VRAM number.
+The script sweeps batch sizes and prints throughput + VRAM until OOM.
+Apply the result: set `training.batch_size` to the max (or half for
+headroom) and adjust `gradient_accumulation_steps` to keep effective
+batch ≈512. Scale `learning_rate` by √(effective-batch-ratio).
 
 ---
 
-### Step 6 — Debug run (recommended)
-
-Quick end-to-end check on 10k sequences. Uses an isolated scratch directory.
-
-```bash
-sbatch bash_scripts/debug_run.sbatch configs/evotuning_base.yaml <run_name>
-```
-
----
-
-### Step 7 — Full training
-
-```bash
-sbatch bash_scripts/evotuning.sbatch configs/evotuning_base.yaml <run_name>
-sbatch bash_scripts/evotuning.sbatch configs/my_experiment.yaml  <run_name>
-```
-
-A timestamp is appended automatically, so `my_run` becomes `my_run_20260412_143022`. This lets you submit multiple jobs with the same base name without collisions.
-
-Training outputs are saved to `$TRAIN_DIR/{run_name}_{timestamp}/`:
-```
-$TRAIN_DIR/{run_name}/
-├── config.yaml              # resolved config snapshot
-├── checkpoints/
-│   ├── step_5000.pt
-│   ├── step_10000.pt
-│   └── final.pt
-└── best.pt                  # lowest validation perplexity
-```
-
-The best checkpoint is also archived to `$PROJECT_DIR/checkpoints/{run_name}/best.pt`.
-
-Monitor training via `tail -f logs/evotuning_<jobid>.err` or the W&B dashboard.
-
-### Starting from a previous checkpoint
-
-To finetune from a previous run's best checkpoint, add `finetune` to your config:
-
-```yaml
-finetune: ${PROJECT_DIR}/checkpoints/previous_run_name/best.pt
-```
-
-This loads model weights only — optimizer and scheduler are initialized fresh.
-
----
-
-## Sbatch scripts reference
-
-| Script | Purpose | GPU |
-|---|---|:---:|
-| `download_oas.sbatch` | Download 2196 OAS data units | No |
-| `filter_oas.sbatch` | Filter sequences (productive, ANARCI, CDR3, length) | No |
-| `mmseqs2.sbatch` | Deduplicate at 99% sequence identity | No |
-| `prepare_oas.sbatch` | Filter + deduplicate in one job | No |
-| `debug_run.sbatch` | End-to-end test on 10k sequences | Yes (20GB) |
-| `evotuning.sbatch` | Full ESM2 evotuning run | Yes (24GB) |
-
----
-
-## Project structure
+## Project layout
 
 ```
-configs/                  Hyperparameter configs (YAML)
-  evotuning_base.yaml     Full training config (copy & modify for experiments)
-scripts/                  Pipeline entry points
-  download_oas.sh         Download helper (reads URL file)
-  filter_oas.py           OAS filtering → FASTA
-  run_mmseqs2.sh          MMseqs2 deduplication wrapper
-  train_evotuning.py      Training entry point (--config and --run-name required; timestamp appended to run name)
-  find_max_batch_size.py  Interactive GPU VRAM sweep to find optimal batch size
-  clean_d2.py             Filter enrichment datasets to distance-2 mutants
-  search_c05.py           MMseqs2 search for C05-like sequences
-  score_mutational_paths.py  Score mutants with ESM2
-  migrate_project_dir.sh  One-time migration of project folder layout
-bash_scripts/             SLURM job submission scripts
+conf/
+  config.yaml              base defaults (task/model/data/scoring)
+  pipeline/                stage lists — pick one via +pipeline=<name>
+  task/ model/ data/ scoring/
+scripts/
+  train.py                 pipeline entry point
+  eval.py                  standalone scorer
+  find_max_batch_size.py   VRAM sweep
+  plot_results.py          comparison plots
+  filter_oas.py, search_c05.py, clean_d2.py, ...   data prep
+bash_scripts/
+  train.sbatch, eval.sbatch, plot_results.sbatch
+  utils/                   data-prep sbatches
+  common_setup.sh          sourced by every sbatch
 src/protein_design/
-  model.py                ESM2 wrapper with layer freezing
-  data.py                 FASTA dataset and DataLoader
-  train.py                Training loop with gradient accumulation
-  evaluate.py             Perplexity evaluation
-  scoring.py              Mutational path scoring & Spearman correlation
-  utils.py                Config loading and env var resolution
+  model.py                 ESM2 wrapper (training + PLL scoring)
+  eval.py                  MLM + PLL + CDR pseudo-ppl + Spearman
+  utils.py                 config dataclasses, builders, constants
+  pipeline.py              sequential stage runner
+  training/
+    train.py               unified trainer (evotuning + TTT)
+    data.py                OAS FASTA dataloaders
 ```
 
 ---
 
 ## Troubleshooting
 
-**`Environment variable 'X' is not set and has no fallback`**
-→ The `.env` file is missing or incomplete. Check that `.env` exists and contains all required variables (see `.env.template`).
-
-**`These module(s) exist but cannot be loaded: mmseqs2/14-7e284`**
-→ MMseqs2 requires prerequisite modules:
-```bash
-module load stack/2024-06 gcc/12.2.0 mmseqs2/14-7e284
-```
-
-**`wandb.errors.UsageError: No API key configured`**
-→ Run `wandb login` on a login node before submitting training jobs.
-
-**Downloads failing on compute nodes**
-→ Compute nodes have no internet by default. The `eth_proxy` module must be loaded.
+- **`Environment variable 'X' is not set`** → `.env.local` missing or
+  incomplete; check against `.env.template`.
+- **`module mmseqs2/14-7e284 cannot be loaded`** →
+  `module load stack/2024-06 gcc/12.2.0 mmseqs2/14-7e284` first (the
+  relevant sbatches already do this).
+- **wandb login on compute node fails** → run `wandb login` on a
+  login node once; the key is cached.
+- **Downloads fail on compute nodes** → `eth_proxy` module must be
+  loaded (common_setup.sh does this).

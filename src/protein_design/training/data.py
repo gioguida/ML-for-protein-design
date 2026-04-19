@@ -1,7 +1,6 @@
 """OAS FASTA dataset and DataLoader utilities for ESM2 evotuning."""
 
 import logging
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -21,7 +20,6 @@ class OASFastaDataset(Dataset):
 
         logger.info("Loading sequences from %s", fasta_path)
 
-        # Pass 1: count sequences and find max length for tight numpy dtype
         n_seqs = 0
         max_len = 0
         with open(fasta_path) as f:
@@ -37,7 +35,6 @@ class OASFastaDataset(Dataset):
             if n_seqs > 0:
                 max_len = max(max_len, cur_len)
 
-        # Pass 2: fill pre-allocated numpy array (CoW-safe across DataLoader workers)
         self.sequences = np.empty(n_seqs, dtype=f"S{max_len}")
         for i, record in enumerate(SeqIO.parse(fasta_path, "fasta")):
             self.sequences[i] = str(record.seq).encode("ascii")

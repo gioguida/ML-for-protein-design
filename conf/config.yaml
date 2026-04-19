@@ -5,6 +5,10 @@ defaults:
   - scoring: d2
   - _self_
 
+# Pipelines under conf/pipeline/ declare one or more training stages.
+# Select with `+pipeline=<name>` (e.g. +pipeline=evotune_c05_ttt).
+pipeline: null
+
 run_name: null
 seed: 42
 finetune: null
