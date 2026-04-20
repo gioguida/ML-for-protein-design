@@ -10,12 +10,9 @@ from typing import Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, ca
 import pandas as pd
 import numpy as np
 
-if __package__:
-	from scripts.data_processing import build_processed_views
-	from .utils import WILD_TYPE, _gap_pairs
-else:  # pragma: no cover
-	from scripts.data_processing import build_processed_views
-	from utils import WILD_TYPE, _gap_pairs
+
+from scripts.data_processing import build_processed_views
+from utils import WILD_TYPE, _gap_pairs
 
 RANDOM_SEED = 42
 
@@ -73,7 +70,7 @@ def default_data_paths() -> Dict[str, Path]:
 	"""Return default raw and processed data paths."""
 	root = _project_root()
 	return {
-		"raw_m22": root / "data" / "raw" / "M22_binding_enrichment.csv",
+		"raw_m22": root / "data" / "raw" / "ED2_M22_binding_enrichment.csv",
 		"processed_dir": root / "data" / "processed",
 	}
 
@@ -392,7 +389,7 @@ def _build_cross_pairs(
 def _pair_delta_based(
 	sequences_df: pd.DataFrame,
 	params: DeltaBasedParams,
-) -> List[PairTuple]:
+) -> List[Tuple[PairMember, PairMember, str]]:
 	if len(sequences_df) <= 1:
 		return []
 
@@ -404,17 +401,16 @@ def _pair_delta_based(
 		"cross": lambda: _build_cross_pairs(sequences_df, params, rng),
 	}
 
-	all_pairs: List[PairTuple] = []
+	all_pairs: List[Tuple[PairMember, PairMember, str]] = []
 	for component in params["components"]:
-		all_pairs.extend(component_builders[component]())
+		for winner, loser in component_builders[component]():
+			all_pairs.append((winner, loser, component))
 
-	all_pairs = [
-		(winner, loser)
-		for winner, loser in all_pairs
+	return [
+		(winner, loser, component)
+		for winner, loser, component in all_pairs
 		if (winner["score"] - loser["score"]) >= float(params["min_score_margin"])
 	]
-
-	return all_pairs
 
 		
 def build_dpo_pairs_from_clustered_dataframe(
@@ -440,7 +436,9 @@ def build_dpo_pairs_from_clustered_dataframe(
 	seq_col = "aa"
 	delta_col = "delta_M22_binding_enrichment_adj"
 	cluster_col = "cluster_idx"
-	required_cols = {seq_col, delta_col, cluster_col}
+	required_cols = {seq_col, delta_col}
+	if pairing_strategy != "delta_based":
+		required_cols.add(cluster_col)
 	missing_cols = required_cols.difference(clustered_df.columns)
 	if missing_cols:
 		missing = ", ".join(sorted(missing_cols))
@@ -452,6 +450,43 @@ def build_dpo_pairs_from_clustered_dataframe(
 		else DELTA_BASED_COMPONENTS
 	)
 	cluster_rng = rng if rng is not None else np.random.default_rng(int(random_seed))
+
+	if pairing_strategy == "delta_based":
+		delta_params: DeltaBasedParams = {
+			"components": validated_components,
+			"delta_col": delta_col,
+			"seq_col": seq_col,
+			"gap": float(gap),
+			"wt_pairs_frac": float(wt_pairs_frac),
+			"cross_pairs_frac": float(cross_pairs_frac),
+			"strong_pos_threshold": float(strong_pos_threshold),
+			"strong_neg_threshold": float(strong_neg_threshold),
+			"min_score_margin": float(min_score_margin),
+			"rng": cluster_rng,
+		}
+		global_pairs = _pair_delta_based(sequences_df=clustered_df, params=delta_params)
+		pair_rows = []
+		for pair_rank, (chosen, rejected, component) in enumerate(global_pairs):
+			chosen_delta = float(chosen["score"])
+			rejected_delta = float(rejected["score"])
+			pair_rows.append(
+				{
+					"source_view": source_view,
+					"cluster_idx": -1,
+					"pair_rank_in_cluster": pair_rank,
+					"pairing_strategy": pairing_strategy,
+					"delta_component": component,
+					"chosen_sequence": chosen["aa"],
+					"rejected_sequence": rejected["aa"],
+					"chosen_delta": chosen_delta,
+					"rejected_delta": rejected_delta,
+					"delta_margin": chosen_delta - rejected_delta,
+				}
+			)
+		if not pair_rows:
+			return pd.DataFrame(columns=PAIR_COLUMNS + ["delta_component"])
+		return pd.DataFrame(pair_rows).reset_index(drop=True)
+
 	pair_rows = []
 	for cluster_value, cluster_df in clustered_df.groupby(cluster_col, sort=False):
 		if pairing_strategy == "positive_vs_tail":
@@ -475,24 +510,7 @@ def build_dpo_pairs_from_clustered_dataframe(
 				min_positive_delta=min_positive_delta,
 				min_delta_margin=min_delta_margin,
 			)
-		elif pairing_strategy == "delta_based":
-			delta_params: DeltaBasedParams = {
-				"components": validated_components,
-				"delta_col": delta_col,
-				"seq_col": seq_col,
-				"gap": float(gap),
-				"wt_pairs_frac": float(wt_pairs_frac),
-				"cross_pairs_frac": float(cross_pairs_frac),
-				"strong_pos_threshold": float(strong_pos_threshold),
-				"strong_neg_threshold": float(strong_neg_threshold),
-				"min_score_margin": float(min_score_margin),
-				"rng": cluster_rng,
-			}
-			cluster_pairs = _pair_delta_based(
-				sequences_df=cluster_df,
-				params=delta_params,
-			)
-			
+
 		for pair_rank, (chosen, rejected) in enumerate(cluster_pairs):
 			chosen_delta = float(chosen["score"])
 			rejected_delta = float(rejected["score"])
@@ -535,14 +553,11 @@ def load_dpo_pair_dataframe(
 	seed: int = RANDOM_SEED,
 	deduplicate_across_views: bool = True,
 ) -> pd.DataFrame:
-	"""Load clustered views and build a DPO pair dataframe."""
+	"""Load views and build a DPO pair dataframe.
 
-	valid_views = {"mut1", "mut2"}
-	if not include_views:
-		raise ValueError("include_views must contain at least one of: mut1, mut2")
-	for view in include_views:
-		if view not in valid_views:
-			raise ValueError("include_views must contain only: mut1, mut2")
+	For delta_based, loads the base (unclustered) view regardless of include_views.
+	For other strategies, loads the specified mut1/mut2 clustered views.
+	"""
 
 	validated_components = (
 		validate_delta_based_components(delta_components)
@@ -550,6 +565,35 @@ def load_dpo_pair_dataframe(
 		else DELTA_BASED_COMPONENTS
 	)
 	delta_rng = np.random.default_rng(int(seed))
+
+	if pairing_strategy == "delta_based":
+		base_df = load_distance2_dataframe(
+			view="base",
+			raw_csv_path=raw_csv_path,
+			processed_dir=processed_dir,
+			force_rebuild=force_rebuild,
+		)
+		return build_dpo_pairs_from_clustered_dataframe(
+			clustered_df=base_df,
+			pairing_strategy=pairing_strategy,
+			delta_components=validated_components,
+			gap=gap,
+			wt_pairs_frac=wt_pairs_frac,
+			cross_pairs_frac=cross_pairs_frac,
+			strong_pos_threshold=strong_pos_threshold,
+			strong_neg_threshold=strong_neg_threshold,
+			min_score_margin=min_score_margin,
+			rng=delta_rng,
+			random_seed=int(seed),
+			source_view="base",
+		)
+
+	valid_views = {"mut1", "mut2"}
+	if not include_views:
+		raise ValueError("include_views must contain at least one of: mut1, mut2")
+	for view in include_views:
+		if view not in valid_views:
+			raise ValueError("include_views must contain only: mut1, mut2")
 
 	pairs_per_view = []
 	for view in include_views:

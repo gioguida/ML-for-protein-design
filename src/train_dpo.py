@@ -23,46 +23,26 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader, Dataset
 
-if __package__:
-    from .eval import run_scoring_evaluation
-    from .dataset import (
-        DELTA_BASED_COMPONENTS,
-        build_split_pair_dataframes_from_raw,
-        default_data_paths,
-        validate_delta_based_components,
-    )
-    from scripts.data_processing import build_clean_ed5_csv, build_validation_perplexity_csvs
-    from .loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
-    from .model import ESM2
-    from .utils import (
-        ModelConfig,
-        WILD_TYPE,
-        build_full_run_name,
-        init_wandb_run,
-        load_hydra_runtime_modules,
-        log_pair_diagnostics,
-        setup_train_logger,
-    )
-else:  # pragma: no cover
-    from eval import run_scoring_evaluation
-    from dataset import (
-        DELTA_BASED_COMPONENTS,
-        build_split_pair_dataframes_from_raw,
-        default_data_paths,
-        validate_delta_based_components,
-    )
-    from scripts.data_processing import build_clean_ed5_csv, build_validation_perplexity_csvs
-    from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
-    from model import ESM2
-    from utils import (
-        ModelConfig,
-        WILD_TYPE,
-        build_full_run_name,
-        init_wandb_run,
-        load_hydra_runtime_modules,
-        log_pair_diagnostics,
-        setup_train_logger,
-    )
+
+from eval import run_scoring_evaluation
+from dataset import (
+    DELTA_BASED_COMPONENTS,
+    build_split_pair_dataframes_from_raw,
+    default_data_paths,
+    validate_delta_based_components,
+)
+from scripts.data_processing import build_clean_ed5_csv, build_validation_perplexity_csvs
+from loss import batch_monitoring_metrics, dpo_loss, weighted_dpo_loss
+from model import ESM2
+from utils import (
+    ModelConfig,
+    WILD_TYPE,
+    build_full_run_name,
+    init_wandb_run,
+    load_hydra_runtime_modules,
+    log_pair_diagnostics,
+    setup_train_logger,
+)
 
 
 hydra, OmegaConf, HydraConfig, to_absolute_path = load_hydra_runtime_modules()
