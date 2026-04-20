@@ -25,6 +25,9 @@ export DPO_CURRENT_RUN_DIR="${DPO_CURRENT_RUN_DIR:-${TRAIN_DIR}}"
 export DPO_BEST_MODEL_DIR="${DPO_BEST_MODEL_DIR:-${PROJECT_DIR}/checkpoints}"
 export DPO_LAST_MODEL_DIR="${DPO_LAST_MODEL_DIR:-${TRAIN_DIR}}"
 
+# use uv by default
+export DPO_USE_UV="${DPO_USE_UV:-1}"
+
 # Keep W&B caches/artifacts off home.
 export DPO_WANDB_DIR="${DPO_WANDB_DIR:-${WANDB_DIR}}"
 export DPO_WANDB_CACHE_DIR="${DPO_WANDB_CACHE_DIR:-${WANDB_DIR}/cache}"
@@ -63,4 +66,4 @@ echo "PROJECT_DIR: ${PROJECT_DIR}"
 echo "DPO output dir: ${DPO_OUTPUT_DIR}"
 echo "W&B dir: ${WANDB_DIR}"
 echo "PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF}"
-echo "DPO_USE_UV: ${DPO_USE_UV:-0}"
+echo "DPO_USE_UV: ${DPO_USE_UV}"

@@ -1,0 +1,1068 @@
+WARNING: Could not load optional Python module: python/3.11.6
+Continuing without explicit python module; conda env Python will be used.
+Many modules are hidden in this stack. Use "module --show_hidden spider SOFTWARE" if you are not able to find the required software
+DPO environment loaded for user: gguidarini
+SCRATCH_DIR: /cluster/scratch/gguidarini/protein-design
+TRAIN_DIR: /cluster/scratch/gguidarini/protein-design/train
+PROJECT_DIR: /cluster/project/infk/krause/gguidarini/protein-design
+DPO output dir: /cluster/scratch/gguidarini/protein-design/train
+W&B dir: /cluster/scratch/gguidarini/protein-design/wandb
+PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+DPO_USE_UV: 1
+Running on host: eu-g6-025
+/cluster/project/infk/krause/gguidarini/miniconda3/envs/flu/bin/python
+Sun Apr 19 23:21:14 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.20             Driver Version: 580.126.20     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:E1:00.0 Off |                  Off |
+| 44%   44C    P8             22W /  450W |       1MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026-04-19 23:21:23,963 | INFO | Starting DPO training run
+2026-04-19 23:21:23,964 | INFO | Full run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123
+2026-04-19 23:21:23,964 | INFO | Run directory: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123
+2026-04-19 23:21:23,964 | INFO | Archive directory: /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123
+2026-04-19 23:21:23,978 | INFO | Saved resolved config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/resolved_config.yaml
+2026-04-19 23:21:23,978 | INFO | Saved run config to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/config.yaml
+2026-04-19 23:21:24,945 | INFO | W&B run name: esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /cluster/home/gguidarini/.netrc.
+wandb: Currently logged in as: gguidarini (gguidarini-eth-zurich) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run bidqfp4i
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/wandb/run-20260419_232125-bidqfp4i
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123
+wandb: ⭐️ View project at https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: 🚀 View run at https://wandb.ai/gguidarini-eth-zurich/dpo/runs/bidqfp4i
+2026-04-19 23:21:34,588 | INFO | Train split pair diagnostics:
+2026-04-19 23:21:34,590 | INFO | Pair stats | n=34011 | margin mean=5.8461 median=3.5400 min=0.1056 max=21.1950
+2026-04-19 23:21:34,592 | INFO | Pairs per view: mut1:17171, mut2:16840
+2026-04-19 23:21:34,592 | INFO | Validation split pair diagnostics:
+2026-04-19 23:21:34,592 | INFO | Pair stats | n=3720 | margin mean=5.8748 median=3.7217 min=0.1022 max=20.5970
+2026-04-19 23:21:34,593 | INFO | Pairs per view: mut2:1864, mut1:1856
+2026-04-19 23:21:34,593 | INFO | Test split pair diagnostics:
+2026-04-19 23:21:34,594 | INFO | Pair stats | n=3715 | margin mean=5.9410 median=4.0135 min=0.1017 max=20.6539
+2026-04-19 23:21:34,594 | INFO | Pairs per view: mut1:1867, mut2:1848
+2026-04-19 23:21:34,594 | INFO | Split sizes | train=34011 val=3720 test=3715
+[2026-04-19 23:21:34,931][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-19 23:21:34,941][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:35,058][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-19 23:21:35,059][huggingface_hub.utils._http][WARNING] - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[2026-04-19 23:21:35,067][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:35,182][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-19 23:21:35,297][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-19 23:21:35,416][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-19 23:21:35,425][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:35,547][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 9009.33it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[2026-04-19 23:21:36,035][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-19 23:21:36,044][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:36,175][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-19 23:21:36,185][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/tokenizer_config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:36,300][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+[2026-04-19 23:21:36,415][httpx][INFO] - HTTP Request: GET https://huggingface.co/api/models/facebook/esm2_t12_35M_UR50D/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+[2026-04-19 23:21:36,535][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+[2026-04-19 23:21:36,544][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/facebook/esm2_t12_35M_UR50D/6fbf070e65b0b7291e7bbcd451118c216cff79d8/config.json "HTTP/1.1 200 OK"
+[2026-04-19 23:21:36,670][httpx][INFO] - HTTP Request: HEAD https://huggingface.co/facebook/esm2_t12_35M_UR50D/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Loading weights:   0%|          | 0/214 [00:00<?, ?it/s]Loading weights: 100%|██████████| 214/214 [00:00<00:00, 7516.23it/s]
+[1mEsmForMaskedLM LOAD REPORT[0m from: facebook/esm2_t12_35M_UR50D
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+esm.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+2026-04-19 23:22:09,064 | INFO | step=20 train_loss=0.679255
+2026-04-19 23:22:40,203 | INFO | step=40 train_loss=0.668885
+2026-04-19 23:23:11,560 | INFO | step=60 train_loss=0.654741
+2026-04-19 23:23:42,752 | INFO | step=80 train_loss=0.609295
+2026-04-19 23:24:14,072 | INFO | step=100 train_loss=0.631725
+2026-04-19 23:24:45,256 | INFO | step=120 train_loss=0.630110
+2026-04-19 23:25:16,521 | INFO | step=140 train_loss=0.642897
+2026-04-19 23:25:47,751 | INFO | step=160 train_loss=0.619800
+2026-04-19 23:26:18,868 | INFO | step=180 train_loss=0.574007
+2026-04-19 23:26:50,116 | INFO | step=200 train_loss=0.607518
+2026-04-19 23:27:21,277 | INFO | step=220 train_loss=0.547025
+2026-04-19 23:27:52,612 | INFO | step=240 train_loss=0.540687
+2026-04-19 23:28:23,773 | INFO | step=260 train_loss=0.568765
+2026-04-19 23:28:55,042 | INFO | step=280 train_loss=0.567638
+2026-04-19 23:29:26,311 | INFO | step=300 train_loss=0.541383
+2026-04-19 23:29:57,450 | INFO | step=320 train_loss=0.567339
+2026-04-19 23:30:28,777 | INFO | step=340 train_loss=0.573477
+2026-04-19 23:30:59,910 | INFO | step=360 train_loss=0.556718
+2026-04-19 23:31:31,211 | INFO | step=380 train_loss=0.613241
+2026-04-19 23:32:02,544 | INFO | step=400 train_loss=0.560873
+2026-04-19 23:32:33,711 | INFO | step=420 train_loss=0.509014
+2026-04-19 23:33:04,982 | INFO | step=440 train_loss=0.541241
+2026-04-19 23:33:36,277 | INFO | step=460 train_loss=0.548969
+2026-04-19 23:34:07,406 | INFO | step=480 train_loss=0.601219
+2026-04-19 23:34:38,740 | INFO | step=500 train_loss=0.528053
+2026-04-19 23:35:09,871 | INFO | step=520 train_loss=0.514353
+2026-04-19 23:35:41,080 | INFO | step=540 train_loss=0.551696
+2026-04-19 23:36:12,196 | INFO | step=560 train_loss=0.539750
+2026-04-19 23:36:43,497 | INFO | step=580 train_loss=0.576965
+2026-04-19 23:37:14,797 | INFO | step=600 train_loss=0.528814
+2026-04-19 23:37:45,908 | INFO | step=620 train_loss=0.556482
+2026-04-19 23:38:17,175 | INFO | step=640 train_loss=0.501275
+2026-04-19 23:38:48,269 | INFO | step=660 train_loss=0.531659
+2026-04-19 23:39:19,503 | INFO | step=680 train_loss=0.600225
+2026-04-19 23:39:50,807 | INFO | step=700 train_loss=0.524408
+2026-04-19 23:40:21,943 | INFO | step=720 train_loss=0.546238
+2026-04-19 23:40:53,224 | INFO | step=740 train_loss=0.523433
+2026-04-19 23:41:24,526 | INFO | step=760 train_loss=0.580490
+2026-04-19 23:41:55,692 | INFO | step=780 train_loss=0.495777
+2026-04-19 23:42:26,985 | INFO | step=800 train_loss=0.571684
+2026-04-19 23:42:58,153 | INFO | step=820 train_loss=0.541744
+2026-04-19 23:43:29,477 | INFO | step=840 train_loss=0.624760
+2026-04-19 23:44:00,589 | INFO | step=860 train_loss=0.553706
+2026-04-19 23:44:31,856 | INFO | step=880 train_loss=0.553327
+2026-04-19 23:45:03,109 | INFO | step=900 train_loss=0.583675
+2026-04-19 23:45:34,250 | INFO | step=920 train_loss=0.526882
+2026-04-19 23:46:05,556 | INFO | step=940 train_loss=0.514861
+2026-04-19 23:46:36,756 | INFO | step=960 train_loss=0.621606
+2026-04-19 23:47:08,056 | INFO | step=980 train_loss=0.522621
+2026-04-19 23:47:39,315 | INFO | step=1000 train_loss=0.542151
+2026-04-19 23:48:10,447 | INFO | step=1020 train_loss=0.517069
+2026-04-19 23:48:41,716 | INFO | step=1040 train_loss=0.524742
+2026-04-19 23:49:13,019 | INFO | step=1060 train_loss=0.542442
+[2026-04-20 00:02:07,302][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 00:02:10,557][src.eval][INFO] - Spearman (average ordering): rho=0.7644, p=4.47e-116
+[2026-04-20 00:02:10,559][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 00:02:13,718][src.eval][INFO] - Spearman (random ordering):  rho=0.7619, p=6.46e-115
+2026-04-20 00:02:13,719 | INFO | Validation Spearman | avg=0.7644 (p=4.47e-116) | random=0.7619 (p=6.46e-115)
+2026-04-20 00:02:13,723 | INFO | Epoch 1 | lr=1.000e-05 | train_loss=0.566243 | val_loss=0.538051 | val_acc=0.7613 | val_margin=0.4704 | val_kl=-64.1961 | val_ppl=249.2949 | train_batches=1063 | val_batches=117
+2026-04-20 00:02:28,833 | INFO | Validation Perplexity | ppl/val_pos=199.7646 | ppl/val_neg=976.3507 | ppl/val_wt=277.4368
+2026-04-20 00:02:29,721 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 00:02:30,620 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_1063.pt
+2026-04-20 00:03:01,804 | INFO | step=20 train_loss=0.512561
+2026-04-20 00:03:33,130 | INFO | step=40 train_loss=0.491215
+2026-04-20 00:04:04,416 | INFO | step=60 train_loss=0.523243
+2026-04-20 00:04:35,544 | INFO | step=80 train_loss=0.528621
+2026-04-20 00:05:06,823 | INFO | step=100 train_loss=0.543579
+2026-04-20 00:05:37,940 | INFO | step=120 train_loss=0.588159
+2026-04-20 00:06:09,213 | INFO | step=140 train_loss=0.512676
+2026-04-20 00:06:40,406 | INFO | step=160 train_loss=0.560611
+2026-04-20 00:07:11,743 | INFO | step=180 train_loss=0.467653
+2026-04-20 00:07:43,099 | INFO | step=200 train_loss=0.528740
+2026-04-20 00:08:14,296 | INFO | step=220 train_loss=0.551441
+2026-04-20 00:08:45,597 | INFO | step=240 train_loss=0.486612
+2026-04-20 00:09:16,784 | INFO | step=260 train_loss=0.523559
+2026-04-20 00:09:48,062 | INFO | step=280 train_loss=0.565112
+2026-04-20 00:10:19,327 | INFO | step=300 train_loss=0.523043
+2026-04-20 00:10:50,494 | INFO | step=320 train_loss=0.599443
+2026-04-20 00:11:21,756 | INFO | step=340 train_loss=0.604256
+2026-04-20 00:11:52,852 | INFO | step=360 train_loss=0.474686
+2026-04-20 00:12:24,092 | INFO | step=380 train_loss=0.554616
+2026-04-20 00:12:55,175 | INFO | step=400 train_loss=0.494442
+2026-04-20 00:13:26,527 | INFO | step=420 train_loss=0.502517
+2026-04-20 00:13:57,668 | INFO | step=440 train_loss=0.490359
+2026-04-20 00:14:28,983 | INFO | step=460 train_loss=0.525109
+2026-04-20 00:15:00,256 | INFO | step=480 train_loss=0.550498
+2026-04-20 00:15:31,401 | INFO | step=500 train_loss=0.512064
+2026-04-20 00:16:02,644 | INFO | step=520 train_loss=0.511814
+2026-04-20 00:16:33,787 | INFO | step=540 train_loss=0.588488
+2026-04-20 00:17:05,020 | INFO | step=560 train_loss=0.558263
+2026-04-20 00:17:36,179 | INFO | step=580 train_loss=0.508350
+2026-04-20 00:18:07,527 | INFO | step=600 train_loss=0.509374
+2026-04-20 00:18:38,731 | INFO | step=620 train_loss=0.543189
+2026-04-20 00:19:10,062 | INFO | step=640 train_loss=0.491448
+2026-04-20 00:19:41,318 | INFO | step=660 train_loss=0.542584
+2026-04-20 00:20:12,659 | INFO | step=680 train_loss=0.528854
+2026-04-20 00:20:43,919 | INFO | step=700 train_loss=0.544883
+2026-04-20 00:21:15,268 | INFO | step=720 train_loss=0.516432
+2026-04-20 00:21:46,452 | INFO | step=740 train_loss=0.460672
+2026-04-20 00:22:17,787 | INFO | step=760 train_loss=0.548276
+2026-04-20 00:22:49,063 | INFO | step=780 train_loss=0.525442
+2026-04-20 00:23:20,197 | INFO | step=800 train_loss=0.562795
+2026-04-20 00:23:51,479 | INFO | step=820 train_loss=0.481266
+2026-04-20 00:24:22,597 | INFO | step=840 train_loss=0.576101
+2026-04-20 00:24:53,884 | INFO | step=860 train_loss=0.552297
+2026-04-20 00:25:25,064 | INFO | step=880 train_loss=0.519021
+2026-04-20 00:25:56,397 | INFO | step=900 train_loss=0.541928
+2026-04-20 00:26:27,535 | INFO | step=920 train_loss=0.527707
+2026-04-20 00:26:58,856 | INFO | step=940 train_loss=0.478933
+2026-04-20 00:27:30,014 | INFO | step=960 train_loss=0.519184
+2026-04-20 00:28:01,298 | INFO | step=980 train_loss=0.488390
+2026-04-20 00:28:32,620 | INFO | step=1000 train_loss=0.524381
+2026-04-20 00:29:03,841 | INFO | step=1020 train_loss=0.541142
+2026-04-20 00:29:35,178 | INFO | step=1040 train_loss=0.475131
+2026-04-20 00:30:06,358 | INFO | step=1060 train_loss=0.496706
+[2026-04-20 00:43:01,320][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 00:43:04,512][src.eval][INFO] - Spearman (average ordering): rho=0.7803, p=5.04e-124
+[2026-04-20 00:43:04,514][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 00:43:07,687][src.eval][INFO] - Spearman (random ordering):  rho=0.7726, p=4.35e-120
+2026-04-20 00:43:07,687 | INFO | Validation Spearman | avg=0.7803 (p=5.04e-124) | random=0.7726 (p=4.35e-120)
+2026-04-20 00:43:07,689 | INFO | Epoch 2 | lr=1.000e-05 | train_loss=0.534206 | val_loss=0.523683 | val_acc=0.7548 | val_margin=0.5487 | val_kl=-82.6204 | val_ppl=420.5815 | train_batches=1063 | val_batches=117
+2026-04-20 00:43:22,780 | INFO | Validation Perplexity | ppl/val_pos=302.9694 | ppl/val_neg=4769.7771 | ppl/val_wt=464.8488
+2026-04-20 00:43:23,734 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 00:43:24,681 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_2126.pt
+2026-04-20 00:43:55,868 | INFO | step=20 train_loss=0.601275
+2026-04-20 00:44:27,143 | INFO | step=40 train_loss=0.530591
+2026-04-20 00:44:58,295 | INFO | step=60 train_loss=0.552460
+2026-04-20 00:45:29,617 | INFO | step=80 train_loss=0.511129
+2026-04-20 00:46:00,831 | INFO | step=100 train_loss=0.519303
+2026-04-20 00:46:32,230 | INFO | step=120 train_loss=0.494022
+2026-04-20 00:47:03,456 | INFO | step=140 train_loss=0.555652
+2026-04-20 00:47:34,785 | INFO | step=160 train_loss=0.571304
+2026-04-20 00:48:05,961 | INFO | step=180 train_loss=0.552315
+2026-04-20 00:48:37,276 | INFO | step=200 train_loss=0.534369
+2026-04-20 00:49:08,621 | INFO | step=220 train_loss=0.507146
+2026-04-20 00:49:39,903 | INFO | step=240 train_loss=0.517184
+2026-04-20 00:50:11,325 | INFO | step=260 train_loss=0.531968
+2026-04-20 00:50:42,503 | INFO | step=280 train_loss=0.579930
+2026-04-20 00:51:13,853 | INFO | step=300 train_loss=0.568665
+2026-04-20 00:51:45,204 | INFO | step=320 train_loss=0.501430
+2026-04-20 00:52:16,392 | INFO | step=340 train_loss=0.445364
+2026-04-20 00:52:47,755 | INFO | step=360 train_loss=0.530808
+2026-04-20 00:53:19,129 | INFO | step=380 train_loss=0.435131
+2026-04-20 00:53:50,300 | INFO | step=400 train_loss=0.472879
+2026-04-20 00:54:21,653 | INFO | step=420 train_loss=0.490600
+2026-04-20 00:54:52,899 | INFO | step=440 train_loss=0.496472
+2026-04-20 00:55:24,209 | INFO | step=460 train_loss=0.475543
+2026-04-20 00:55:55,338 | INFO | step=480 train_loss=0.540093
+2026-04-20 00:56:26,663 | INFO | step=500 train_loss=0.542588
+2026-04-20 00:56:58,020 | INFO | step=520 train_loss=0.429914
+2026-04-20 00:57:29,247 | INFO | step=540 train_loss=0.484483
+2026-04-20 00:58:00,648 | INFO | step=560 train_loss=0.537614
+2026-04-20 00:58:31,810 | INFO | step=580 train_loss=0.572108
+2026-04-20 00:59:03,136 | INFO | step=600 train_loss=0.459197
+2026-04-20 00:59:34,439 | INFO | step=620 train_loss=0.501312
+2026-04-20 01:00:05,552 | INFO | step=640 train_loss=0.474823
+2026-04-20 01:00:36,863 | INFO | step=660 train_loss=0.420443
+2026-04-20 01:01:08,168 | INFO | step=680 train_loss=0.619526
+2026-04-20 01:01:39,301 | INFO | step=700 train_loss=0.526331
+2026-04-20 01:02:10,605 | INFO | step=720 train_loss=0.438306
+2026-04-20 01:02:41,783 | INFO | step=740 train_loss=0.529717
+2026-04-20 01:03:13,129 | INFO | step=760 train_loss=0.535836
+2026-04-20 01:03:44,382 | INFO | step=780 train_loss=0.546100
+2026-04-20 01:04:15,765 | INFO | step=800 train_loss=0.537672
+2026-04-20 01:04:47,119 | INFO | step=820 train_loss=0.404384
+2026-04-20 01:05:18,363 | INFO | step=840 train_loss=0.596359
+2026-04-20 01:05:49,789 | INFO | step=860 train_loss=0.532700
+2026-04-20 01:06:21,057 | INFO | step=880 train_loss=0.508542
+2026-04-20 01:06:52,472 | INFO | step=900 train_loss=0.492535
+2026-04-20 01:07:23,812 | INFO | step=920 train_loss=0.613215
+2026-04-20 01:07:55,036 | INFO | step=940 train_loss=0.504922
+2026-04-20 01:08:26,377 | INFO | step=960 train_loss=0.461324
+2026-04-20 01:08:57,680 | INFO | step=980 train_loss=0.562030
+2026-04-20 01:09:28,857 | INFO | step=1000 train_loss=0.528405
+2026-04-20 01:10:00,208 | INFO | step=1020 train_loss=0.466865
+2026-04-20 01:10:31,475 | INFO | step=1040 train_loss=0.569545
+2026-04-20 01:11:02,846 | INFO | step=1060 train_loss=0.522678
+[2026-04-20 01:23:58,828][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 01:24:01,996][src.eval][INFO] - Spearman (average ordering): rho=0.8107, p=3.52e-141
+[2026-04-20 01:24:01,998][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 01:24:05,166][src.eval][INFO] - Spearman (random ordering):  rho=0.7830, p=2.13e-125
+2026-04-20 01:24:05,167 | INFO | Validation Spearman | avg=0.8107 (p=3.52e-141) | random=0.7830 (p=2.13e-125)
+2026-04-20 01:24:05,169 | INFO | Epoch 3 | lr=1.000e-05 | train_loss=0.517113 | val_loss=0.503246 | val_acc=0.7685 | val_margin=0.6315 | val_kl=-81.8565 | val_ppl=210.7941 | train_batches=1063 | val_batches=117
+2026-04-20 01:24:20,279 | INFO | Validation Perplexity | ppl/val_pos=123.5788 | ppl/val_neg=37961.1614 | ppl/val_wt=279.0718
+2026-04-20 01:24:21,180 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 01:24:22,060 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_3189.pt
+2026-04-20 01:24:53,236 | INFO | step=20 train_loss=0.518057
+2026-04-20 01:25:24,494 | INFO | step=40 train_loss=0.479913
+2026-04-20 01:25:55,882 | INFO | step=60 train_loss=0.436945
+2026-04-20 01:26:27,104 | INFO | step=80 train_loss=0.428494
+2026-04-20 01:26:58,475 | INFO | step=100 train_loss=0.505146
+2026-04-20 01:27:29,824 | INFO | step=120 train_loss=0.497394
+2026-04-20 01:28:01,026 | INFO | step=140 train_loss=0.556366
+2026-04-20 01:28:32,363 | INFO | step=160 train_loss=0.462426
+2026-04-20 01:29:03,531 | INFO | step=180 train_loss=0.457259
+2026-04-20 01:29:34,859 | INFO | step=200 train_loss=0.505124
+2026-04-20 01:30:06,055 | INFO | step=220 train_loss=0.491202
+2026-04-20 01:30:37,366 | INFO | step=240 train_loss=0.464081
+2026-04-20 01:31:08,681 | INFO | step=260 train_loss=0.456115
+2026-04-20 01:31:39,900 | INFO | step=280 train_loss=0.521955
+2026-04-20 01:32:11,292 | INFO | step=300 train_loss=0.492615
+2026-04-20 01:32:42,545 | INFO | step=320 train_loss=0.516593
+2026-04-20 01:33:13,961 | INFO | step=340 train_loss=0.532352
+2026-04-20 01:33:45,404 | INFO | step=360 train_loss=0.522385
+2026-04-20 01:34:16,691 | INFO | step=380 train_loss=0.398030
+2026-04-20 01:34:48,108 | INFO | step=400 train_loss=0.434454
+2026-04-20 01:35:19,365 | INFO | step=420 train_loss=0.498195
+2026-04-20 01:35:50,745 | INFO | step=440 train_loss=0.498784
+2026-04-20 01:36:21,983 | INFO | step=460 train_loss=0.609138
+2026-04-20 01:36:53,343 | INFO | step=480 train_loss=0.527936
+2026-04-20 01:37:24,563 | INFO | step=500 train_loss=0.489113
+2026-04-20 01:37:55,843 | INFO | step=520 train_loss=0.475362
+2026-04-20 01:38:27,000 | INFO | step=540 train_loss=0.450365
+2026-04-20 01:38:58,304 | INFO | step=560 train_loss=0.501248
+2026-04-20 01:39:29,480 | INFO | step=580 train_loss=0.522050
+2026-04-20 01:40:00,851 | INFO | step=600 train_loss=0.504287
+2026-04-20 01:40:32,223 | INFO | step=620 train_loss=0.510798
+2026-04-20 01:41:03,405 | INFO | step=640 train_loss=0.430454
+2026-04-20 01:41:34,743 | INFO | step=660 train_loss=0.544028
+2026-04-20 01:42:05,906 | INFO | step=680 train_loss=0.497210
+2026-04-20 01:42:37,257 | INFO | step=700 train_loss=0.521960
+2026-04-20 01:43:08,511 | INFO | step=720 train_loss=0.487326
+2026-04-20 01:43:39,933 | INFO | step=740 train_loss=0.425922
+2026-04-20 01:44:11,208 | INFO | step=760 train_loss=0.495321
+2026-04-20 01:44:42,583 | INFO | step=780 train_loss=0.552385
+2026-04-20 01:45:13,832 | INFO | step=800 train_loss=0.460172
+2026-04-20 01:45:45,207 | INFO | step=820 train_loss=0.459992
+2026-04-20 01:46:16,477 | INFO | step=840 train_loss=0.520435
+2026-04-20 01:46:47,864 | INFO | step=860 train_loss=0.459789
+2026-04-20 01:47:19,225 | INFO | step=880 train_loss=0.484662
+2026-04-20 01:47:50,433 | INFO | step=900 train_loss=0.569914
+2026-04-20 01:48:21,742 | INFO | step=920 train_loss=0.530143
+2026-04-20 01:48:52,976 | INFO | step=940 train_loss=0.414760
+2026-04-20 01:49:24,313 | INFO | step=960 train_loss=0.481802
+2026-04-20 01:49:55,508 | INFO | step=980 train_loss=0.535213
+2026-04-20 01:50:26,826 | INFO | step=1000 train_loss=0.450053
+2026-04-20 01:50:57,927 | INFO | step=1020 train_loss=0.537329
+2026-04-20 01:51:29,228 | INFO | step=1040 train_loss=0.477679
+2026-04-20 01:52:00,389 | INFO | step=1060 train_loss=0.534557
+[2026-04-20 02:04:55,829][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 02:04:58,983][src.eval][INFO] - Spearman (average ordering): rho=0.7950, p=6.59e-132
+[2026-04-20 02:04:58,984][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 02:05:02,172][src.eval][INFO] - Spearman (random ordering):  rho=0.7655, p=1.31e-116
+2026-04-20 02:05:02,173 | INFO | Validation Spearman | avg=0.7950 (p=6.59e-132) | random=0.7655 (p=1.31e-116)
+2026-04-20 02:05:02,175 | INFO | Epoch 4 | lr=1.000e-05 | train_loss=0.498803 | val_loss=0.489810 | val_acc=0.7704 | val_margin=0.6921 | val_kl=-79.2164 | val_ppl=139.9915 | train_batches=1063 | val_batches=117
+2026-04-20 02:05:17,297 | INFO | Validation Perplexity | ppl/val_pos=52.0351 | ppl/val_neg=111055.8936 | ppl/val_wt=820.3800
+2026-04-20 02:05:18,193 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 02:05:19,074 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_4252.pt
+2026-04-20 02:05:50,115 | INFO | step=20 train_loss=0.561760
+2026-04-20 02:06:21,470 | INFO | step=40 train_loss=0.557424
+2026-04-20 02:06:52,642 | INFO | step=60 train_loss=0.469310
+2026-04-20 02:07:24,016 | INFO | step=80 train_loss=0.488006
+2026-04-20 02:07:55,234 | INFO | step=100 train_loss=0.430623
+2026-04-20 02:08:26,625 | INFO | step=120 train_loss=0.430155
+2026-04-20 02:08:57,931 | INFO | step=140 train_loss=0.397254
+2026-04-20 02:09:29,074 | INFO | step=160 train_loss=0.391152
+2026-04-20 02:10:00,352 | INFO | step=180 train_loss=0.511338
+2026-04-20 02:10:31,492 | INFO | step=200 train_loss=0.462716
+2026-04-20 02:11:02,772 | INFO | step=220 train_loss=0.520129
+2026-04-20 02:11:33,946 | INFO | step=240 train_loss=0.501890
+2026-04-20 02:12:05,226 | INFO | step=260 train_loss=0.427551
+2026-04-20 02:12:36,507 | INFO | step=280 train_loss=0.500995
+2026-04-20 02:13:07,620 | INFO | step=300 train_loss=0.428217
+2026-04-20 02:13:38,937 | INFO | step=320 train_loss=0.465848
+2026-04-20 02:14:10,112 | INFO | step=340 train_loss=0.480916
+2026-04-20 02:14:41,381 | INFO | step=360 train_loss=0.481503
+2026-04-20 02:15:12,691 | INFO | step=380 train_loss=0.571878
+2026-04-20 02:15:43,851 | INFO | step=400 train_loss=0.548504
+2026-04-20 02:16:15,187 | INFO | step=420 train_loss=0.403503
+2026-04-20 02:16:46,480 | INFO | step=440 train_loss=0.539635
+2026-04-20 02:17:17,647 | INFO | step=460 train_loss=0.423801
+2026-04-20 02:17:48,942 | INFO | step=480 train_loss=0.574591
+2026-04-20 02:18:20,153 | INFO | step=500 train_loss=0.502004
+2026-04-20 02:18:51,460 | INFO | step=520 train_loss=0.459582
+2026-04-20 02:19:22,622 | INFO | step=540 train_loss=0.465427
+2026-04-20 02:19:53,950 | INFO | step=560 train_loss=0.493141
+2026-04-20 02:20:25,185 | INFO | step=580 train_loss=0.465956
+2026-04-20 02:20:56,355 | INFO | step=600 train_loss=0.518234
+2026-04-20 02:21:27,642 | INFO | step=620 train_loss=0.411732
+2026-04-20 02:21:58,839 | INFO | step=640 train_loss=0.480157
+2026-04-20 02:22:30,197 | INFO | step=660 train_loss=0.519567
+2026-04-20 02:23:01,588 | INFO | step=680 train_loss=0.540974
+2026-04-20 02:23:32,808 | INFO | step=700 train_loss=0.465788
+2026-04-20 02:24:04,197 | INFO | step=720 train_loss=0.442561
+2026-04-20 02:24:35,547 | INFO | step=740 train_loss=0.516316
+2026-04-20 02:25:06,731 | INFO | step=760 train_loss=0.431127
+2026-04-20 02:25:37,964 | INFO | step=780 train_loss=0.484900
+2026-04-20 02:26:09,071 | INFO | step=800 train_loss=0.472071
+2026-04-20 02:26:40,361 | INFO | step=820 train_loss=0.497136
+2026-04-20 02:27:11,540 | INFO | step=840 train_loss=0.482046
+2026-04-20 02:27:42,821 | INFO | step=860 train_loss=0.425275
+2026-04-20 02:28:14,124 | INFO | step=880 train_loss=0.438264
+2026-04-20 02:28:45,300 | INFO | step=900 train_loss=0.423872
+2026-04-20 02:29:16,670 | INFO | step=920 train_loss=0.484580
+2026-04-20 02:29:47,929 | INFO | step=940 train_loss=0.463217
+2026-04-20 02:30:19,304 | INFO | step=960 train_loss=0.478979
+2026-04-20 02:30:50,652 | INFO | step=980 train_loss=0.405904
+2026-04-20 02:31:21,911 | INFO | step=1000 train_loss=0.479013
+2026-04-20 02:31:53,264 | INFO | step=1020 train_loss=0.492578
+2026-04-20 02:32:24,616 | INFO | step=1040 train_loss=0.417198
+2026-04-20 02:32:55,704 | INFO | step=1060 train_loss=0.451438
+[2026-04-20 02:45:51,839][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 02:45:55,026][src.eval][INFO] - Spearman (average ordering): rho=0.7999, p=9.62e-135
+[2026-04-20 02:45:55,028][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 02:45:58,205][src.eval][INFO] - Spearman (random ordering):  rho=0.7630, p=2.04e-115
+2026-04-20 02:45:58,206 | INFO | Validation Spearman | avg=0.7999 (p=9.62e-135) | random=0.7630 (p=2.04e-115)
+2026-04-20 02:45:58,208 | INFO | Epoch 5 | lr=1.000e-05 | train_loss=0.484046 | val_loss=0.479124 | val_acc=0.7737 | val_margin=0.7588 | val_kl=-89.4845 | val_ppl=139.4803 | train_batches=1063 | val_batches=117
+2026-04-20 02:46:13,305 | INFO | Validation Perplexity | ppl/val_pos=51.8339 | ppl/val_neg=554598.7525 | ppl/val_wt=582.3682
+2026-04-20 02:46:14,196 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 02:46:15,079 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_5315.pt
+2026-04-20 02:46:46,187 | INFO | step=20 train_loss=0.412562
+2026-04-20 02:47:17,305 | INFO | step=40 train_loss=0.440543
+2026-04-20 02:47:48,623 | INFO | step=60 train_loss=0.489299
+2026-04-20 02:48:19,977 | INFO | step=80 train_loss=0.487003
+2026-04-20 02:48:51,172 | INFO | step=100 train_loss=0.437776
+2026-04-20 02:49:22,547 | INFO | step=120 train_loss=0.420599
+2026-04-20 02:49:53,725 | INFO | step=140 train_loss=0.507652
+2026-04-20 02:50:25,166 | INFO | step=160 train_loss=0.442429
+2026-04-20 02:50:56,516 | INFO | step=180 train_loss=0.405426
+2026-04-20 02:51:27,734 | INFO | step=200 train_loss=0.485501
+2026-04-20 02:51:59,140 | INFO | step=220 train_loss=0.506183
+2026-04-20 02:52:30,399 | INFO | step=240 train_loss=0.510546
+2026-04-20 02:53:01,771 | INFO | step=260 train_loss=0.442688
+2026-04-20 02:53:32,954 | INFO | step=280 train_loss=0.476241
+2026-04-20 02:54:04,200 | INFO | step=300 train_loss=0.472761
+2026-04-20 02:54:35,556 | INFO | step=320 train_loss=0.475817
+2026-04-20 02:55:06,765 | INFO | step=340 train_loss=0.421635
+2026-04-20 02:55:38,103 | INFO | step=360 train_loss=0.461361
+2026-04-20 02:56:09,271 | INFO | step=380 train_loss=0.453880
+2026-04-20 02:56:40,600 | INFO | step=400 train_loss=0.470268
+2026-04-20 02:57:11,919 | INFO | step=420 train_loss=0.557971
+2026-04-20 02:57:43,128 | INFO | step=440 train_loss=0.405090
+2026-04-20 02:58:14,483 | INFO | step=460 train_loss=0.515245
+2026-04-20 02:58:45,809 | INFO | step=480 train_loss=0.420831
+2026-04-20 02:59:16,983 | INFO | step=500 train_loss=0.484254
+2026-04-20 02:59:48,380 | INFO | step=520 train_loss=0.478955
+2026-04-20 03:00:19,596 | INFO | step=540 train_loss=0.423929
+2026-04-20 03:00:50,985 | INFO | step=560 train_loss=0.502516
+2026-04-20 03:01:22,179 | INFO | step=580 train_loss=0.450198
+2026-04-20 03:01:53,589 | INFO | step=600 train_loss=0.488043
+2026-04-20 03:02:24,967 | INFO | step=620 train_loss=0.484786
+2026-04-20 03:02:56,164 | INFO | step=640 train_loss=0.477528
+2026-04-20 03:03:27,472 | INFO | step=660 train_loss=0.456059
+2026-04-20 03:03:58,590 | INFO | step=680 train_loss=0.544838
+2026-04-20 03:04:29,867 | INFO | step=700 train_loss=0.489414
+2026-04-20 03:05:01,146 | INFO | step=720 train_loss=0.458350
+2026-04-20 03:05:32,255 | INFO | step=740 train_loss=0.398751
+2026-04-20 03:06:03,464 | INFO | step=760 train_loss=0.512189
+2026-04-20 03:06:34,732 | INFO | step=780 train_loss=0.537848
+2026-04-20 03:07:05,870 | INFO | step=800 train_loss=0.461093
+2026-04-20 03:07:37,134 | INFO | step=820 train_loss=0.449481
+2026-04-20 03:08:08,216 | INFO | step=840 train_loss=0.486572
+2026-04-20 03:08:39,496 | INFO | step=860 train_loss=0.411014
+2026-04-20 03:09:10,657 | INFO | step=880 train_loss=0.538778
+2026-04-20 03:09:42,007 | INFO | step=900 train_loss=0.510469
+2026-04-20 03:10:13,309 | INFO | step=920 train_loss=0.507849
+2026-04-20 03:10:44,445 | INFO | step=940 train_loss=0.491139
+2026-04-20 03:11:15,760 | INFO | step=960 train_loss=0.417039
+2026-04-20 03:11:46,906 | INFO | step=980 train_loss=0.516775
+2026-04-20 03:12:18,217 | INFO | step=1000 train_loss=0.493689
+2026-04-20 03:12:49,547 | INFO | step=1020 train_loss=0.474410
+2026-04-20 03:13:20,752 | INFO | step=1040 train_loss=0.504152
+2026-04-20 03:13:52,099 | INFO | step=1060 train_loss=0.449497
+[2026-04-20 03:26:49,267][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 03:26:52,444][src.eval][INFO] - Spearman (average ordering): rho=0.8119, p=6.57e-142
+[2026-04-20 03:26:52,446][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 03:26:55,613][src.eval][INFO] - Spearman (random ordering):  rho=0.7771, p=2.35e-122
+2026-04-20 03:26:55,613 | INFO | Validation Spearman | avg=0.8119 (p=6.57e-142) | random=0.7771 (p=2.35e-122)
+2026-04-20 03:26:55,633 | INFO | Epoch 6 | lr=1.000e-05 | train_loss=0.474397 | val_loss=0.472418 | val_acc=0.7737 | val_margin=0.7843 | val_kl=-79.4117 | val_ppl=72.4291 | train_batches=1063 | val_batches=117
+2026-04-20 03:27:10,755 | INFO | Validation Perplexity | ppl/val_pos=25.3375 | ppl/val_neg=831128.4648 | ppl/val_wt=335.7090
+2026-04-20 03:27:11,650 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 03:27:12,541 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_6378.pt
+2026-04-20 03:27:43,743 | INFO | step=20 train_loss=0.437581
+2026-04-20 03:28:14,913 | INFO | step=40 train_loss=0.466486
+2026-04-20 03:28:46,273 | INFO | step=60 train_loss=0.456257
+2026-04-20 03:29:17,481 | INFO | step=80 train_loss=0.478151
+2026-04-20 03:29:48,834 | INFO | step=100 train_loss=0.441872
+2026-04-20 03:30:20,189 | INFO | step=120 train_loss=0.489507
+2026-04-20 03:30:51,401 | INFO | step=140 train_loss=0.470052
+2026-04-20 03:31:22,833 | INFO | step=160 train_loss=0.488293
+2026-04-20 03:31:54,091 | INFO | step=180 train_loss=0.450558
+2026-04-20 03:32:25,476 | INFO | step=200 train_loss=0.423106
+2026-04-20 03:32:56,709 | INFO | step=220 train_loss=0.389050
+2026-04-20 03:33:28,111 | INFO | step=240 train_loss=0.465076
+2026-04-20 03:33:59,457 | INFO | step=260 train_loss=0.545484
+2026-04-20 03:34:30,612 | INFO | step=280 train_loss=0.478067
+2026-04-20 03:35:01,942 | INFO | step=300 train_loss=0.433699
+2026-04-20 03:35:33,148 | INFO | step=320 train_loss=0.462916
+2026-04-20 03:36:04,487 | INFO | step=340 train_loss=0.500070
+2026-04-20 03:36:35,784 | INFO | step=360 train_loss=0.547111
+2026-04-20 03:37:06,951 | INFO | step=380 train_loss=0.514785
+2026-04-20 03:37:38,285 | INFO | step=400 train_loss=0.580989
+2026-04-20 03:38:09,580 | INFO | step=420 train_loss=0.453999
+2026-04-20 03:38:40,694 | INFO | step=440 train_loss=0.476629
+2026-04-20 03:39:11,972 | INFO | step=460 train_loss=0.471709
+2026-04-20 03:39:43,084 | INFO | step=480 train_loss=0.408019
+2026-04-20 03:40:14,365 | INFO | step=500 train_loss=0.471001
+2026-04-20 03:40:45,539 | INFO | step=520 train_loss=0.581603
+2026-04-20 03:41:16,864 | INFO | step=540 train_loss=0.433099
+2026-04-20 03:41:48,177 | INFO | step=560 train_loss=0.403853
+2026-04-20 03:42:19,342 | INFO | step=580 train_loss=0.456344
+2026-04-20 03:42:50,672 | INFO | step=600 train_loss=0.457833
+2026-04-20 03:43:21,857 | INFO | step=620 train_loss=0.464911
+2026-04-20 03:43:53,204 | INFO | step=640 train_loss=0.496840
+2026-04-20 03:44:24,574 | INFO | step=660 train_loss=0.466018
+2026-04-20 03:44:55,774 | INFO | step=680 train_loss=0.358411
+2026-04-20 03:45:27,154 | INFO | step=700 train_loss=0.413701
+2026-04-20 03:45:58,502 | INFO | step=720 train_loss=0.452914
+2026-04-20 03:46:29,711 | INFO | step=740 train_loss=0.450708
+2026-04-20 03:47:01,080 | INFO | step=760 train_loss=0.436887
+2026-04-20 03:47:32,320 | INFO | step=780 train_loss=0.556921
+2026-04-20 03:48:03,629 | INFO | step=800 train_loss=0.423475
+2026-04-20 03:48:34,811 | INFO | step=820 train_loss=0.438210
+2026-04-20 03:49:06,080 | INFO | step=840 train_loss=0.502055
+2026-04-20 03:49:37,342 | INFO | step=860 train_loss=0.492653
+2026-04-20 03:50:08,448 | INFO | step=880 train_loss=0.419591
+2026-04-20 03:50:39,751 | INFO | step=900 train_loss=0.452263
+2026-04-20 03:51:10,872 | INFO | step=920 train_loss=0.441643
+2026-04-20 03:51:42,201 | INFO | step=940 train_loss=0.472631
+2026-04-20 03:52:13,473 | INFO | step=960 train_loss=0.554780
+2026-04-20 03:52:44,651 | INFO | step=980 train_loss=0.539449
+2026-04-20 03:53:15,970 | INFO | step=1000 train_loss=0.381732
+2026-04-20 03:53:47,283 | INFO | step=1020 train_loss=0.433801
+2026-04-20 03:54:18,480 | INFO | step=1040 train_loss=0.527014
+2026-04-20 03:54:49,735 | INFO | step=1060 train_loss=0.512580
+[2026-04-20 04:07:45,252][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 04:07:48,434][src.eval][INFO] - Spearman (average ordering): rho=0.8171, p=3.51e-145
+[2026-04-20 04:07:48,436][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 04:07:51,599][src.eval][INFO] - Spearman (random ordering):  rho=0.7888, p=1.73e-128
+2026-04-20 04:07:51,599 | INFO | Validation Spearman | avg=0.8171 (p=3.51e-145) | random=0.7888 (p=1.73e-128)
+2026-04-20 04:07:51,605 | INFO | Epoch 7 | lr=1.000e-05 | train_loss=0.465521 | val_loss=0.472589 | val_acc=0.7780 | val_margin=0.7779 | val_kl=-70.4842 | val_ppl=49.6467 | train_batches=1063 | val_batches=117
+2026-04-20 04:08:06,718 | INFO | Validation Perplexity | ppl/val_pos=13.9618 | ppl/val_neg=694092.7460 | ppl/val_wt=665.6688
+2026-04-20 04:08:07,633 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_7441.pt
+2026-04-20 04:08:38,677 | INFO | step=20 train_loss=0.503909
+2026-04-20 04:09:09,999 | INFO | step=40 train_loss=0.523207
+2026-04-20 04:09:41,212 | INFO | step=60 train_loss=0.438908
+2026-04-20 04:10:12,572 | INFO | step=80 train_loss=0.505067
+2026-04-20 04:10:43,924 | INFO | step=100 train_loss=0.398527
+2026-04-20 04:11:15,079 | INFO | step=120 train_loss=0.411889
+2026-04-20 04:11:46,432 | INFO | step=140 train_loss=0.432815
+2026-04-20 04:12:17,730 | INFO | step=160 train_loss=0.430497
+2026-04-20 04:12:48,888 | INFO | step=180 train_loss=0.461284
+2026-04-20 04:13:20,181 | INFO | step=200 train_loss=0.453969
+2026-04-20 04:13:51,411 | INFO | step=220 train_loss=0.401706
+2026-04-20 04:14:22,753 | INFO | step=240 train_loss=0.462709
+2026-04-20 04:14:54,019 | INFO | step=260 train_loss=0.375896
+2026-04-20 04:15:25,114 | INFO | step=280 train_loss=0.452255
+2026-04-20 04:15:56,357 | INFO | step=300 train_loss=0.424516
+2026-04-20 04:16:27,527 | INFO | step=320 train_loss=0.414284
+2026-04-20 04:16:58,838 | INFO | step=340 train_loss=0.470257
+2026-04-20 04:17:30,071 | INFO | step=360 train_loss=0.452520
+2026-04-20 04:18:01,375 | INFO | step=380 train_loss=0.467429
+2026-04-20 04:18:32,749 | INFO | step=400 train_loss=0.478338
+2026-04-20 04:19:03,952 | INFO | step=420 train_loss=0.458817
+2026-04-20 04:19:35,289 | INFO | step=440 train_loss=0.393995
+2026-04-20 04:20:06,636 | INFO | step=460 train_loss=0.441078
+2026-04-20 04:20:37,907 | INFO | step=480 train_loss=0.478865
+2026-04-20 04:21:09,205 | INFO | step=500 train_loss=0.393749
+2026-04-20 04:21:40,395 | INFO | step=520 train_loss=0.525192
+2026-04-20 04:22:11,693 | INFO | step=540 train_loss=0.443559
+2026-04-20 04:22:42,971 | INFO | step=560 train_loss=0.437505
+2026-04-20 04:23:14,079 | INFO | step=580 train_loss=0.471557
+2026-04-20 04:23:45,387 | INFO | step=600 train_loss=0.472814
+2026-04-20 04:24:16,564 | INFO | step=620 train_loss=0.438610
+2026-04-20 04:24:47,931 | INFO | step=640 train_loss=0.468634
+2026-04-20 04:25:19,104 | INFO | step=660 train_loss=0.416872
+2026-04-20 04:25:50,445 | INFO | step=680 train_loss=0.384343
+2026-04-20 04:26:21,760 | INFO | step=700 train_loss=0.432816
+2026-04-20 04:26:52,965 | INFO | step=720 train_loss=0.433773
+2026-04-20 04:27:24,292 | INFO | step=740 train_loss=0.359610
+2026-04-20 04:27:55,657 | INFO | step=760 train_loss=0.390743
+2026-04-20 04:28:26,877 | INFO | step=780 train_loss=0.345034
+2026-04-20 04:28:58,307 | INFO | step=800 train_loss=0.395954
+2026-04-20 04:29:29,529 | INFO | step=820 train_loss=0.520768
+2026-04-20 04:30:00,836 | INFO | step=840 train_loss=0.445831
+2026-04-20 04:30:32,217 | INFO | step=860 train_loss=0.487820
+2026-04-20 04:31:03,416 | INFO | step=880 train_loss=0.462454
+2026-04-20 04:31:34,731 | INFO | step=900 train_loss=0.460422
+2026-04-20 04:32:05,920 | INFO | step=920 train_loss=0.376734
+2026-04-20 04:32:37,255 | INFO | step=940 train_loss=0.468482
+2026-04-20 04:33:08,416 | INFO | step=960 train_loss=0.445384
+2026-04-20 04:33:39,695 | INFO | step=980 train_loss=0.421031
+2026-04-20 04:34:10,966 | INFO | step=1000 train_loss=0.447807
+2026-04-20 04:34:42,129 | INFO | step=1020 train_loss=0.451694
+2026-04-20 04:35:13,417 | INFO | step=1040 train_loss=0.440300
+2026-04-20 04:35:44,646 | INFO | step=1060 train_loss=0.441689
+[2026-04-20 04:48:40,149][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 04:48:43,312][src.eval][INFO] - Spearman (average ordering): rho=0.8075, p=3.32e-139
+[2026-04-20 04:48:43,314][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 04:48:46,479][src.eval][INFO] - Spearman (random ordering):  rho=0.7794, p=1.56e-123
+2026-04-20 04:48:46,480 | INFO | Validation Spearman | avg=0.8075 (p=3.32e-139) | random=0.7794 (p=1.56e-123)
+2026-04-20 04:48:46,483 | INFO | Epoch 8 | lr=1.000e-05 | train_loss=0.457986 | val_loss=0.469705 | val_acc=0.7847 | val_margin=0.7978 | val_kl=-79.1605 | val_ppl=67.7220 | train_batches=1063 | val_batches=117
+2026-04-20 04:49:01,593 | INFO | Validation Perplexity | ppl/val_pos=11.7196 | ppl/val_neg=1414652.0459 | ppl/val_wt=2715.6431
+2026-04-20 04:49:02,497 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 04:49:03,419 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_8504.pt
+2026-04-20 04:49:34,397 | INFO | step=20 train_loss=0.441834
+2026-04-20 04:50:05,732 | INFO | step=40 train_loss=0.391656
+2026-04-20 04:50:36,949 | INFO | step=60 train_loss=0.432183
+2026-04-20 04:51:08,272 | INFO | step=80 train_loss=0.414236
+2026-04-20 04:51:39,576 | INFO | step=100 train_loss=0.400026
+2026-04-20 04:52:10,794 | INFO | step=120 train_loss=0.450637
+2026-04-20 04:52:42,173 | INFO | step=140 train_loss=0.429584
+2026-04-20 04:53:13,399 | INFO | step=160 train_loss=0.405672
+2026-04-20 04:53:44,777 | INFO | step=180 train_loss=0.486181
+2026-04-20 04:54:16,137 | INFO | step=200 train_loss=0.382911
+2026-04-20 04:54:47,344 | INFO | step=220 train_loss=0.362520
+2026-04-20 04:55:18,684 | INFO | step=240 train_loss=0.497454
+2026-04-20 04:55:50,062 | INFO | step=260 train_loss=0.465088
+2026-04-20 04:56:21,215 | INFO | step=280 train_loss=0.448469
+2026-04-20 04:56:52,525 | INFO | step=300 train_loss=0.386922
+2026-04-20 04:57:23,700 | INFO | step=320 train_loss=0.389979
+2026-04-20 04:57:55,007 | INFO | step=340 train_loss=0.410884
+2026-04-20 04:58:26,144 | INFO | step=360 train_loss=0.539211
+2026-04-20 04:58:57,453 | INFO | step=380 train_loss=0.419832
+2026-04-20 04:59:28,728 | INFO | step=400 train_loss=0.369113
+2026-04-20 04:59:59,877 | INFO | step=420 train_loss=0.358636
+2026-04-20 05:00:31,186 | INFO | step=440 train_loss=0.509134
+2026-04-20 05:01:02,315 | INFO | step=460 train_loss=0.506225
+2026-04-20 05:01:33,618 | INFO | step=480 train_loss=0.494536
+2026-04-20 05:02:04,895 | INFO | step=500 train_loss=0.455254
+2026-04-20 05:02:36,034 | INFO | step=520 train_loss=0.533465
+2026-04-20 05:03:07,332 | INFO | step=540 train_loss=0.448210
+2026-04-20 05:03:38,658 | INFO | step=560 train_loss=0.355439
+2026-04-20 05:04:09,819 | INFO | step=580 train_loss=0.414190
+2026-04-20 05:04:41,116 | INFO | step=600 train_loss=0.386552
+2026-04-20 05:05:12,288 | INFO | step=620 train_loss=0.408572
+2026-04-20 05:05:43,622 | INFO | step=640 train_loss=0.457710
+2026-04-20 05:06:14,845 | INFO | step=660 train_loss=0.427849
+2026-04-20 05:06:46,263 | INFO | step=680 train_loss=0.338060
+2026-04-20 05:07:17,607 | INFO | step=700 train_loss=0.516962
+2026-04-20 05:07:48,864 | INFO | step=720 train_loss=0.494339
+2026-04-20 05:08:20,192 | INFO | step=740 train_loss=0.404968
+2026-04-20 05:08:51,345 | INFO | step=760 train_loss=0.462141
+2026-04-20 05:09:22,641 | INFO | step=780 train_loss=0.432555
+2026-04-20 05:09:53,799 | INFO | step=800 train_loss=0.485659
+2026-04-20 05:10:25,070 | INFO | step=820 train_loss=0.474111
+2026-04-20 05:10:56,335 | INFO | step=840 train_loss=0.506967
+2026-04-20 05:11:27,484 | INFO | step=860 train_loss=0.483332
+2026-04-20 05:11:58,798 | INFO | step=880 train_loss=0.446772
+2026-04-20 05:12:29,971 | INFO | step=900 train_loss=0.428690
+2026-04-20 05:13:01,336 | INFO | step=920 train_loss=0.476755
+2026-04-20 05:13:32,564 | INFO | step=940 train_loss=0.426724
+2026-04-20 05:14:03,928 | INFO | step=960 train_loss=0.547593
+2026-04-20 05:14:35,108 | INFO | step=980 train_loss=0.427316
+2026-04-20 05:15:06,416 | INFO | step=1000 train_loss=0.403630
+2026-04-20 05:15:37,544 | INFO | step=1020 train_loss=0.473629
+2026-04-20 05:16:08,848 | INFO | step=1040 train_loss=0.407068
+2026-04-20 05:16:39,919 | INFO | step=1060 train_loss=0.519702
+[2026-04-20 05:29:35,620][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 05:29:38,790][src.eval][INFO] - Spearman (average ordering): rho=0.8030, p=1.65e-136
+[2026-04-20 05:29:38,791][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 05:29:41,955][src.eval][INFO] - Spearman (random ordering):  rho=0.7691, p=2.27e-118
+2026-04-20 05:29:41,955 | INFO | Validation Spearman | avg=0.8030 (p=1.65e-136) | random=0.7691 (p=2.27e-118)
+2026-04-20 05:29:41,965 | INFO | Epoch 9 | lr=1.000e-05 | train_loss=0.451316 | val_loss=0.462295 | val_acc=0.7828 | val_margin=0.8403 | val_kl=-85.3183 | val_ppl=72.8426 | train_batches=1063 | val_batches=117
+2026-04-20 05:29:57,067 | INFO | Validation Perplexity | ppl/val_pos=11.8742 | ppl/val_neg=3308098.6465 | ppl/val_wt=3357.8539
+2026-04-20 05:29:57,960 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 05:29:58,840 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_9567.pt
+2026-04-20 05:30:29,834 | INFO | step=20 train_loss=0.514466
+2026-04-20 05:31:01,156 | INFO | step=40 train_loss=0.467159
+2026-04-20 05:31:32,333 | INFO | step=60 train_loss=0.432980
+2026-04-20 05:32:03,624 | INFO | step=80 train_loss=0.383548
+2026-04-20 05:32:34,787 | INFO | step=100 train_loss=0.431976
+2026-04-20 05:33:06,104 | INFO | step=120 train_loss=0.466742
+2026-04-20 05:33:37,428 | INFO | step=140 train_loss=0.467397
+2026-04-20 05:34:08,584 | INFO | step=160 train_loss=0.424104
+2026-04-20 05:34:39,911 | INFO | step=180 train_loss=0.439450
+2026-04-20 05:35:11,117 | INFO | step=200 train_loss=0.445256
+2026-04-20 05:35:42,477 | INFO | step=220 train_loss=0.432323
+2026-04-20 05:36:13,811 | INFO | step=240 train_loss=0.412470
+2026-04-20 05:36:44,963 | INFO | step=260 train_loss=0.436498
+2026-04-20 05:37:16,205 | INFO | step=280 train_loss=0.484141
+2026-04-20 05:37:47,360 | INFO | step=300 train_loss=0.442487
+2026-04-20 05:38:18,601 | INFO | step=320 train_loss=0.496437
+2026-04-20 05:38:49,739 | INFO | step=340 train_loss=0.375696
+2026-04-20 05:39:21,027 | INFO | step=360 train_loss=0.452122
+2026-04-20 05:39:52,318 | INFO | step=380 train_loss=0.535068
+2026-04-20 05:40:23,466 | INFO | step=400 train_loss=0.389704
+2026-04-20 05:40:54,772 | INFO | step=420 train_loss=0.393357
+2026-04-20 05:41:26,137 | INFO | step=440 train_loss=0.440346
+2026-04-20 05:41:57,336 | INFO | step=460 train_loss=0.428130
+2026-04-20 05:42:28,713 | INFO | step=480 train_loss=0.473012
+2026-04-20 05:42:59,924 | INFO | step=500 train_loss=0.387021
+2026-04-20 05:43:31,262 | INFO | step=520 train_loss=0.476985
+2026-04-20 05:44:02,620 | INFO | step=540 train_loss=0.493982
+2026-04-20 05:44:33,811 | INFO | step=560 train_loss=0.466401
+2026-04-20 05:45:05,152 | INFO | step=580 train_loss=0.416830
+2026-04-20 05:45:36,287 | INFO | step=600 train_loss=0.415728
+2026-04-20 05:46:07,566 | INFO | step=620 train_loss=0.339302
+2026-04-20 05:46:38,695 | INFO | step=640 train_loss=0.494503
+2026-04-20 05:47:10,010 | INFO | step=660 train_loss=0.511356
+2026-04-20 05:47:41,325 | INFO | step=680 train_loss=0.499499
+2026-04-20 05:48:12,519 | INFO | step=700 train_loss=0.508072
+2026-04-20 05:48:43,877 | INFO | step=720 train_loss=0.459573
+2026-04-20 05:49:15,285 | INFO | step=740 train_loss=0.450289
+2026-04-20 05:49:46,413 | INFO | step=760 train_loss=0.446214
+2026-04-20 05:50:17,705 | INFO | step=780 train_loss=0.377404
+2026-04-20 05:50:48,927 | INFO | step=800 train_loss=0.380797
+2026-04-20 05:51:20,204 | INFO | step=820 train_loss=0.465581
+2026-04-20 05:51:51,473 | INFO | step=840 train_loss=0.459967
+2026-04-20 05:52:22,621 | INFO | step=860 train_loss=0.426151
+2026-04-20 05:52:53,859 | INFO | step=880 train_loss=0.431757
+2026-04-20 05:53:25,005 | INFO | step=900 train_loss=0.449882
+2026-04-20 05:53:56,275 | INFO | step=920 train_loss=0.589692
+2026-04-20 05:54:27,424 | INFO | step=940 train_loss=0.491576
+2026-04-20 05:54:58,707 | INFO | step=960 train_loss=0.407798
+2026-04-20 05:55:29,962 | INFO | step=980 train_loss=0.504731
+2026-04-20 05:56:01,092 | INFO | step=1000 train_loss=0.419275
+2026-04-20 05:56:32,377 | INFO | step=1020 train_loss=0.439204
+2026-04-20 05:57:03,643 | INFO | step=1040 train_loss=0.411970
+2026-04-20 05:57:34,784 | INFO | step=1060 train_loss=0.499454
+[2026-04-20 06:10:30,483][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 06:10:33,690][src.eval][INFO] - Spearman (average ordering): rho=0.8070, p=6.91e-139
+[2026-04-20 06:10:33,692][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 06:10:36,862][src.eval][INFO] - Spearman (random ordering):  rho=0.7752, p=2.17e-121
+2026-04-20 06:10:36,862 | INFO | Validation Spearman | avg=0.8070 (p=6.91e-139) | random=0.7752 (p=2.17e-121)
+2026-04-20 06:10:36,867 | INFO | Epoch 10 | lr=1.000e-05 | train_loss=0.445264 | val_loss=0.460331 | val_acc=0.7849 | val_margin=0.8645 | val_kl=-79.8648 | val_ppl=45.5248 | train_batches=1063 | val_batches=117
+2026-04-20 06:10:51,985 | INFO | Validation Perplexity | ppl/val_pos=8.9985 | ppl/val_neg=5400609.6316 | ppl/val_wt=1466.9984
+2026-04-20 06:10:52,880 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 06:10:53,760 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_10630.pt
+2026-04-20 06:11:24,970 | INFO | step=20 train_loss=0.454043
+2026-04-20 06:11:56,348 | INFO | step=40 train_loss=0.350011
+2026-04-20 06:12:27,516 | INFO | step=60 train_loss=0.316068
+2026-04-20 06:12:58,860 | INFO | step=80 train_loss=0.477531
+2026-04-20 06:13:30,036 | INFO | step=100 train_loss=0.415993
+2026-04-20 06:14:01,329 | INFO | step=120 train_loss=0.357790
+2026-04-20 06:14:32,523 | INFO | step=140 train_loss=0.453628
+2026-04-20 06:15:03,816 | INFO | step=160 train_loss=0.501553
+2026-04-20 06:15:35,145 | INFO | step=180 train_loss=0.406509
+2026-04-20 06:16:06,279 | INFO | step=200 train_loss=0.496579
+2026-04-20 06:16:37,597 | INFO | step=220 train_loss=0.428075
+2026-04-20 06:17:08,755 | INFO | step=240 train_loss=0.468975
+2026-04-20 06:17:40,049 | INFO | step=260 train_loss=0.497430
+2026-04-20 06:18:11,294 | INFO | step=280 train_loss=0.439553
+2026-04-20 06:18:42,700 | INFO | step=300 train_loss=0.420172
+2026-04-20 06:19:14,088 | INFO | step=320 train_loss=0.391812
+2026-04-20 06:19:45,333 | INFO | step=340 train_loss=0.378466
+2026-04-20 06:20:16,635 | INFO | step=360 train_loss=0.475357
+2026-04-20 06:20:47,759 | INFO | step=380 train_loss=0.395518
+2026-04-20 06:21:19,050 | INFO | step=400 train_loss=0.539295
+2026-04-20 06:21:50,324 | INFO | step=420 train_loss=0.505257
+2026-04-20 06:22:21,453 | INFO | step=440 train_loss=0.437238
+2026-04-20 06:22:52,748 | INFO | step=460 train_loss=0.369260
+2026-04-20 06:23:24,056 | INFO | step=480 train_loss=0.340678
+2026-04-20 06:23:55,227 | INFO | step=500 train_loss=0.437900
+2026-04-20 06:24:26,582 | INFO | step=520 train_loss=0.473553
+2026-04-20 06:24:57,761 | INFO | step=540 train_loss=0.415216
+2026-04-20 06:25:29,121 | INFO | step=560 train_loss=0.432592
+2026-04-20 06:26:00,365 | INFO | step=580 train_loss=0.511435
+2026-04-20 06:26:31,769 | INFO | step=600 train_loss=0.442325
+2026-04-20 06:27:03,103 | INFO | step=620 train_loss=0.459332
+2026-04-20 06:27:34,291 | INFO | step=640 train_loss=0.395284
+2026-04-20 06:28:05,621 | INFO | step=660 train_loss=0.441660
+2026-04-20 06:28:36,824 | INFO | step=680 train_loss=0.409550
+2026-04-20 06:29:08,152 | INFO | step=700 train_loss=0.472529
+2026-04-20 06:29:39,450 | INFO | step=720 train_loss=0.438169
+2026-04-20 06:30:10,561 | INFO | step=740 train_loss=0.338080
+2026-04-20 06:30:41,825 | INFO | step=760 train_loss=0.451479
+2026-04-20 06:31:13,083 | INFO | step=780 train_loss=0.453575
+2026-04-20 06:31:44,232 | INFO | step=800 train_loss=0.377603
+2026-04-20 06:32:15,532 | INFO | step=820 train_loss=0.450391
+2026-04-20 06:32:46,695 | INFO | step=840 train_loss=0.477841
+2026-04-20 06:33:18,060 | INFO | step=860 train_loss=0.413471
+2026-04-20 06:33:49,259 | INFO | step=880 train_loss=0.415040
+2026-04-20 06:34:20,583 | INFO | step=900 train_loss=0.460735
+2026-04-20 06:34:51,836 | INFO | step=920 train_loss=0.421172
+2026-04-20 06:35:22,922 | INFO | step=940 train_loss=0.454345
+2026-04-20 06:35:54,207 | INFO | step=960 train_loss=0.455550
+2026-04-20 06:36:25,348 | INFO | step=980 train_loss=0.447068
+2026-04-20 06:36:56,641 | INFO | step=1000 train_loss=0.457830
+2026-04-20 06:37:27,978 | INFO | step=1020 train_loss=0.362977
+2026-04-20 06:37:59,093 | INFO | step=1040 train_loss=0.325585
+2026-04-20 06:38:30,347 | INFO | step=1060 train_loss=0.477215
+[2026-04-20 06:51:26,316][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 06:51:29,515][src.eval][INFO] - Spearman (average ordering): rho=0.7909, p=1.24e-129
+[2026-04-20 06:51:29,517][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 06:51:32,696][src.eval][INFO] - Spearman (random ordering):  rho=0.7530, p=9.07e-111
+2026-04-20 06:51:32,697 | INFO | Validation Spearman | avg=0.7909 (p=1.24e-129) | random=0.7530 (p=9.07e-111)
+2026-04-20 06:51:32,700 | INFO | Epoch 11 | lr=1.000e-05 | train_loss=0.439596 | val_loss=0.457041 | val_acc=0.7849 | val_margin=0.9264 | val_kl=-125.9526 | val_ppl=299.4381 | train_batches=1063 | val_batches=117
+2026-04-20 06:51:47,795 | INFO | Validation Perplexity | ppl/val_pos=35.0954 | ppl/val_neg=33490860.6143 | ppl/val_wt=15404.4770
+2026-04-20 06:51:48,675 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 06:51:49,545 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_11693.pt
+2026-04-20 06:52:20,687 | INFO | step=20 train_loss=0.424424
+2026-04-20 06:52:51,868 | INFO | step=40 train_loss=0.445928
+2026-04-20 06:53:23,171 | INFO | step=60 train_loss=0.395023
+2026-04-20 06:53:54,319 | INFO | step=80 train_loss=0.424299
+2026-04-20 06:54:25,614 | INFO | step=100 train_loss=0.412032
+2026-04-20 06:54:56,747 | INFO | step=120 train_loss=0.432929
+2026-04-20 06:55:28,019 | INFO | step=140 train_loss=0.448432
+2026-04-20 06:55:59,136 | INFO | step=160 train_loss=0.364823
+2026-04-20 06:56:30,465 | INFO | step=180 train_loss=0.352427
+2026-04-20 06:57:01,749 | INFO | step=200 train_loss=0.559309
+2026-04-20 06:57:32,839 | INFO | step=220 train_loss=0.476669
+2026-04-20 06:58:04,072 | INFO | step=240 train_loss=0.415480
+2026-04-20 06:58:35,366 | INFO | step=260 train_loss=0.389664
+2026-04-20 06:59:06,526 | INFO | step=280 train_loss=0.422869
+2026-04-20 06:59:37,871 | INFO | step=300 train_loss=0.457502
+2026-04-20 07:00:09,088 | INFO | step=320 train_loss=0.384312
+2026-04-20 07:00:40,491 | INFO | step=340 train_loss=0.470455
+2026-04-20 07:01:11,708 | INFO | step=360 train_loss=0.417953
+2026-04-20 07:01:43,006 | INFO | step=380 train_loss=0.426617
+2026-04-20 07:02:14,309 | INFO | step=400 train_loss=0.381596
+2026-04-20 07:02:45,436 | INFO | step=420 train_loss=0.401837
+2026-04-20 07:03:16,702 | INFO | step=440 train_loss=0.458780
+2026-04-20 07:03:47,870 | INFO | step=460 train_loss=0.533055
+2026-04-20 07:04:19,192 | INFO | step=480 train_loss=0.462549
+2026-04-20 07:04:50,479 | INFO | step=500 train_loss=0.445586
+2026-04-20 07:05:21,611 | INFO | step=520 train_loss=0.480651
+2026-04-20 07:05:52,941 | INFO | step=540 train_loss=0.511792
+2026-04-20 07:06:24,224 | INFO | step=560 train_loss=0.429795
+2026-04-20 07:06:55,355 | INFO | step=580 train_loss=0.373713
+2026-04-20 07:07:26,674 | INFO | step=600 train_loss=0.378348
+2026-04-20 07:07:57,860 | INFO | step=620 train_loss=0.403373
+2026-04-20 07:08:29,183 | INFO | step=640 train_loss=0.427521
+2026-04-20 07:09:00,411 | INFO | step=660 train_loss=0.385034
+2026-04-20 07:09:31,755 | INFO | step=680 train_loss=0.431317
+2026-04-20 07:10:03,131 | INFO | step=700 train_loss=0.404629
+2026-04-20 07:10:34,376 | INFO | step=720 train_loss=0.427606
+2026-04-20 07:11:05,717 | INFO | step=740 train_loss=0.489650
+2026-04-20 07:11:36,876 | INFO | step=760 train_loss=0.471280
+2026-04-20 07:12:08,253 | INFO | step=780 train_loss=0.437089
+2026-04-20 07:12:39,656 | INFO | step=800 train_loss=0.561150
+2026-04-20 07:13:10,866 | INFO | step=820 train_loss=0.412801
+2026-04-20 07:13:42,220 | INFO | step=840 train_loss=0.427056
+2026-04-20 07:14:13,459 | INFO | step=860 train_loss=0.343417
+2026-04-20 07:14:44,613 | INFO | step=880 train_loss=0.427683
+2026-04-20 07:15:16,002 | INFO | step=900 train_loss=0.503441
+2026-04-20 07:15:47,179 | INFO | step=920 train_loss=0.465501
+2026-04-20 07:16:18,488 | INFO | step=940 train_loss=0.402950
+2026-04-20 07:16:49,633 | INFO | step=960 train_loss=0.440054
+2026-04-20 07:17:20,939 | INFO | step=980 train_loss=0.480899
+2026-04-20 07:17:52,240 | INFO | step=1000 train_loss=0.407282
+2026-04-20 07:18:23,408 | INFO | step=1020 train_loss=0.466509
+2026-04-20 07:18:54,733 | INFO | step=1040 train_loss=0.460943
+2026-04-20 07:19:25,836 | INFO | step=1060 train_loss=0.437424
+[2026-04-20 07:32:21,773][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 07:32:24,951][src.eval][INFO] - Spearman (average ordering): rho=0.7893, p=8.87e-129
+[2026-04-20 07:32:24,955][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 07:32:28,121][src.eval][INFO] - Spearman (random ordering):  rho=0.7515, p=4.07e-110
+2026-04-20 07:32:28,121 | INFO | Validation Spearman | avg=0.7893 (p=8.87e-129) | random=0.7515 (p=4.07e-110)
+2026-04-20 07:32:28,134 | INFO | Epoch 12 | lr=1.000e-05 | train_loss=0.433866 | val_loss=0.451608 | val_acc=0.7863 | val_margin=0.9571 | val_kl=-125.2184 | val_ppl=236.3521 | train_batches=1063 | val_batches=117
+2026-04-20 07:32:43,246 | INFO | Validation Perplexity | ppl/val_pos=22.6746 | ppl/val_neg=65426779.8131 | ppl/val_wt=14886.3895
+2026-04-20 07:32:44,131 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 07:32:45,012 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_12756.pt
+2026-04-20 07:33:16,029 | INFO | step=20 train_loss=0.404353
+2026-04-20 07:33:47,335 | INFO | step=40 train_loss=0.433826
+2026-04-20 07:34:18,668 | INFO | step=60 train_loss=0.428968
+2026-04-20 07:34:49,814 | INFO | step=80 train_loss=0.380095
+2026-04-20 07:35:21,108 | INFO | step=100 train_loss=0.475319
+2026-04-20 07:35:52,238 | INFO | step=120 train_loss=0.433725
+2026-04-20 07:36:23,568 | INFO | step=140 train_loss=0.451576
+2026-04-20 07:36:54,891 | INFO | step=160 train_loss=0.438539
+2026-04-20 07:37:26,079 | INFO | step=180 train_loss=0.456005
+2026-04-20 07:37:57,368 | INFO | step=200 train_loss=0.379326
+2026-04-20 07:38:28,584 | INFO | step=220 train_loss=0.572917
+2026-04-20 07:38:59,963 | INFO | step=240 train_loss=0.378954
+2026-04-20 07:39:31,322 | INFO | step=260 train_loss=0.456472
+2026-04-20 07:40:02,539 | INFO | step=280 train_loss=0.434730
+2026-04-20 07:40:33,933 | INFO | step=300 train_loss=0.352258
+2026-04-20 07:41:05,100 | INFO | step=320 train_loss=0.398073
+2026-04-20 07:41:36,391 | INFO | step=340 train_loss=0.421445
+2026-04-20 07:42:07,725 | INFO | step=360 train_loss=0.442112
+2026-04-20 07:42:38,915 | INFO | step=380 train_loss=0.462806
+2026-04-20 07:43:10,258 | INFO | step=400 train_loss=0.390989
+2026-04-20 07:43:41,496 | INFO | step=420 train_loss=0.426109
+2026-04-20 07:44:12,847 | INFO | step=440 train_loss=0.443066
+2026-04-20 07:44:44,189 | INFO | step=460 train_loss=0.424264
+2026-04-20 07:45:15,400 | INFO | step=480 train_loss=0.486290
+2026-04-20 07:45:46,790 | INFO | step=500 train_loss=0.494066
+2026-04-20 07:46:17,972 | INFO | step=520 train_loss=0.465941
+2026-04-20 07:46:49,358 | INFO | step=540 train_loss=0.387706
+2026-04-20 07:47:20,708 | INFO | step=560 train_loss=0.532043
+2026-04-20 07:47:51,877 | INFO | step=580 train_loss=0.466538
+2026-04-20 07:48:23,144 | INFO | step=600 train_loss=0.454235
+2026-04-20 07:48:54,262 | INFO | step=620 train_loss=0.501924
+2026-04-20 07:49:25,555 | INFO | step=640 train_loss=0.500983
+2026-04-20 07:49:56,857 | INFO | step=660 train_loss=0.470342
+2026-04-20 07:50:28,051 | INFO | step=680 train_loss=0.457231
+2026-04-20 07:50:59,331 | INFO | step=700 train_loss=0.430468
+2026-04-20 07:51:30,489 | INFO | step=720 train_loss=0.341881
+2026-04-20 07:52:01,824 | INFO | step=740 train_loss=0.421128
+2026-04-20 07:52:33,090 | INFO | step=760 train_loss=0.423458
+2026-04-20 07:53:04,265 | INFO | step=780 train_loss=0.400176
+2026-04-20 07:53:35,548 | INFO | step=800 train_loss=0.409584
+2026-04-20 07:54:06,686 | INFO | step=820 train_loss=0.392074
+2026-04-20 07:54:38,034 | INFO | step=840 train_loss=0.374977
+2026-04-20 07:55:09,343 | INFO | step=860 train_loss=0.501580
+2026-04-20 07:55:40,550 | INFO | step=880 train_loss=0.461129
+2026-04-20 07:56:11,908 | INFO | step=900 train_loss=0.480595
+2026-04-20 07:56:43,057 | INFO | step=920 train_loss=0.411568
+2026-04-20 07:57:14,423 | INFO | step=940 train_loss=0.463546
+2026-04-20 07:57:45,797 | INFO | step=960 train_loss=0.385495
+2026-04-20 07:58:16,918 | INFO | step=980 train_loss=0.341782
+2026-04-20 07:58:48,155 | INFO | step=1000 train_loss=0.422248
+2026-04-20 07:59:19,269 | INFO | step=1020 train_loss=0.356662
+2026-04-20 07:59:50,520 | INFO | step=1040 train_loss=0.424438
+2026-04-20 08:00:21,828 | INFO | step=1060 train_loss=0.453695
+[2026-04-20 08:13:17,862][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 08:13:21,025][src.eval][INFO] - Spearman (average ordering): rho=0.7950, p=6.20e-132
+[2026-04-20 08:13:21,026][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 08:13:24,205][src.eval][INFO] - Spearman (random ordering):  rho=0.7629, p=2.21e-115
+2026-04-20 08:13:24,206 | INFO | Validation Spearman | avg=0.7950 (p=6.20e-132) | random=0.7629 (p=2.21e-115)
+2026-04-20 08:13:24,208 | INFO | Epoch 13 | lr=1.000e-05 | train_loss=0.427337 | val_loss=0.451243 | val_acc=0.7833 | val_margin=0.9560 | val_kl=-121.0196 | val_ppl=196.2107 | train_batches=1063 | val_batches=117
+2026-04-20 08:13:39,330 | INFO | Validation Perplexity | ppl/val_pos=21.3861 | ppl/val_neg=62281075.4149 | ppl/val_wt=13523.0694
+2026-04-20 08:13:40,210 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 08:13:41,092 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_13819.pt
+2026-04-20 08:14:12,119 | INFO | step=20 train_loss=0.420154
+2026-04-20 08:14:43,468 | INFO | step=40 train_loss=0.365231
+2026-04-20 08:15:14,677 | INFO | step=60 train_loss=0.458577
+2026-04-20 08:15:46,079 | INFO | step=80 train_loss=0.438042
+2026-04-20 08:16:17,303 | INFO | step=100 train_loss=0.392674
+2026-04-20 08:16:48,622 | INFO | step=120 train_loss=0.420544
+2026-04-20 08:17:19,932 | INFO | step=140 train_loss=0.379687
+2026-04-20 08:17:51,051 | INFO | step=160 train_loss=0.419248
+2026-04-20 08:18:22,331 | INFO | step=180 train_loss=0.351637
+2026-04-20 08:18:53,462 | INFO | step=200 train_loss=0.421262
+2026-04-20 08:19:24,704 | INFO | step=220 train_loss=0.352434
+2026-04-20 08:19:55,992 | INFO | step=240 train_loss=0.470462
+2026-04-20 08:20:27,192 | INFO | step=260 train_loss=0.451271
+2026-04-20 08:20:58,516 | INFO | step=280 train_loss=0.357340
+2026-04-20 08:21:29,727 | INFO | step=300 train_loss=0.368421
+2026-04-20 08:22:01,083 | INFO | step=320 train_loss=0.435549
+2026-04-20 08:22:32,404 | INFO | step=340 train_loss=0.356120
+2026-04-20 08:23:03,665 | INFO | step=360 train_loss=0.414019
+2026-04-20 08:23:35,052 | INFO | step=380 train_loss=0.389432
+2026-04-20 08:24:06,199 | INFO | step=400 train_loss=0.474993
+2026-04-20 08:24:37,487 | INFO | step=420 train_loss=0.357225
+2026-04-20 08:25:08,796 | INFO | step=440 train_loss=0.441021
+2026-04-20 08:25:39,946 | INFO | step=460 train_loss=0.418347
+2026-04-20 08:26:11,221 | INFO | step=480 train_loss=0.440136
+2026-04-20 08:26:42,377 | INFO | step=500 train_loss=0.424461
+2026-04-20 08:27:13,731 | INFO | step=520 train_loss=0.453471
+2026-04-20 08:27:45,064 | INFO | step=540 train_loss=0.423122
+2026-04-20 08:28:16,281 | INFO | step=560 train_loss=0.330062
+2026-04-20 08:28:47,616 | INFO | step=580 train_loss=0.399135
+2026-04-20 08:29:18,848 | INFO | step=600 train_loss=0.539891
+2026-04-20 08:29:50,236 | INFO | step=620 train_loss=0.461477
+2026-04-20 08:30:21,337 | INFO | step=640 train_loss=0.384040
+2026-04-20 08:30:52,616 | INFO | step=660 train_loss=0.406037
+2026-04-20 08:31:23,757 | INFO | step=680 train_loss=0.415813
+2026-04-20 08:31:55,078 | INFO | step=700 train_loss=0.464533
+2026-04-20 08:32:26,263 | INFO | step=720 train_loss=0.419255
+2026-04-20 08:32:57,578 | INFO | step=740 train_loss=0.413585
+2026-04-20 08:33:28,700 | INFO | step=760 train_loss=0.336396
+2026-04-20 08:34:00,063 | INFO | step=780 train_loss=0.472118
+2026-04-20 08:34:31,373 | INFO | step=800 train_loss=0.431267
+2026-04-20 08:35:02,551 | INFO | step=820 train_loss=0.479224
+2026-04-20 08:35:33,842 | INFO | step=840 train_loss=0.446370
+2026-04-20 08:36:04,970 | INFO | step=860 train_loss=0.389905
+2026-04-20 08:36:36,207 | INFO | step=880 train_loss=0.441226
+2026-04-20 08:37:07,347 | INFO | step=900 train_loss=0.501821
+2026-04-20 08:37:38,621 | INFO | step=920 train_loss=0.466815
+2026-04-20 08:38:09,779 | INFO | step=940 train_loss=0.364806
+2026-04-20 08:38:41,054 | INFO | step=960 train_loss=0.443219
+2026-04-20 08:39:12,203 | INFO | step=980 train_loss=0.497343
+2026-04-20 08:39:43,516 | INFO | step=1000 train_loss=0.419119
+2026-04-20 08:40:14,624 | INFO | step=1020 train_loss=0.415774
+2026-04-20 08:40:45,871 | INFO | step=1040 train_loss=0.453189
+2026-04-20 08:41:17,140 | INFO | step=1060 train_loss=0.408260
+[2026-04-20 08:54:12,922][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 08:54:16,095][src.eval][INFO] - Spearman (average ordering): rho=0.8016, p=1.09e-135
+[2026-04-20 08:54:16,097][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 08:54:19,264][src.eval][INFO] - Spearman (random ordering):  rho=0.7708, p=3.29e-119
+2026-04-20 08:54:19,265 | INFO | Validation Spearman | avg=0.8016 (p=1.09e-135) | random=0.7708 (p=3.29e-119)
+2026-04-20 08:54:19,271 | INFO | Epoch 14 | lr=1.000e-05 | train_loss=0.422034 | val_loss=0.446455 | val_acc=0.7860 | val_margin=1.0155 | val_kl=-124.4621 | val_ppl=178.9987 | train_batches=1063 | val_batches=117
+2026-04-20 08:54:34,389 | INFO | Validation Perplexity | ppl/val_pos=22.9579 | ppl/val_neg=135285270.2509 | ppl/val_wt=5229.5360
+2026-04-20 08:54:35,299 | INFO | Updated run best checkpoint at /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 08:54:36,193 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_14882.pt
+2026-04-20 08:55:07,232 | INFO | step=20 train_loss=0.422079
+2026-04-20 08:55:38,621 | INFO | step=40 train_loss=0.416202
+2026-04-20 08:56:09,823 | INFO | step=60 train_loss=0.376243
+2026-04-20 08:56:41,192 | INFO | step=80 train_loss=0.473386
+2026-04-20 08:57:12,543 | INFO | step=100 train_loss=0.357747
+2026-04-20 08:57:43,752 | INFO | step=120 train_loss=0.337886
+2026-04-20 08:58:15,093 | INFO | step=140 train_loss=0.404388
+2026-04-20 08:58:46,323 | INFO | step=160 train_loss=0.426972
+2026-04-20 08:59:17,618 | INFO | step=180 train_loss=0.496128
+2026-04-20 08:59:48,861 | INFO | step=200 train_loss=0.450576
+2026-04-20 09:00:20,006 | INFO | step=220 train_loss=0.388639
+2026-04-20 09:00:51,279 | INFO | step=240 train_loss=0.406831
+2026-04-20 09:01:22,454 | INFO | step=260 train_loss=0.476138
+2026-04-20 09:01:53,800 | INFO | step=280 train_loss=0.425480
+2026-04-20 09:02:25,128 | INFO | step=300 train_loss=0.480245
+2026-04-20 09:02:56,319 | INFO | step=320 train_loss=0.394055
+2026-04-20 09:03:27,726 | INFO | step=340 train_loss=0.411119
+2026-04-20 09:03:58,937 | INFO | step=360 train_loss=0.430562
+2026-04-20 09:04:30,284 | INFO | step=380 train_loss=0.385577
+2026-04-20 09:05:01,654 | INFO | step=400 train_loss=0.467943
+2026-04-20 09:05:32,893 | INFO | step=420 train_loss=0.443379
+2026-04-20 09:06:04,221 | INFO | step=440 train_loss=0.444476
+2026-04-20 09:06:35,414 | INFO | step=460 train_loss=0.388807
+2026-04-20 09:07:06,736 | INFO | step=480 train_loss=0.349684
+2026-04-20 09:07:38,033 | INFO | step=500 train_loss=0.465082
+2026-04-20 09:08:09,195 | INFO | step=520 train_loss=0.389907
+2026-04-20 09:08:40,507 | INFO | step=540 train_loss=0.495739
+2026-04-20 09:09:11,661 | INFO | step=560 train_loss=0.426912
+2026-04-20 09:09:42,969 | INFO | step=580 train_loss=0.455803
+2026-04-20 09:10:14,289 | INFO | step=600 train_loss=0.418848
+2026-04-20 09:10:45,420 | INFO | step=620 train_loss=0.441134
+2026-04-20 09:11:16,669 | INFO | step=640 train_loss=0.489786
+2026-04-20 09:11:47,829 | INFO | step=660 train_loss=0.407808
+2026-04-20 09:12:19,135 | INFO | step=680 train_loss=0.410214
+2026-04-20 09:12:50,425 | INFO | step=700 train_loss=0.436179
+2026-04-20 09:13:21,627 | INFO | step=720 train_loss=0.399103
+2026-04-20 09:13:52,996 | INFO | step=740 train_loss=0.448012
+2026-04-20 09:14:24,193 | INFO | step=760 train_loss=0.525447
+2026-04-20 09:14:55,500 | INFO | step=780 train_loss=0.396278
+2026-04-20 09:15:26,853 | INFO | step=800 train_loss=0.434080
+2026-04-20 09:15:58,046 | INFO | step=820 train_loss=0.365210
+2026-04-20 09:16:29,420 | INFO | step=840 train_loss=0.430352
+2026-04-20 09:17:00,653 | INFO | step=860 train_loss=0.485314
+2026-04-20 09:17:32,059 | INFO | step=880 train_loss=0.416402
+2026-04-20 09:18:03,459 | INFO | step=900 train_loss=0.411539
+2026-04-20 09:18:34,669 | INFO | step=920 train_loss=0.395087
+2026-04-20 09:19:06,003 | INFO | step=940 train_loss=0.479336
+2026-04-20 09:19:37,154 | INFO | step=960 train_loss=0.507879
+2026-04-20 09:20:08,439 | INFO | step=980 train_loss=0.418018
+2026-04-20 09:20:39,764 | INFO | step=1000 train_loss=0.383801
+2026-04-20 09:21:10,931 | INFO | step=1020 train_loss=0.398731
+2026-04-20 09:21:42,274 | INFO | step=1040 train_loss=0.416297
+2026-04-20 09:22:13,426 | INFO | step=1060 train_loss=0.449297
+[2026-04-20 09:35:09,467][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 09:35:12,627][src.eval][INFO] - Spearman (average ordering): rho=0.7962, p=1.33e-132
+[2026-04-20 09:35:12,629][src.eval][INFO] - Scoring 600 sequences (4 x 19 forward-pass batches)
+[2026-04-20 09:35:15,800][src.eval][INFO] - Spearman (random ordering):  rho=0.7614, p=1.11e-114
+2026-04-20 09:35:15,800 | INFO | Validation Spearman | avg=0.7962 (p=1.33e-132) | random=0.7614 (p=1.11e-114)
+2026-04-20 09:35:15,802 | INFO | Epoch 15 | lr=1.000e-05 | train_loss=0.415770 | val_loss=0.447612 | val_acc=0.7852 | val_margin=1.0056 | val_kl=-142.2004 | val_ppl=415.5080 | train_batches=1063 | val_batches=117
+2026-04-20 09:35:30,914 | INFO | Validation Perplexity | ppl/val_pos=44.6304 | ppl/val_neg=234359159.5812 | ppl/val_wt=29995.4319
+2026-04-20 09:35:31,819 | INFO | Saved step checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/step_15945.pt
+2026-04-20 09:35:32,200 | INFO | Loaded best checkpoint for final test evaluation: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/best.pt
+2026-04-20 09:35:33,029 | INFO | Saved final checkpoint to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/checkpoints/final.pt
+2026-04-20 09:46:48,358 | INFO | Test metrics | loss=0.447401 | reward_acc=0.7952 | reward_margin=1.0248 | implicit_kl=-127.4322 | batches=117 | skipped=0
+2026-04-20 09:46:48,362 | INFO | Computing perplexity on test set (chosen sequences)...
+2026-04-20 09:48:21,903 | INFO | Test Chosen Perplexity: 189.1589
+2026-04-20 09:48:21,909 | WARNING | Could not build ED5 processed CSV at /cluster/home/gguidarini/protein-design/data/processed/D5.csv from /cluster/home/gguidarini/protein-design/data/raw/ED5_M22_enrichment.csv ([Errno 2] No such file or directory: '/cluster/home/gguidarini/protein-design/data/raw/ED5_M22_enrichment.csv'). Skipping test perplexity logging.
+2026-04-20 09:48:23,096 | INFO | Archived best checkpoint to /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/best.pt
+2026-04-20 09:48:23,099 | INFO | Archived metrics to /cluster/project/infk/krause/gguidarini/protein-design/checkpoints/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/metrics.json
+2026-04-20 09:48:23,099 | INFO | Saved history to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/history.csv
+2026-04-20 09:48:23,099 | INFO | Saved summary to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/summary.json
+2026-04-20 09:48:23,099 | INFO | Saved metrics to /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/metrics.json
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 809-810, summary, console lines 978-984
+wandb: 
+wandb: Run history:
+wandb:                epoch ▁▁▁▁▁▁▁▁▂▂▃▃▃▃▃▃▃▄▄▄▅▅▅▅▅▆▆▆▆▇▇▇▇▇▇▇▇▇██
+wandb:                   lr ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: metrics/spearman_M22 ▁
+wandb:      metrics/val_ppl ▁
+wandb:          ppl/val_neg ▁▁▁▁▁▁▁▁▁▁▂▃▃▅█
+wandb:          ppl/val_pos ▆█▄▂▂▁▁▁▁▁▂▁▁▁▂
+wandb:           ppl/val_wt ▁▁▁▁▁▁▁▂▂▁▅▄▄▂█
+wandb:                 step ▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▅▅▆▆▆▆▇▇▇▇███
+wandb:   test/best_val_loss ▁
+wandb:  test/num_test_pairs ▁
+wandb:                  +30 ...
+wandb: 
+wandb: Run summary:
+wandb:        best_val_loss 0.44646
+wandb:                epoch 15
+wandb:                   lr 1e-05
+wandb:        metrics/model facebook/esm2_t12_35...
+wandb: metrics/spearman_M22 0.80157
+wandb:      metrics/val_ppl 178.99866
+wandb:       num_test_pairs 3715
+wandb:      num_train_pairs 34011
+wandb:        num_val_pairs 3720
+wandb:          ppl/val_neg 234359159.58115
+wandb:                  +45 ...
+wandb: 
+wandb: 🚀 View run esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123 at: https://wandb.ai/gguidarini-eth-zurich/dpo/runs/bidqfp4i
+wandb: ⭐️ View project at: https://wandb.ai/gguidarini-eth-zurich/dpo
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: /cluster/scratch/gguidarini/protein-design/train/esm2-35M__delta_based__weighted_dpo__loss-1__ep-15__bs-32__lr-1e-05__beta-0.04_20260419_232123/wandb/run-20260419_232125-bidqfp4i/logs
