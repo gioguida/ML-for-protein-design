@@ -138,6 +138,13 @@ def _default_wandb_run_name(cfg: Any) -> str:
 	"""Create default base run name used by W&B and local/archive run directories."""
 	model_label = _infer_model_label(cfg.model.esm_model_path)
 	pairing = str(cfg.data.pairing_strategy)
+	if pairing == "delta_based":
+		components = list(cfg.data.delta_based.components)
+		component_tag = "".join(
+			c for c, flag in [("c", "cross"), ("w", "wt_anchors"), ("p", "within_pos"), ("n", "within_neg")]
+			if flag in components
+		)
+		pairing = f"delta_based-{component_tag}"
 	loss_name = str(cfg.training.loss)
 	epochs = int(cfg.training.num_epochs)
 	batch_size = int(cfg.training.batch_size)
