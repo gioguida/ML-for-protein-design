@@ -23,9 +23,11 @@ Usage (repeat run/label pairs via Hydra list overrides):
         +out_dir=\${HOME}/protein-design/plots/meeting
 """
 
+import functools
+import hashlib
 import json
 import logging
-import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Sequence
@@ -35,7 +37,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-import yaml
 from omegaconf import DictConfig, OmegaConf
 from transformers import AutoTokenizer
 
@@ -55,23 +56,19 @@ logger = logging.getLogger(__name__)
 
 BASE_LABEL = "base ESM2"
 STRATEGY = "avg"  # headline strategy for the Spearman bar plot
-# Matches `spearman_{strategy}[_{side}{k}]_{dataset}` with optional flank slice.
-_SCORING_KEY_RE = re.compile(
-    r"^spearman_(?P<strategy>[a-zA-Z]+)(?:_(?P<side>left|right)(?P<k>\d+))?_(?P<dataset>[^_]+)$"
-)
+STRATEGIES = ("avg", "random")  # emitted by run_scoring_evaluation (eval.py)
 
 
 def _split_cfg_from(cfg: DictConfig) -> SplitConfig:
-    """Read the hash-split policy from a Hydra config, with safe defaults."""
+    """Read the hash-split policy from a run's config, deferring missing keys to SplitConfig defaults."""
     split_node = cfg.data.get("split") if "split" in cfg.data else None
     if split_node is None:
         return SplitConfig()
-    return SplitConfig(
-        salt=str(split_node.get("salt", "oas-v1")),
-        train_pct=int(split_node.get("train_pct", 90)),
-        val_pct=int(split_node.get("val_pct", 5)),
-        test_pct=int(split_node.get("test_pct", 5)),
-    )
+    kwargs: dict = {}
+    for key in ("salt", "train_pct", "val_pct", "test_pct"):
+        if key in split_node:
+            kwargs[key] = split_node[key]
+    return SplitConfig(**kwargs)
 
 
 def _batch_size_from(cfg: DictConfig) -> int:
@@ -98,15 +95,59 @@ def _make_eval_loaders(fasta_path: str, cfg: DictConfig):
     return val_loader, test_loader
 
 
-def _find_checkpoint(run_dir: Path) -> Path:
-    """Prefer best.pt; fall back to final.pt (in root or checkpoints/)."""
-    for candidate in [
-        run_dir / "best.pt",
-        run_dir / "final.pt",
-        run_dir / "checkpoints" / "final.pt",
-    ]:
-        if candidate.exists():
-            return candidate
+@functools.lru_cache(maxsize=32)
+def _sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _git_head_sha() -> str:
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True, timeout=5,
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True, text=True, check=True, timeout=5,
+        ).stdout.strip()
+        return f"{sha}{'-dirty' if dirty else ''}"
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        return "<unknown>"
+
+
+def _find_checkpoint(run_dir: Path) -> tuple[Path, bool]:
+    """Prefer best.pt; fall back to final.pt (in root or checkpoints/).
+
+    Returns (ckpt_path, stale_final_metrics). `stale_final_metrics` is True when we picked
+    best.pt AND final.pt also exists AND they differ — in which case the cached
+    `final_*_perplexity` and last `scoring_history` in metrics.json were computed on
+    final.pt and must NOT be trusted for best.pt (train.py:257-282 computes final metrics
+    on the final model state before the best-copy step at line 310).
+    """
+    best = run_dir / "best.pt"
+    finals = [run_dir / "final.pt", run_dir / "checkpoints" / "final.pt"]
+    final = next((p for p in finals if p.exists()), None)
+
+    if best.exists():
+        stale = False
+        if final is not None:
+            if best.stat().st_size != final.stat().st_size:
+                stale = True
+            elif _sha256_file(best) != _sha256_file(final):
+                stale = True
+        if stale:
+            logger.warning(
+                "[%s] best.pt differs from final.pt — invalidating cached final_* metrics "
+                "(they were computed on final.pt)",
+                run_dir.name,
+            )
+        return best, stale
+    if final is not None:
+        return final, False
     raise FileNotFoundError(f"No best.pt or final.pt in {run_dir}")
 
 
@@ -131,12 +172,31 @@ def _extract_final_scoring(metrics: dict) -> dict | None:
     return history[-1] if history else None
 
 
+def _scoring_has_flank_keys(
+    scoring: dict | None,
+    dataset_names: Sequence[str],
+    flank_ks: Sequence[int],
+) -> bool:
+    """True when `scoring` contains at least one flank key for every requested k × side × dataset."""
+    if not scoring or not flank_ks:
+        return True
+    for k in flank_ks:
+        for side in ("left", "right"):
+            slice_name = f"{side}{k}"
+            for dataset in dataset_names:
+                rho_key, _ = _slice_spec(STRATEGY, slice_name, dataset)
+                if rho_key not in scoring:
+                    return False
+    return True
+
+
 def evaluate_run(run_dir: Path, datasets, tokenizer, device, scoring_batch_size,
-                 seed, force_rescore: bool, force_reppl: bool,
+                 seed, force_rescore: bool, force_reppl: bool, force_cdr: bool,
+                 dataset_names: Sequence[str],
                  fallback_config: DictConfig | None = None,
                  flank_ks: Sequence[int] = (),
                  max_ppl_batches: int = 500):
-    """Return (scoring, val_ppl, test_ppl, cdr_ppl, training_history) for this run."""
+    """Return (scoring, val_ppl, test_ppl, cdr_ppl, training_history, ckpt_path) for this run."""
     run_dir = Path(run_dir)
     metrics_path = run_dir / "metrics.json"
     metrics = json.loads(metrics_path.read_text()) if metrics_path.exists() else {}
@@ -148,13 +208,32 @@ def evaluate_run(run_dir: Path, datasets, tokenizer, device, scoring_batch_size,
             raise
         logger.warning("No config.yaml in %s; using global config as fallback", run_dir)
         cfg = fallback_config
-    ckpt_path = _find_checkpoint(run_dir)
+    ckpt_path, stale_final_metrics = _find_checkpoint(run_dir)
     logger.info("Run %s — checkpoint: %s", run_dir.name, ckpt_path)
 
-    scoring = _extract_final_scoring(metrics) if not force_rescore else None
-    val_ppl = metrics.get("final_val_perplexity") if not force_reppl else None
-    test_ppl = metrics.get("final_test_perplexity") if not force_reppl else None
+    # Cache lookup with three invalidation paths:
+    #   1. explicit force flags
+    #   2. checkpoint mismatch (best.pt picked but final_* were computed on final.pt)
+    #   3. cached scoring lacks flank keys for the requested flank_ks
+    scoring = None if force_rescore else _extract_final_scoring(metrics)
+    if scoring is not None and stale_final_metrics:
+        scoring = None  # last scoring_history entry was recorded on final.pt
+    if scoring is not None and not _scoring_has_flank_keys(scoring, dataset_names, flank_ks):
+        logger.warning(
+            "[%s] cached scoring lacks flank keys for flank_ks=%s — rescoring",
+            run_dir.name, list(flank_ks),
+        )
+        scoring = None
+
+    val_ppl = None if (force_reppl or stale_final_metrics) else metrics.get("final_val_perplexity")
+    test_ppl = None if (force_reppl or stale_final_metrics) else metrics.get("final_test_perplexity")
+    cdr_ppl = None if (force_cdr or stale_final_metrics) else metrics.get("final_cdr_pseudo_perplexity")
     training_history = metrics.get("training_history", [])
+
+    need_model = any(x is None for x in (scoring, val_ppl, test_ppl, cdr_ppl))
+    if not need_model:
+        logger.info("  all metrics cache-hit — skipping checkpoint load")
+        return scoring, val_ppl, test_ppl, cdr_ppl, training_history, ckpt_path
 
     model = ESM2Model(build_model_config(cfg, device=str(device)))
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=True)
@@ -163,8 +242,10 @@ def evaluate_run(run_dir: Path, datasets, tokenizer, device, scoring_batch_size,
 
     if scoring is None:
         logger.info("  re-scoring on D2 datasets")
-        scoring = _score_model(model, tokenizer, datasets, device,
-                               scoring_batch_size, seed, flank_ks=flank_ks)
+        scoring = run_multi_scoring_evaluation(
+            model, tokenizer, datasets, device=device,
+            batch_size=scoring_batch_size, seed=seed, flank_ks=flank_ks,
+        )
 
     if val_ppl is None or test_ppl is None:
         fasta = cfg.data.fasta_path if "data" in cfg else None
@@ -182,14 +263,13 @@ def evaluate_run(run_dir: Path, datasets, tokenizer, device, scoring_batch_size,
         else:
             logger.warning("  fasta path missing, skipping perplexity recomputation")
 
-    cdr_ppl = metrics.get("final_cdr_pseudo_perplexity")
     if cdr_ppl is None:
         cdr_ppl = compute_cdr_pseudo_perplexity(model, tokenizer, device)
 
     del model
     torch.cuda.empty_cache()
 
-    return scoring, val_ppl, test_ppl, cdr_ppl, training_history
+    return scoring, val_ppl, test_ppl, cdr_ppl, training_history, ckpt_path
 
 
 def evaluate_base(scoring_cfg: DictConfig, datasets, tokenizer, device, seed,
@@ -259,6 +339,56 @@ def plot_spearman_bar(rows_df: pd.DataFrame, out_path: Path) -> None:
     logger.info("Saved %s", out_path)
 
 
+def _group_series_by_fasta(
+    series: dict[str, float | None],
+    fasta_by_label: dict[str, str | None],
+) -> dict[str, dict[str, float | None]]:
+    """Split a label→value series by each label's training fasta.
+
+    Returns a single 'all' group when every label shares one fasta (the happy path);
+    otherwise returns one group per unique fasta path. Labels with unknown fasta are
+    collected under '<unknown>'. Val/test perplexity must never be plotted across
+    groups — the numbers are measured on different corpora and are not comparable.
+    """
+    unique_fastas = {fasta_by_label.get(label) for label in series}
+    if len(unique_fastas) <= 1:
+        return {"all": dict(series)}
+    groups: dict[str, dict[str, float | None]] = {}
+    for label, value in series.items():
+        key = fasta_by_label.get(label) or "<unknown>"
+        groups.setdefault(key, {})[label] = value
+    return groups
+
+
+def _emit_perplexity_plots(
+    series: dict[str, float | None],
+    fasta_by_label: dict[str, str | None],
+    out_dir: Path,
+    base_filename: str,
+    ylabel: str,
+    title: str,
+) -> None:
+    """Emit one perplexity plot per unique training fasta (single plot if all share one)."""
+    groups = _group_series_by_fasta(series, fasta_by_label)
+    if len(groups) == 1:
+        plot_perplexity_bar(next(iter(groups.values())),
+                            out_dir / f"{base_filename}.png",
+                            ylabel=ylabel, title=title)
+        return
+    logger.warning(
+        "%s: runs use %d distinct fastas; emitting per-corpus plots (cross-corpus comparison is not meaningful)",
+        base_filename, len(groups),
+    )
+    for fasta_path, sub in groups.items():
+        stem = Path(fasta_path).stem if fasta_path != "<unknown>" else "unknown_fasta"
+        plot_perplexity_bar(
+            sub,
+            out_dir / f"{base_filename}__{stem}.png",
+            ylabel=ylabel,
+            title=f"{title}\ncorpus: {stem}",
+        )
+
+
 def plot_perplexity_bar(
     ppl_series: dict,
     out_path: Path,
@@ -286,7 +416,7 @@ def plot_perplexity_bar(
 
 
 def plot_loss_curves(history_by_label: dict[str, list], out_path: Path) -> None:
-    """One subplot per run: train-loss dots + val-perplexity (log y on right axis)."""
+    """One subplot per run: train-loss line + val-loss markers on a shared linear axis."""
     labels = [l for l, h in history_by_label.items() if h]
     if not labels:
         logger.warning("No training histories available; skipping loss curves")
@@ -317,36 +447,49 @@ def plot_loss_curves(history_by_label: dict[str, list], out_path: Path) -> None:
     logger.info("Saved %s", out_path)
 
 
-def build_summary_rows(label: str, scoring: dict) -> list[dict]:
-    """Parse all rho keys into rows with (model, dataset, strategy, slice, rho, pval).
+def _slice_spec(strategy: str, slice_name: str, dataset: str) -> tuple[str, str]:
+    """Return the (rho_key, pval_key) pair expected in a scoring dict."""
+    if slice_name == "all":
+        return f"spearman_{strategy}_{dataset}", f"spearman_{strategy}_pval_{dataset}"
+    return (
+        f"spearman_{strategy}_{slice_name}_{dataset}",
+        f"spearman_{strategy}_pval_{slice_name}_{dataset}",
+    )
 
-    `slice == "all"` for whole-dataset Spearman; otherwise e.g. "left1", "right5".
+
+def _expected_slices(flank_ks: Sequence[int]) -> list[str]:
+    return ["all"] + [f"left{k}" for k in flank_ks] + [f"right{k}" for k in flank_ks]
+
+
+def build_summary_rows(
+    label: str,
+    scoring: dict,
+    dataset_names: Sequence[str],
+    flank_ks: Sequence[int],
+) -> list[dict]:
+    """Emit (model, dataset, strategy, slice, rho, pval) rows by *constructing* expected keys
+    from the known dataset vocabulary and flank_ks — never by parsing. Dataset names
+    containing underscores are handled correctly.
     """
-    rows = []
+    rows: list[dict] = []
     if not scoring:
         return rows
-    for key, val in scoring.items():
-        if "_pval_" in key:
-            continue
-        m = _SCORING_KEY_RE.match(key)
-        if m is None:
-            continue
-        strategy = m.group("strategy")
-        dataset = m.group("dataset")
-        side, k = m.group("side"), m.group("k")
-        slice_name = f"{side}{k}" if side else "all"
-        pval_key = (
-            f"spearman_{strategy}_pval_{side}{k}_{dataset}"
-            if side else f"spearman_{strategy}_pval_{dataset}"
-        )
-        rows.append({
-            "model": label,
-            "dataset": dataset,
-            "strategy": strategy,
-            "slice": slice_name,
-            "rho": float(val) if val is not None else float("nan"),
-            "pval": float(scoring.get(pval_key, float("nan"))),
-        })
+    for dataset in dataset_names:
+        for strategy in STRATEGIES:
+            for slice_name in _expected_slices(flank_ks):
+                rho_key, pval_key = _slice_spec(strategy, slice_name, dataset)
+                if rho_key not in scoring:
+                    continue
+                rho_val = scoring.get(rho_key)
+                pval_val = scoring.get(pval_key)
+                rows.append({
+                    "model": label,
+                    "dataset": dataset,
+                    "strategy": strategy,
+                    "slice": slice_name,
+                    "rho": float(rho_val) if rho_val is not None else float("nan"),
+                    "pval": float(pval_val) if pval_val is not None else float("nan"),
+                })
     return rows
 
 
@@ -407,11 +550,19 @@ def plot_flank_spearman(rows_df: pd.DataFrame, out_path: Path,
 
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-    runs = list(OmegaConf.to_container(cfg.runs, resolve=True))
-    labels = list(OmegaConf.to_container(cfg.labels, resolve=True))
+    runs_raw = OmegaConf.to_container(cfg.runs, resolve=True)
+    labels_raw = OmegaConf.to_container(cfg.labels, resolve=True)
+    if not isinstance(runs_raw, list) or not isinstance(labels_raw, list):
+        raise TypeError(
+            "runs/labels must be Hydra lists, e.g. '+runs=[/path/to/run1,/path/to/run2]'. "
+            f"Got runs={type(runs_raw).__name__}, labels={type(labels_raw).__name__}."
+        )
+    runs = list(runs_raw)
+    labels = list(labels_raw)
     out_dir_str = cfg.out_dir
     force_rescore = cfg.get("force_rescore", False)
     force_reppl = cfg.get("force_reppl", False)
+    force_cdr = cfg.get("force_cdr", False)
     skip_base = cfg.get("skip_base", False)
 
     if len(runs) != len(labels):
@@ -427,9 +578,9 @@ def main(cfg: DictConfig) -> None:
     scoring_batch_size = cfg.scoring.batch_size
     max_ppl_batches = int(cfg.scoring.get("max_ppl_batches", 500))
     flank_ks = [int(k) for k in cfg.scoring.get("flank_ks", [])]
-    datasets = load_scoring_datasets(
-        OmegaConf.to_container(cfg.scoring.datasets, resolve=True), n_samples, seed
-    )
+    datasets_cfg = OmegaConf.to_container(cfg.scoring.datasets, resolve=True)
+    dataset_names = [d["name"] for d in datasets_cfg]
+    datasets = load_scoring_datasets(datasets_cfg, n_samples, seed)
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.name)
 
     rows: list[dict] = []
@@ -443,45 +594,62 @@ def main(cfg: DictConfig) -> None:
             cfg, datasets, tokenizer, device, seed, flank_ks=flank_ks,
             max_ppl_batches=max_ppl_batches,
         )
-        rows.extend(build_summary_rows(BASE_LABEL, base_scoring))
+        rows.extend(build_summary_rows(BASE_LABEL, base_scoring, dataset_names, flank_ks))
         val_ppl_series[BASE_LABEL] = base_val
         test_ppl_series[BASE_LABEL] = base_test
         cdr_ppl_series[BASE_LABEL] = base_cdr
 
+    ckpt_by_label: dict[str, Path] = {}
+    fasta_by_label: dict[str, str | None] = {BASE_LABEL: cfg.data.get("fasta_path")} if not skip_base else {}
     for run_dir, label in zip(runs, labels):
-        scoring, val_ppl, test_ppl, cdr_ppl, history = evaluate_run(
+        scoring, val_ppl, test_ppl, cdr_ppl, history, ckpt_path = evaluate_run(
             Path(run_dir), datasets, tokenizer, device,
             scoring_batch_size, seed,
-            force_rescore=force_rescore, force_reppl=force_reppl,
+            force_rescore=force_rescore, force_reppl=force_reppl, force_cdr=force_cdr,
+            dataset_names=dataset_names,
             fallback_config=cfg, flank_ks=flank_ks,
             max_ppl_batches=max_ppl_batches,
         )
-        rows.extend(build_summary_rows(label, scoring))
+        rows.extend(build_summary_rows(label, scoring, dataset_names, flank_ks))
         val_ppl_series[label] = val_ppl
         test_ppl_series[label] = test_ppl
         cdr_ppl_series[label] = cdr_ppl
         history_by_label[label] = history
+        ckpt_by_label[label] = ckpt_path
+        run_cfg = _load_run_config(Path(run_dir)) if (Path(run_dir) / "config.yaml").exists() else cfg
+        fasta_by_label[label] = run_cfg.data.get("fasta_path") if "data" in run_cfg else None
 
     df = pd.DataFrame(rows)
     if df.empty:
         logger.error("No scoring rows collected; aborting plots")
         return
 
+    unique_fastas = {fasta_by_label.get(lbl) for lbl in fasta_by_label}
+    if len(unique_fastas) > 1:
+        logger.warning(
+            "Runs use %d distinct training fastas: %s. Spearman / CDR-H3 plots are "
+            "fasta-independent so will be combined; val/test perplexity plots will be "
+            "split per corpus.",
+            len(unique_fastas), sorted(str(f) for f in unique_fastas),
+        )
+
     headline = df[(df["strategy"] == STRATEGY) & (df["slice"] == "all")].copy()
     plot_spearman_bar(headline, out_dir / "spearman_bar.png")
     if flank_ks:
         flank_df = df[(df["strategy"] == STRATEGY)].copy()
         plot_flank_spearman(flank_df, out_dir / "spearman_flank.png", flank_ks)
-    plot_perplexity_bar(
-        test_ppl_series, out_dir / "test_perplexity_comparison.png",
+    _emit_perplexity_plots(
+        test_ppl_series, fasta_by_label, out_dir, "test_perplexity_comparison",
         ylabel="Test perplexity  (↓ better)",
         title="Masked-LM perplexity on held-out test split",
     )
-    plot_perplexity_bar(
-        val_ppl_series, out_dir / "val_perplexity_comparison.png",
+    _emit_perplexity_plots(
+        val_ppl_series, fasta_by_label, out_dir, "val_perplexity_comparison",
         ylabel="Val perplexity  (↓ better)",
         title="Masked-LM perplexity on validation split (diagnostic)",
     )
+    # CDR-H3 pseudo-perplexity is measured on a fixed C05 VH reference (eval.py:C05_VH),
+    # independent of the training fasta — do not split by corpus.
     plot_perplexity_bar(
         cdr_ppl_series, out_dir / "cdr_perplexity_comparison.png",
         ylabel="CDR-H3 pseudo-perplexity  (↓ better)",
@@ -498,11 +666,31 @@ def main(cfg: DictConfig) -> None:
     logger.info("Saved %s", csv_path)
 
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    (out_dir / "manifest.txt").write_text(
-        f"Generated {ts}\n"
-        f"Scoring config: Hydra composable (model={cfg.model.name})\n\n"
-        + "\n".join(f"{l}\t{r}" for l, r in zip(labels, runs))
+    git_sha = _git_head_sha()
+    run_lines = []
+    for label, run_dir in zip(labels, runs):
+        ckpt = ckpt_by_label.get(label)
+        if ckpt is not None and Path(ckpt).exists():
+            ckpt_hash = _sha256_file(Path(ckpt))[:16]
+            mtime = datetime.fromtimestamp(Path(ckpt).stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            run_lines.append(
+                f"{label}\t{run_dir}\tckpt={Path(ckpt).name}\tsha256={ckpt_hash}\tmtime={mtime}"
+            )
+        else:
+            run_lines.append(f"{label}\t{run_dir}\t<ckpt missing>")
+
+    manifest = (
+        f"Generated: {ts}\n"
+        f"Git HEAD:  {git_sha}\n"
+        f"Model:     {cfg.model.name}\n"
+        f"Base fasta: {cfg.data.get('fasta_path', '<none>')}\n"
+        f"\n# Runs (label, run_dir, checkpoint provenance)\n"
+        + "\n".join(run_lines)
+        + "\n\n# Resolved Hydra config\n"
+        + OmegaConf.to_yaml(cfg, resolve=True)
     )
+    (out_dir / "manifest.txt").write_text(manifest)
+    logger.info("Saved %s", out_dir / "manifest.txt")
 
 
 if __name__ == "__main__":

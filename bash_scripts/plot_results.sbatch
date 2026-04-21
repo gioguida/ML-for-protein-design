@@ -19,4 +19,4 @@
 set -euo pipefail
 source bash_scripts/common_setup.sh
 
-python scripts/analysis/plot_results.py "$@"
+uv run python scripts/analysis/plot_results.py "$@"
