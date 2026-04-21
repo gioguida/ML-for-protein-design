@@ -5,4 +5,4 @@ pipeline:
   stages:
     - name: ttt
       task: ttt
-      data: c05_single
+      data: c05_ref

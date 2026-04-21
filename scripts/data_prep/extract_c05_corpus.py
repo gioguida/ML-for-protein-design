@@ -2,8 +2,8 @@
 """Extract C05 TTT training corpora from MMseqs2 search results.
 
 Reads the results.tsv produced by search_c05.py and writes:
-  1. c05_5k.fasta   — all 5k C05-similar OAS sequences (MSA-TTT corpus)
-  2. c05_single.fasta — the C05 VH sequence alone (single-sequence TTT corpus)
+  1. c05_vh_pid30.fasta — all C05-similar OAS sequences (MSA-TTT corpus)
+  2. c05_ref.fasta      — the C05 VH reference sequence alone (single-seq TTT)
 """
 from __future__ import annotations
 
@@ -58,15 +58,15 @@ def main() -> None:
     df = df.drop_duplicates(subset="target").reset_index(drop=True)
     print(f"After dedup: {len(df)} unique sequences")
 
-    # Write MSA-TTT corpus (5k sequences)
-    msa_path = output_dir / "c05_5k.fasta"
+    # Write MSA-TTT corpus (full C05-similar set at pid >= 0.30)
+    msa_path = output_dir / "c05_vh_pid30.fasta"
     with open(msa_path, "w") as f:
         for _, row in df.iterrows():
             f.write(f">{row['target']}\n{row['tseq']}\n")
     print(f"Wrote {len(df)} sequences to {msa_path}")
 
     # Write single-sequence TTT corpus
-    single_path = output_dir / "c05_single.fasta"
+    single_path = output_dir / "c05_ref.fasta"
     with open(single_path, "w") as f:
         f.write(f">C05_heavy\n{C05_HEAVY}\n")
     print(f"Wrote C05 VH to {single_path}")

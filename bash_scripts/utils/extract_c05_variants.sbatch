@@ -8,8 +8,8 @@
 
 # Usage:
 #   sbatch bash_scripts/utils/extract_c05_variants.sbatch preview
-#   sbatch bash_scripts/utils/extract_c05_variants.sbatch fullseq_60
-#   sbatch bash_scripts/utils/extract_c05_variants.sbatch cdrh3_sim <threshold>
+#   sbatch bash_scripts/utils/extract_c05_variants.sbatch vh_pid60
+#   sbatch bash_scripts/utils/extract_c05_variants.sbatch cdrh3_posid <threshold>
 
 set -euo pipefail
 source bash_scripts/common_setup.sh
@@ -20,16 +20,16 @@ case "$MODE" in
   preview)
     uv run python scripts/data_prep/extract_c05_variants.py --preview-cdrh3
     ;;
-  fullseq_60)
-    uv run python scripts/data_prep/extract_c05_variants.py --variant fullseq_60
+  vh_pid60)
+    uv run python scripts/data_prep/extract_c05_variants.py --variant vh_pid60
     ;;
-  cdrh3_sim)
-    THRESH="${2:?ERROR: cdrh3_sim needs a threshold, e.g. sbatch ... cdrh3_sim 0.20}"
+  cdrh3_posid)
+    THRESH="${2:?ERROR: cdrh3_posid needs a threshold, e.g. sbatch ... cdrh3_posid 0.30}"
     uv run python scripts/data_prep/extract_c05_variants.py \
-      --variant cdrh3_sim --cdrh3-threshold "$THRESH"
+      --variant cdrh3_posid --cdrh3-threshold "$THRESH"
     ;;
   *)
-    echo "Unknown mode: $MODE. Use preview | fullseq_60 | cdrh3_sim <threshold>" >&2
+    echo "Unknown mode: $MODE. Use preview | vh_pid60 | cdrh3_posid <threshold>" >&2
     exit 2
     ;;
 esac
