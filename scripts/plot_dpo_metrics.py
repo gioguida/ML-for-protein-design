@@ -124,6 +124,11 @@ def _normalize_scalar(value: Any) -> Any:
     return value
 
 
+def _is_ppl_metric(metric: str) -> bool:
+    metric_lower = metric.lower()
+    return "ppl" in metric_lower or "perplexity" in metric_lower
+
+
 def _extract_timestamp(text: str) -> str:
     match = RUN_TIMESTAMP_RE.search(text)
     if match is None:
@@ -299,6 +304,8 @@ def _plot_curve_group(
 
     for axis, metric in zip(axes, selected_metrics):
         plotted_any = False
+        logscale_candidate = _is_ppl_metric(metric)
+        has_non_positive = False
         for artifact in artifacts:
             if artifact.history is None:
                 continue
@@ -312,6 +319,8 @@ def _plot_curve_group(
                 continue
 
             _column, epochs, values = resolved_series
+            if logscale_candidate and (values <= 0).any():
+                has_non_positive = True
             axis.plot(
                 epochs,
                 values,
@@ -325,10 +334,21 @@ def _plot_curve_group(
         axis.set_title(metric)
         axis.set_ylabel(metric)
         axis.grid(True, alpha=0.25)
+        if plotted_any and logscale_candidate and not has_non_positive:
+            axis.set_yscale("log")
         if not plotted_any:
             axis.text(0.5, 0.5, f"No data for {metric}", ha="center", va="center", transform=axis.transAxes)
         else:
             axis.legend(fontsize=8, loc="best")
+        if plotted_any and logscale_candidate and has_non_positive:
+            axis.text(
+                0.02,
+                0.02,
+                "Log scale skipped (non-positive values present)",
+                fontsize=8,
+                transform=axis.transAxes,
+                va="bottom",
+            )
 
     axes[-1].set_xlabel("Epoch")
     figure.suptitle(f"{origin_label} metrics")
@@ -378,6 +398,9 @@ def _plot_summary_group(
 
         numeric_values = pd.to_numeric(pd.Series(values), errors="coerce")
         valid_mask = numeric_values.notna()
+        positive_mask = numeric_values > 0
+        use_log_scale = _is_ppl_metric(metric) and valid_mask.any() and bool(positive_mask.loc[valid_mask].all())
+        has_non_positive = _is_ppl_metric(metric) and valid_mask.any() and not bool(positive_mask.loc[valid_mask].all())
         if valid_mask.any():
             valid_positions = [xpos for xpos, is_valid in zip(x_positions, valid_mask) if bool(is_valid)]
             valid_values = numeric_values.loc[valid_mask].tolist()
@@ -393,6 +416,17 @@ def _plot_summary_group(
         axis.set_xticks(x_positions)
         axis.set_xticklabels(run_labels, rotation=30, ha="right")
         axis.grid(True, axis="y", alpha=0.25)
+        if use_log_scale:
+            axis.set_yscale("log")
+        elif has_non_positive:
+            axis.text(
+                0.02,
+                0.02,
+                "Log scale skipped (non-positive values present)",
+                fontsize=8,
+                transform=axis.transAxes,
+                va="bottom",
+            )
 
     figure.suptitle(f"{origin_label} metrics across runs")
 
