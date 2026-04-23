@@ -13,6 +13,7 @@ uv.lock
 __pycache__/
 *.py[cod]
 *.so
+.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
