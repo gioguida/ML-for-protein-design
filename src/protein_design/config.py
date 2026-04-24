@@ -61,15 +61,12 @@ def _cuda_available() -> bool:
 
 
 def build_model_config(cfg: DictConfig, device: str | None = None) -> ModelConfig:
-    """Build a ModelConfig from a nested Hydra config.
-
-    Evotuning trains on raw sequences, so `use_context` defaults to False here.
-    """
+    """Build a ModelConfig from a nested Hydra config."""
     resolved_device = device or ("cuda" if _cuda_available() else "cpu")
     return ModelConfig(
         esm_model_path=cfg.model.name,
         device=resolved_device,
-        use_context=False,
+        use_context=bool(cfg.model.get("use_context", True)),
         freeze_embeddings=bool(cfg.model.freeze_embeddings),
         freeze_first_n_layers=int(cfg.model.freeze_first_n_layers),
     )

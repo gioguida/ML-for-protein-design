@@ -1,8 +1,8 @@
 defaults:
-  - task: evotuning
   - model: esm2_35m
   - data: evo/oas_full
   - scoring: d2
+  - task: evotuning
   - _self_
 
 seed: 42

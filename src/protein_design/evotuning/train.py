@@ -242,6 +242,7 @@ def _train_evotuning(
                         batch_size=scoring_cfg.batch_size,
                         seed=run_cfg.seed,
                         flank_ks=scoring_cfg.flank_ks,
+                        scorer=model,
                     )
                     if wandb_mod is not None:
                         wandb_mod.log(
@@ -328,6 +329,7 @@ def _train_evotuning(
             batch_size=scoring_cfg.batch_size,
             seed=run_cfg.seed,
             flank_ks=scoring_cfg.flank_ks,
+            scorer=model,
         )
         if wandb_mod is not None:
             wandb_mod.log(
@@ -444,6 +446,7 @@ def _train_ttt(
             batch_size=scoring_cfg.batch_size,
             seed=run_cfg.seed,
             flank_ks=scoring_cfg.flank_ks,
+            scorer=model,
         )
         if wandb_mod is not None:
             wandb_mod.log(
