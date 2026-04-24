@@ -42,3 +42,40 @@ def test_hamming_connected_components_and_cluster_split_membership(tmp_path: Pat
     assert (split_per_cluster == 1).all()
 
     assert set(membership["split"].unique()).issubset({"train", "val", "test"})
+
+
+def test_cluster_split_membership_isolated_per_num_mut(tmp_path: Path) -> None:
+    base_df = pd.DataFrame(
+        {
+            # "AAA" appears in both groups and would become one global cluster if split globally.
+            "aa": ["AAA", "AAB", "AAA", "AAC"],
+            "num_mut": [2, 2, 3, 3],
+            "mut": ["A1A;A2A", "A1A;A2B", "A1A;A2A;A3A", "A1A;A2A;A3C"],
+            "M22_binding_enrichment_adj": [1.0, -0.1, 0.8, -0.2],
+            "delta_M22_binding_enrichment_adj": [0.1, -0.01, 0.08, -0.02],
+        }
+    )
+
+    processed_dir = tmp_path / "processed"
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    base_csv = processed_dir / "ED2_all.csv"
+    base_df.to_csv(base_csv, index=False)
+
+    membership = build_or_load_cluster_split_membership(
+        base_df=base_df,
+        base_csv_path=base_csv,
+        processed_dir=processed_dir,
+        train_frac=1.0,
+        val_frac=0.0,
+        test_frac=0.0,
+        seed=123,
+        force_rebuild=True,
+        positive_threshold=0.0,
+        stratify_bins=2,
+        hamming_distance=1,
+    )
+
+    clusters_per_num_mut = membership.groupby("num_mut")["cluster_id"].nunique().to_dict()
+    assert clusters_per_num_mut.get(2.0, 0) == 1
+    assert clusters_per_num_mut.get(3.0, 0) == 1
+    assert membership["cluster_id"].nunique() == 2

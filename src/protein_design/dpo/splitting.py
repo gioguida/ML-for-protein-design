@@ -190,7 +190,7 @@ def build_or_load_cluster_split_membership(
     meta_path = processed_dir / SPLIT_MEMBERSHIP_META_FILENAME
 
     expected_meta = {
-        "method": "hamming_connected_components_lte_1",
+        "method": "hamming_connected_components_lte_1_per_num_mut",
         "hamming_distance": int(hamming_distance),
         "train_frac": float(train_frac),
         "val_frac": float(val_frac),
@@ -198,6 +198,7 @@ def build_or_load_cluster_split_membership(
         "seed": int(seed),
         "positive_threshold": float(positive_threshold),
         "stratify_bins": int(stratify_bins),
+        "num_mut_groups": [2, 3, 4, 5],
     }
 
     should_rebuild = bool(force_rebuild)
@@ -238,35 +239,55 @@ def build_or_load_cluster_split_membership(
     clean_df["is_positive"] = (enrichment > float(positive_threshold)).fillna(False).astype(int)
     clean_df["split_key"] = split_membership_keys(clean_df).astype(str)
 
-    cluster_ids = _compute_cluster_ids_hamming_lte_one(clean_df["aa"].tolist())
-    clean_df["cluster_id"] = cluster_ids
+    num_mut_series = pd.to_numeric(clean_df["num_mut"], errors="coerce")
+    clean_df["num_mut"] = num_mut_series
+    allowed_num_mut = (2, 3, 4, 5)
+    clean_df = clean_df[clean_df["num_mut"].isin(allowed_num_mut)].copy().reset_index(drop=True)
+    if clean_df.empty:
+        raise ValueError("Base dataframe has no valid rows with num_mut in {2,3,4,5}.")
 
-    cluster_stats = (
-        clean_df.groupby("cluster_id", sort=True)["is_positive"]
-        .agg(cluster_size="size", cluster_positive_count="sum")
-        .reset_index()
-    )
-    cluster_stats["cluster_positive_fraction"] = (
-        cluster_stats["cluster_positive_count"] / cluster_stats["cluster_size"]
-    )
+    per_group_memberships = []
+    cluster_id_offset = 0
+    for num_mut in allowed_num_mut:
+        group_df = clean_df[clean_df["num_mut"] == num_mut].copy().reset_index(drop=True)
+        if group_df.empty:
+            continue
 
-    split_map = _assign_cluster_splits_stratified(
-        clusters_df=cluster_stats,
-        train_frac=train_frac,
-        val_frac=val_frac,
-        test_frac=test_frac,
-        seed=int(seed),
-        stratify_bins=int(stratify_bins),
-    )
-    clean_df["split"] = clean_df["cluster_id"].map(split_map)
-    if clean_df["split"].isna().any():
-        raise ValueError("Found base rows without split assignment after cluster split.")
+        local_cluster_ids = _compute_cluster_ids_hamming_lte_one(group_df["aa"].tolist())
+        group_df["cluster_id"] = local_cluster_ids + int(cluster_id_offset)
+        cluster_id_offset = int(group_df["cluster_id"].max()) + 1
 
-    membership_df = clean_df.merge(
-        cluster_stats[["cluster_id", "cluster_size", "cluster_positive_fraction"]],
-        on="cluster_id",
-        how="left",
-    )
+        cluster_stats = (
+            group_df.groupby("cluster_id", sort=True)["is_positive"]
+            .agg(cluster_size="size", cluster_positive_count="sum")
+            .reset_index()
+        )
+        cluster_stats["cluster_positive_fraction"] = (
+            cluster_stats["cluster_positive_count"] / cluster_stats["cluster_size"]
+        )
+
+        split_map = _assign_cluster_splits_stratified(
+            clusters_df=cluster_stats,
+            train_frac=train_frac,
+            val_frac=val_frac,
+            test_frac=test_frac,
+            seed=int(seed) + int(num_mut),
+            stratify_bins=int(stratify_bins),
+        )
+        group_df["split"] = group_df["cluster_id"].map(split_map)
+        if group_df["split"].isna().any():
+            raise ValueError(
+                f"Found base rows without split assignment after cluster split for num_mut={num_mut}."
+            )
+
+        group_membership = group_df.merge(
+            cluster_stats[["cluster_id", "cluster_size", "cluster_positive_fraction"]],
+            on="cluster_id",
+            how="left",
+        )
+        per_group_memberships.append(group_membership)
+
+    membership_df = pd.concat(per_group_memberships, ignore_index=True)
     membership_df = membership_df[
         [
             "split_key",
@@ -317,4 +338,33 @@ def summarize_split_membership(membership_df: pd.DataFrame) -> Dict[str, float]:
         split_df = membership_df[membership_df["split"] == split]
         out[f"num_sequences_{split}"] = float(len(split_df))
         out[f"num_positives_{split}"] = float(split_df["is_positive"].sum())
+    return out
+
+
+def summarize_split_membership_by_num_mut(
+    membership_df: pd.DataFrame,
+) -> Dict[int, Dict[str, float]]:
+    """Return per-num_mut split and cluster summary statistics for logging."""
+    if membership_df.empty or "num_mut" not in membership_df.columns:
+        return {}
+
+    out: Dict[int, Dict[str, float]] = {}
+    numeric_num_mut = pd.to_numeric(membership_df["num_mut"], errors="coerce")
+    for num_mut in sorted(numeric_num_mut.dropna().astype(int).unique().tolist()):
+        group_df = membership_df[numeric_num_mut == num_mut]
+        if group_df.empty:
+            continue
+
+        clusters = group_df[["cluster_id", "cluster_size"]].drop_duplicates()
+        stats: Dict[str, float] = {
+            "num_clusters": float(clusters["cluster_id"].nunique()),
+            "cluster_size_min": float(clusters["cluster_size"].min()),
+            "cluster_size_median": float(clusters["cluster_size"].median()),
+            "cluster_size_max": float(clusters["cluster_size"].max()),
+        }
+        for split in ("train", "val", "test"):
+            split_df = group_df[group_df["split"] == split]
+            stats[f"num_sequences_{split}"] = float(len(split_df))
+            stats[f"num_positives_{split}"] = float(split_df["is_positive"].sum())
+        out[int(num_mut)] = stats
     return out

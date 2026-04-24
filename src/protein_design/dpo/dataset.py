@@ -19,6 +19,7 @@ from .splitting import (
 	build_or_load_cluster_split_membership,
 	split_membership_keys,
 	summarize_split_membership,
+	summarize_split_membership_by_num_mut,
 )
 from .utils import _gap_pairs
 
@@ -808,8 +809,22 @@ def build_split_pair_dataframes_from_raw(
 		stratify_bins=int(split_stratify_bins),
 	)
 	summary = summarize_split_membership(split_membership)
+	per_num_mut_summary = summarize_split_membership_by_num_mut(split_membership)
+	for num_mut, num_mut_stats in per_num_mut_summary.items():
+		LOG.info(
+			"Cluster split summary | num_mut=%d | clusters=%d | cluster_size(min/median/max)=%.0f/%.0f/%.0f | "
+			"pos(train/val/test)=%.0f/%.0f/%.0f",
+			int(num_mut),
+			int(num_mut_stats["num_clusters"]),
+			num_mut_stats["cluster_size_min"],
+			num_mut_stats["cluster_size_median"],
+			num_mut_stats["cluster_size_max"],
+			num_mut_stats["num_positives_train"],
+			num_mut_stats["num_positives_val"],
+			num_mut_stats["num_positives_test"],
+		)
 	LOG.info(
-		"Cluster split summary | clusters=%d | cluster_size(min/median/max)=%.0f/%.0f/%.0f | "
+		"Cluster split summary | all_num_mut | clusters=%d | cluster_size(min/median/max)=%.0f/%.0f/%.0f | "
 		"seq(train/val/test)=%.0f/%.0f/%.0f | pos(train/val/test)=%.0f/%.0f/%.0f",
 		int(summary["num_clusters"]),
 		summary["cluster_size_min"],

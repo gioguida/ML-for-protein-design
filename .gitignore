@@ -20,6 +20,7 @@ __pycache__/
 # Data (Avoid checking in data unless explicitly intended)
 # If your datasets are huge, ignore them completely
 data/
+data/processed/*
 
 # Keep data structure but ignore large files if desired
 data/**/*.csv
@@ -40,7 +41,7 @@ checkpoints/
 *.bin
 
 # Wandb
-wandb/
+# wandb/
 
 # SLURM / job logs
 bash_scripts/logs/

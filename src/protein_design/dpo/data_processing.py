@@ -283,12 +283,9 @@ def build_validation_perplexity_csvs(
     base_keys = split_membership_keys(base_df).astype(str)
     df_val = base_df.loc[base_keys.isin(val_keys)].reset_index(drop=True)
     val_pos, val_neg = build_perplexity_eval_sets(df_val=df_val, cfg=cfg, seed=int(seed))
-    # Spearman validation should cover the full validation split distribution,
-    # but still stay on D2 rows (num_mut == 2) for consistent mutation parsing/scoring.
+    # Spearman validation should cover the full validation split distribution
+    # (no delta-score filtering, no num_mut restriction).
     val_spearman = df_val.copy()
-    if "num_mut" in val_spearman.columns:
-        num_mut = pd.to_numeric(val_spearman["num_mut"], errors="coerce")
-        val_spearman = val_spearman.loc[num_mut == 2].copy()
 
     val_pos.to_csv(output_paths["val_pos"], index=False)
     val_neg.to_csv(output_paths["val_neg"], index=False)

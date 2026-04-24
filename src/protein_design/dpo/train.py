@@ -561,20 +561,16 @@ def _ensure_validation_eval_csvs(cfg: Any, logger: logging.Logger) -> bool:
         if not path.exists():
             return False
         try:
-            df = pd.read_csv(path, usecols=lambda c: c in {"num_mut", "mut", "M22_binding_enrichment_adj"})
+            df = pd.read_csv(path, usecols=lambda c: c in {"aa", "M22_binding_enrichment_adj"})
         except Exception:
             return False
-        required_cols = {"mut", "M22_binding_enrichment_adj"}
+        required_cols = {"aa", "M22_binding_enrichment_adj"}
         if not required_cols.issubset(df.columns):
             return False
-        if "num_mut" in df.columns:
-            num_mut = pd.to_numeric(df["num_mut"], errors="coerce")
-            df = df.loc[num_mut == 2].copy()
+        df["aa"] = df["aa"].astype(str).str.strip()
+        df = df[df["aa"] != ""].copy()
         enrichment = pd.to_numeric(df["M22_binding_enrichment_adj"], errors="coerce")
         df = df.loc[enrichment.notna()].copy()
-        if "mut" in df.columns:
-            df["mut"] = df["mut"].astype(str).str.strip()
-            df = df[df["mut"] != ""].copy()
         return len(df) >= 3
 
     has_base_files = val_pos_path.exists() and val_neg_path.exists() and val_spearman_path.exists()
@@ -716,7 +712,7 @@ def _load_validation_spearman_df(cfg: Any, logger: logging.Logger) -> Optional[p
         logger.warning("Could not read validation Spearman set (%s). Skipping Spearman logging.", exc)
         return None
 
-    required_cols = {"mut", "M22_binding_enrichment_adj"}
+    required_cols = {"aa", "M22_binding_enrichment_adj"}
     missing_cols = required_cols.difference(val_df.columns)
     if missing_cols:
         logger.warning(
@@ -725,14 +721,11 @@ def _load_validation_spearman_df(cfg: Any, logger: logging.Logger) -> Optional[p
         )
         return None
 
-    if "num_mut" in val_df.columns:
-        val_df = val_df[val_df["num_mut"] == 2].copy()
-
+    val_df["aa"] = val_df["aa"].astype(str).str.strip()
+    val_df = val_df[val_df["aa"] != ""].copy()
     enrichment = pd.to_numeric(val_df["M22_binding_enrichment_adj"], errors="coerce")
     val_df = val_df.loc[enrichment.notna()].copy()
     val_df["M22_binding_enrichment_adj"] = enrichment.loc[enrichment.notna()].astype(float)
-    val_df["mut"] = val_df["mut"].astype(str).str.strip()
-    val_df = val_df[val_df["mut"] != ""].copy()
 
     if len(val_df) < 3:
         logger.warning("Validation Spearman set too small (%d rows). Skipping Spearman logging.", len(val_df))
