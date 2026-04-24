@@ -337,16 +337,11 @@ def _resolve_storage_paths(full_run_name: str) -> Dict[str, Path]:
     )
     train_dir = Path(os.environ.get("TRAIN_DIR", str(scratch_dir / "train")))
     wandb_dir = Path(os.environ.get("WANDB_DIR", str(scratch_dir / "wandb")))
-    project_dir = Path(
-        os.environ.get("PROJECT_DIR", f"/cluster/project/infk/krause/{user}/protein-design")
-    )
     return {
         "scratch_dir": scratch_dir,
         "train_dir": train_dir,
         "wandb_dir": wandb_dir,
-        "project_dir": project_dir,
         "run_dir": train_dir / full_run_name,
-        "archive_dir": project_dir / "checkpoints" / full_run_name,
     }
 
 
@@ -886,7 +881,6 @@ def run_dpo(cfg: Any) -> Path:
     logger.info("Starting DPO training run")
     logger.info("Full run name: %s", full_run_name)
     logger.info("Run directory: %s", output_dir)
-    logger.info("Archive directory: %s", storage["archive_dir"])
 
     resolved_cfg_path = output_dir / "resolved_config.yaml"
     run_cfg_path = output_dir / "config.yaml"
@@ -1280,19 +1274,6 @@ def run_dpo(cfg: Any) -> Path:
         metrics_payload[metric_name] = None if math.isnan(metric_value) else metric_value
     metrics_path = output_dir / "metrics.json"
     metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
-
-    archive_dir = storage["archive_dir"]
-    archive_dir.mkdir(parents=True, exist_ok=True)
-    if root_best_ckpt.exists():
-        archived_best = archive_dir / "best.pt"
-        shutil.copy2(root_best_ckpt, archived_best)
-        logger.info("Archived best checkpoint to %s", archived_best)
-    else:
-        logger.warning("Best checkpoint not found at %s; skipping archive copy.", root_best_ckpt)
-
-    archived_metrics = archive_dir / "metrics.json"
-    shutil.copy2(metrics_path, archived_metrics)
-    logger.info("Archived metrics to %s", archived_metrics)
 
     logger.info("Saved history to %s", history_csv_path)
     logger.info("Saved summary to %s", summary_path)

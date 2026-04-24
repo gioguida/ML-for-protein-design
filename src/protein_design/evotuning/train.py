@@ -537,13 +537,6 @@ def run_stage(
             log=run_log, wandb_mod=wandb_mod, log_every_n_steps=log_every_n_steps,
         )
 
-    archive_dir: Optional[Path] = None
-    if run_cfg.project_dir and handoff_ckpt.exists():
-        archive_dir = ensure_dir(f"{run_cfg.project_dir}/checkpoints/{run_name}")
-        archive_path = archive_dir / handoff_ckpt.name
-        shutil.copy2(handoff_ckpt, archive_path)
-        run_log.info("Archived checkpoint to %s", archive_path)
-
     metrics = {
         "metadata": {
             "total_steps": global_step,
@@ -561,9 +554,5 @@ def run_stage(
 
     if wandb_run is not None:
         wandb_run.finish()
-
-    if archive_dir is not None:
-        shutil.copy2(run_dir / "metrics.json", archive_dir / "metrics.json")
-        run_log.info("Archived metrics to %s", archive_dir / "metrics.json")
 
     return handoff_ckpt
