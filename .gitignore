@@ -9,6 +9,7 @@ ENV/
 __pycache__/
 *.py[cod]
 *.so
+.pytest_cache
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -18,10 +19,13 @@ __pycache__/
 
 # Data (Avoid checking in data unless explicitly intended)
 # If your datasets are huge, ignore them completely
-# data/
+data/
+data/processed/*
 
 # Keep data structure but ignore large files if desired
-# data/**/*.csv
+data/**/*.csv
+!conf/data/
+!conf/data/**
 
 # uv
 uv.lock
@@ -39,7 +43,7 @@ checkpoints/
 *.bin
 
 # Wandb
-wandb/
+# wandb/
 
 # SLURM / job logs
 bash_scripts/logs/
@@ -51,3 +55,11 @@ outputs/
 # Training logs
 *.log
 oas_ighg_urls.txt
+.tmp_test_runs
+
+# Plots 
+plots/
+
+# Agents
+.claude
+.codex

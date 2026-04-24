@@ -1,6 +1,7 @@
 """OAS FASTA dataset and DataLoader utilities for ESM2 evotuning."""
 
 import logging
+from typing import Optional
 
 import numpy as np
 import torch
@@ -73,16 +74,20 @@ def _load_fasta_by_split(
 
 def make_dataloaders(
     fasta_path: str,
-    tokenizer_name: str,
     max_seq_len: int,
     mlm_probability: float,
     batch_size: int,
     split_cfg: SplitConfig,
+    tokenizer: Optional[AutoTokenizer] = None,
+    tokenizer_name: Optional[str] = None,
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Build train / val / test DataLoaders from a single FASTA using
     hash-based split assignment. Splits are stable across runs given the
     same salt and sequence IDs."""
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    if tokenizer is None:
+        if tokenizer_name is None:
+            raise ValueError("Pass either tokenizer or tokenizer_name to make_dataloaders.")
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     arrays = _load_fasta_by_split(fasta_path, split_cfg)
 
     datasets = {

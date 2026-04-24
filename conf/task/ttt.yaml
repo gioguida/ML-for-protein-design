@@ -1,4 +1,14 @@
 # @package _global_
+defaults:
+  - override /data: evo/c05_single
+  - override /scoring: d2
+  - _self_
+
+task:
+  name: ttt
+  runner: evotuning
+  stage_type: ttt
+
 training:
   learning_rate: 4.0e-4
   warmup_steps: 0

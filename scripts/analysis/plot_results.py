@@ -20,7 +20,7 @@ Usage (repeat run/label pairs via Hydra list overrides):
     python scripts/analysis/plot_results.py scoring=d2 data=oas_full \\
         '+runs=[/path/to/run1,/path/to/run2]' \\
         '+labels=[evotuned,+C05]' \\
-        +out_dir=\${HOME}/protein-design/plots/meeting
+        +out_dir=${HOME}/protein-design/plots/meeting
 """
 
 import functools
@@ -41,8 +41,8 @@ from omegaconf import DictConfig, OmegaConf
 from transformers import AutoTokenizer
 
 from protein_design.eval import (
-    compute_cdr_pseudo_perplexity,
     compute_perplexity,
+    corpus_perplexity,
     load_scoring_datasets,
     run_multi_scoring_evaluation,
 )
@@ -50,6 +50,7 @@ from protein_design.evotuning.data import make_dataloaders
 from protein_design.evotuning.splits import SplitConfig
 from protein_design.model import ESM2Model
 from protein_design.config import build_model_config
+from protein_design.constants import C05_CDRH3
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -264,7 +265,7 @@ def evaluate_run(run_dir: Path, datasets, tokenizer, device, scoring_batch_size,
             logger.warning("  fasta path missing, skipping perplexity recomputation")
 
     if cdr_ppl is None:
-        cdr_ppl = compute_cdr_pseudo_perplexity(model, tokenizer, device)
+        cdr_ppl = corpus_perplexity([C05_CDRH3], scorer=model, cdr_only=True)
 
     del model
     torch.cuda.empty_cache()
@@ -296,7 +297,7 @@ def evaluate_base(scoring_cfg: DictConfig, datasets, tokenizer, device, seed,
                 model, test_loader, device, max_batches=max_ppl_batches,
             )
 
-    cdr_ppl = compute_cdr_pseudo_perplexity(model, tokenizer, device)
+    cdr_ppl = _compute_cdr_perplexity(model)
 
     del model
     torch.cuda.empty_cache()
@@ -652,8 +653,8 @@ def main(cfg: DictConfig) -> None:
     # independent of the training fasta — do not split by corpus.
     plot_perplexity_bar(
         cdr_ppl_series, out_dir / "cdr_perplexity_comparison.png",
-        ylabel="CDR-H3 pseudo-perplexity  (↓ better)",
-        title="CDR-H3 pseudo-perplexity (full VH context, single-position masking)",
+        ylabel="CDR-H3 perplexity (PLL)  (↓ better)",
+        title="CDR-H3 PLL perplexity (context-aware)",
     )
     plot_loss_curves(history_by_label, out_dir / "train_val_loss_curves.png")
 

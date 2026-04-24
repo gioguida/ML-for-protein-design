@@ -1,4 +1,14 @@
 # @package _global_
+defaults:
+  - override /data: evo/oas_full
+  - override /scoring: d2
+  - _self_
+
+task:
+  name: evotuning
+  runner: evotuning
+  stage_type: evotuning
+
 training:
   learning_rate: 2.0e-5
   warmup_steps: 500
