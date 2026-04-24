@@ -230,7 +230,7 @@ def build_validation_perplexity_csvs(
     force: bool = False,
     verbose: bool = True,
 ) -> Dict[str, Path]:
-    """Build val_pos.csv and val_neg.csv from the cluster-based validation split of ED2."""
+    """Build validation eval CSVs from the cluster-based validation split of ED2."""
     raw_csv_path = Path(raw_csv_path)
     processed_dir = Path(processed_dir)
     processed_dir.mkdir(parents=True, exist_ok=True)
@@ -238,6 +238,7 @@ def build_validation_perplexity_csvs(
     output_paths = {
         "val_pos": processed_dir / "val_pos.csv",
         "val_neg": processed_dir / "val_neg.csv",
+        "val_spearman": processed_dir / "val_spearman.csv",
     }
 
     processed_paths = build_processed_views(
@@ -285,6 +286,7 @@ def build_validation_perplexity_csvs(
 
     val_pos.to_csv(output_paths["val_pos"], index=False)
     val_neg.to_csv(output_paths["val_neg"], index=False)
+    df_val.to_csv(output_paths["val_spearman"], index=False)
 
     if verbose:
         print(
@@ -293,6 +295,7 @@ def build_validation_perplexity_csvs(
         )
         print(f"Wrote: {output_paths['val_pos']}")
         print(f"Wrote: {output_paths['val_neg']}")
+        print(f"Wrote: {output_paths['val_spearman']}")
 
     return output_paths
 

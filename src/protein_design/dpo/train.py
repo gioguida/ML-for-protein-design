@@ -551,11 +551,12 @@ def _resolve_ed5_raw_csv_path(cfg: Any) -> Path:
 
 
 def _ensure_validation_eval_csvs(cfg: Any, logger: logging.Logger) -> bool:
-    """Ensure val_pos/val_neg CSVs exist for validation perplexity and Spearman tracking."""
+    """Ensure validation eval CSVs exist for perplexity and Spearman tracking."""
     processed_dir = _resolve_processed_dir(cfg)
     val_pos_path = processed_dir / "val_pos.csv"
     val_neg_path = processed_dir / "val_neg.csv"
-    if val_pos_path.exists() and val_neg_path.exists():
+    val_spearman_path = processed_dir / "val_spearman.csv"
+    if val_pos_path.exists() and val_neg_path.exists() and val_spearman_path.exists():
         return True
 
     raw_csv_path = _resolve_raw_csv_path(cfg)
@@ -577,18 +578,20 @@ def _ensure_validation_eval_csvs(cfg: Any, logger: logging.Logger) -> bool:
         )
         return False
 
-    if (not val_pos_path.exists()) or (not val_neg_path.exists()):
+    if (not val_pos_path.exists()) or (not val_neg_path.exists()) or (not val_spearman_path.exists()):
         logger.warning(
-            "Validation eval CSV build finished but files are still missing at %s and %s.",
+            "Validation eval CSV build finished but files are still missing at %s, %s, and/or %s.",
             val_pos_path,
             val_neg_path,
+            val_spearman_path,
         )
         return False
 
     logger.info(
-        "Prepared validation eval CSVs: val_pos=%s val_neg=%s",
+        "Prepared validation eval CSVs: val_pos=%s val_neg=%s val_spearman=%s",
         outputs["val_pos"],
         outputs["val_neg"],
+        outputs["val_spearman"],
     )
     return True
 
@@ -675,25 +678,21 @@ def _load_validation_spearman_df(cfg: Any, logger: logging.Logger) -> Optional[p
     """Load validation scoring rows used for Spearman tracking."""
     _ensure_validation_eval_csvs(cfg, logger)
     processed_dir = _resolve_processed_dir(cfg)
-    val_pos_path = processed_dir / "val_pos.csv"
-    val_neg_path = processed_dir / "val_neg.csv"
+    val_spearman_path = processed_dir / "val_spearman.csv"
 
-    if (not val_pos_path.exists()) or (not val_neg_path.exists()):
+    if not val_spearman_path.exists():
         logger.warning(
-            "Validation Spearman sets missing (expected %s and %s). Skipping Spearman logging.",
-            val_pos_path,
-            val_neg_path,
+            "Validation Spearman set missing (expected %s). Skipping Spearman logging.",
+            val_spearman_path,
         )
         return None
 
     try:
-        val_pos_df = pd.read_csv(val_pos_path)
-        val_neg_df = pd.read_csv(val_neg_path)
+        val_df = pd.read_csv(val_spearman_path)
     except (FileNotFoundError, pd.errors.ParserError) as exc:
-        logger.warning("Could not read validation Spearman sets (%s). Skipping Spearman logging.", exc)
+        logger.warning("Could not read validation Spearman set (%s). Skipping Spearman logging.", exc)
         return None
 
-    val_df = pd.concat([val_pos_df, val_neg_df], ignore_index=True)
     required_cols = {"mut", "M22_binding_enrichment_adj"}
     missing_cols = required_cols.difference(val_df.columns)
     if missing_cols:
