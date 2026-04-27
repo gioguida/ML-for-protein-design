@@ -972,6 +972,124 @@ def run_dpo(cfg: Any) -> Path:
     test_spearman_df = _load_test_spearman_df(cfg, logger)
     val_spearman_batch_size = int(getattr(cfg.model, "pll_mask_chunk_size", 64))
 
+    if start_epoch <= 1 and global_step == 0:
+        val_metrics_step0, _ = _run_epoch(
+            policy=policy,
+            reference=reference,
+            dataloader=val_loader,
+            loss=str(cfg.training.loss),
+            beta=float(cfg.training.beta),
+            temperature=float(cfg.training.temperature),
+            optimizer=None,
+            grad_clip_norm=0.0,
+            logger=logger,
+            log_every_n_steps=0,
+            track_metrics=True,
+            global_step=global_step,
+            wandb_mod=None,
+            epoch=0,
+        )
+        val_perplexity_step0 = _compute_chosen_perplexity(val_loader, policy)
+        lr_step0 = float(optimizer.param_groups[0]["lr"])
+        step0_record: Dict[str, float] = {
+            "epoch": 0.0,
+            "lr": lr_step0,
+            "train_loss": float("nan"),
+            "train_reward_accuracy": float("nan"),
+            "train_reward_margin": float("nan"),
+            "train_implicit_kl": float("nan"),
+            "val_loss": float(val_metrics_step0["loss"]),
+            "val_reward_accuracy": float(val_metrics_step0["reward_accuracy"]),
+            "val_reward_margin": float(val_metrics_step0["reward_margin"]),
+            "val_implicit_kl": float(val_metrics_step0["implicit_kl"]),
+            "val_perplexity": float(val_perplexity_step0),
+            "train_batches": 0.0,
+            "train_pairs": 0.0,
+            "val_batches": float(val_metrics_step0["num_batches"]),
+            "val_pairs": float(val_metrics_step0["num_pairs"]),
+            "train_skipped": 0.0,
+            "val_skipped": float(val_metrics_step0["skipped_batches"]),
+        }
+
+        val_eval_sets = _load_validation_pll_eval_sets(cfg, logger)
+        if val_eval_sets is not None:
+            val_ppl_metrics = evaluate_perplexity(
+                model=policy,
+                eval_sets=val_eval_sets,
+                device=str(cfg.training.device),
+            )
+            step0_record.update(val_ppl_metrics)
+            logger.info(
+                "Validation Perplexity (step 0) | ppl/val_pos=%.4f | ppl/val_neg=%.4f | ppl/val_wt=%.4f",
+                float(val_ppl_metrics["ppl/val_pos"]),
+                float(val_ppl_metrics["ppl/val_neg"]),
+                float(val_ppl_metrics["ppl/val_wt"]),
+            )
+
+        if val_spearman_df is not None:
+            try:
+                val_spearman = run_scoring_evaluation(
+                    scorer=policy,
+                    df=val_spearman_df,
+                    enrichment_col="M22_binding_enrichment_adj",
+                    batch_size=val_spearman_batch_size,
+                    seed=int(cfg.seed),
+                    scoring_mode="cdr_pll",
+                )
+                step0_record.update(
+                    {
+                        "val_spearman_avg": float(val_spearman["spearman_avg"]),
+                        "val_spearman_avg_pval": float(val_spearman["spearman_avg_pval"]),
+                        "val_spearman_random": float(val_spearman["spearman_random"]),
+                        "val_spearman_random_pval": float(val_spearman["spearman_random_pval"]),
+                    }
+                )
+                logger.info(
+                    "Validation Spearman (step 0) | avg=%.4f (p=%.2e) | random=%.4f (p=%.2e)",
+                    float(val_spearman["spearman_avg"]),
+                    float(val_spearman["spearman_avg_pval"]),
+                    float(val_spearman["spearman_random"]),
+                    float(val_spearman["spearman_random_pval"]),
+                )
+            except Exception as exc:
+                logger.warning("Validation Spearman evaluation failed at step 0 (%s). Skipping this metric.", exc)
+
+        history.append(step0_record)
+        logger.info(
+            "Epoch 0 (pretrained) | lr=%.3e | val_loss=%.6f | val_acc=%.4f | val_margin=%.4f | val_kl=%.4f | val_ppl=%.4f | val_batches=%d",
+            lr_step0,
+            step0_record["val_loss"],
+            step0_record["val_reward_accuracy"],
+            step0_record["val_reward_margin"],
+            step0_record["val_implicit_kl"],
+            step0_record["val_perplexity"],
+            int(step0_record["val_batches"]),
+        )
+        if wandb_run is not None:
+            wandb_mod.log(step0_record, step=global_step)
+
+        best_val_loss = float(step0_record["val_loss"])
+        _save_checkpoint(
+            best_ckpt,
+            epoch=0,
+            policy=policy,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            best_val_loss=best_val_loss,
+        )
+        shutil.copy2(best_ckpt, root_best_ckpt)
+        _save_checkpoint(
+            last_ckpt,
+            epoch=0,
+            policy=policy,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            best_val_loss=best_val_loss,
+        )
+        step0_ckpt = ckpt_dir / f"{step_prefix}_0.pt"
+        shutil.copy2(last_ckpt, step0_ckpt)
+        logger.info("Saved step-0 pretrained checkpoints to %s and %s", root_best_ckpt, step0_ckpt)
+
     for epoch in range(start_epoch, int(cfg.training.num_epochs) + 1):
         train_metrics, global_step = _run_epoch(
             policy=policy,

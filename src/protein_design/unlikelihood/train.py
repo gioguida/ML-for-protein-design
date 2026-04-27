@@ -379,6 +379,123 @@ def run_unlikelihood(cfg: Any) -> Path:
     running_batches = 0
     hit_max_steps = False
 
+    val_objective = _evaluate_unlikelihood_objective(
+        model=model,
+        dataloader=val_loader,
+        device=device,
+        unwanted_token_ids_by_position=unwanted_token_ids_by_position,
+        alpha=alpha,
+    )
+    val_cdr_ppl = corpus_perplexity(
+        sequences_by_split["val"],
+        scorer=model,
+        cdr_only=True,
+    ) if sequences_by_split["val"] else float("nan")
+    eval_record = {
+        "step": float(global_step),
+        "epoch": 0.0,
+        "val_loss": float(val_objective["loss"]),
+        "val_mlm_loss": float(val_objective["mlm_loss"]),
+        "val_unlikelihood_loss": float(val_objective["unlikelihood_loss"]),
+        "val_unwanted_probability": float(val_objective["unwanted_probability"]),
+        "val_cdr_perplexity": float(val_cdr_ppl),
+        "wall_time": float(time.time() - train_start),
+    }
+
+    if val_eval_sets is not None:
+        val_ppl_metrics = evaluate_perplexity(
+            model=model,
+            eval_sets=val_eval_sets,
+            device=str(device),
+        )
+        eval_record.update(val_ppl_metrics)
+
+    if val_spearman_df is not None:
+        try:
+            val_spearman = run_scoring_evaluation(
+                scorer=model,
+                df=val_spearman_df,
+                enrichment_col="M22_binding_enrichment_adj",
+                batch_size=scoring_batch_size,
+                seed=int(cfg.seed),
+                scoring_mode="cdr_pll",
+            )
+            eval_record.update(
+                {
+                    "val_spearman_avg": float(val_spearman["spearman_avg"]),
+                    "val_spearman_avg_pval": float(val_spearman["spearman_avg_pval"]),
+                    "val_spearman_random": float(val_spearman["spearman_random"]),
+                    "val_spearman_random_pval": float(val_spearman["spearman_random_pval"]),
+                }
+            )
+        except Exception as exc:  # pragma: no cover - best effort eval
+            run_log.warning("Validation Spearman evaluation failed at step 0 (%s).", exc)
+
+    training_history.append(eval_record)
+    scoring_history.append(dict(eval_record))
+    run_log.info(
+        "Validation (step 0) - loss: %.4f - cdr_ppl: %.4f - unwanted_prob: %.4f",
+        float(eval_record["val_loss"]),
+        float(eval_record["val_cdr_perplexity"]),
+        float(eval_record["val_unwanted_probability"]),
+    )
+    if wandb_run is not None:
+        wandb_mod.log(
+            {f"val/{k}": v for k, v in eval_record.items() if k not in {"step", "epoch", "wall_time"}},
+            step=global_step,
+        )
+
+    step0_ckpt_path = checkpoint_dir / "step_0.pt"
+    _save_checkpoint(
+        path=step0_ckpt_path,
+        epoch=0,
+        global_step=global_step,
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        scaler=scaler,
+        val_loss=float(eval_record["val_loss"]),
+    )
+    best_val_loss = min(best_val_loss, float(eval_record["val_loss"]))
+    candidate_val_ppl_pos = float(eval_record.get("ppl/val_pos", float("nan")))
+    candidate_val_spearman = float(eval_record.get("val_spearman_avg", float("nan")))
+    should_update_best = False
+    reason = ""
+    if math.isfinite(candidate_val_ppl_pos):
+        if (not math.isfinite(best_val_ppl_pos)) or candidate_val_ppl_pos < best_val_ppl_pos:
+            should_update_best = True
+            reason = "ppl/val_pos"
+    elif (not math.isfinite(best_val_ppl_pos)) and math.isfinite(candidate_val_spearman):
+        if (not math.isfinite(best_val_spearman_avg)) or candidate_val_spearman > best_val_spearman_avg:
+            should_update_best = True
+            reason = "val_spearman_avg"
+
+    if should_update_best:
+        if reason == "ppl/val_pos":
+            best_val_ppl_pos = candidate_val_ppl_pos
+        elif reason == "val_spearman_avg":
+            best_val_spearman_avg = candidate_val_spearman
+        best_ckpt_path = run_dir / "best.pt"
+        _save_checkpoint(
+            path=best_ckpt_path,
+            epoch=0,
+            global_step=global_step,
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            scaler=scaler,
+            val_loss=best_val_loss,
+        )
+        run_log.info(
+            "New best checkpoint saved to %s (%s=%.6f) [step 0]",
+            best_ckpt_path,
+            reason,
+            candidate_val_ppl_pos if reason == "ppl/val_pos" else candidate_val_spearman,
+        )
+
+    last_validation_eval_step = global_step
+    model.train()
+
     for epoch in range(1, max_epochs + 1):
         model.train()
         epoch_had_batches = False
