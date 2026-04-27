@@ -19,6 +19,7 @@ Writes one .npz file with the schema below — this is the integration contract 
     cdrh3_identity_to_wt     (N,)     float32  NaN for OAS
     gibbs_step               (N,)     int32    -1 for non-gibbs
     chain_id                 (N,)     int32    -1 for non-gibbs
+    v_family                 (N,)     <U       IGHV{1..7} for OAS, "" otherwise
     model_variant            (1,)     <U
 """
 
@@ -91,15 +92,28 @@ def reservoir_sample_fasta(path: Path, k: int) -> List[Tuple[str, str]]:
     return reservoir
 
 
-def build_cdr3_lookup(meta_path: Path, wanted_ids: Iterable[str]) -> dict[str, tuple[str, int]]:
-    """Stream OAS metadata, return {seq_id: (cdr3_aa, cdr3_start)} restricted to wanted_ids.
+def _v_family_from_call(v_call) -> str:
+    """Extract the V-gene family prefix (e.g. 'IGHV3-21*01' -> 'IGHV3').
+
+    Handles NaN/empty, comma-separated multi-calls (takes the first), and
+    calls without a dash (returns the full string).
+    """
+    if not isinstance(v_call, str) or not v_call:
+        return ""
+    first = v_call.split(",", 1)[0].strip()
+    return first.split("-", 1)[0] if "-" in first else first
+
+
+def build_cdr3_lookup(meta_path: Path, wanted_ids: Iterable[str]) -> dict[str, tuple[str, int, str]]:
+    """Stream OAS metadata, return {seq_id: (cdr3_aa, cdr3_start, v_family)} restricted to wanted_ids.
 
     cdr3_start is the 0-based index of the CDR-H3 in the full VH sequence, computed
     exactly from segment lengths (fwr1+cdr1+fwr2+cdr2+fwr3) — no substring search.
+    v_family is the V-gene family prefix (e.g. 'IGHV3'), '' if missing.
     """
     wanted = set(wanted_ids)
-    out: dict[str, tuple[str, int]] = {}
-    cols = ["seq_id", "cdr3_aa", "fwr1_aa", "cdr1_aa", "fwr2_aa", "cdr2_aa", "fwr3_aa"]
+    out: dict[str, tuple[str, int, str]] = {}
+    cols = ["seq_id", "cdr3_aa", "fwr1_aa", "cdr1_aa", "fwr2_aa", "cdr2_aa", "fwr3_aa", "v_call"]
     for chunk in pd.read_csv(meta_path, usecols=cols, chunksize=500_000):
         hit = chunk[chunk["seq_id"].isin(wanted)]
         for row in hit.itertuples(index=False):
@@ -108,7 +122,8 @@ def build_cdr3_lookup(meta_path: Path, wanted_ids: Iterable[str]) -> dict[str, t
                 len(s) if isinstance(s, str) else 0
                 for s in (row.fwr1_aa, row.cdr1_aa, row.fwr2_aa, row.cdr2_aa, row.fwr3_aa)
             )
-            out[str(row.seq_id)] = (cdr, start)
+            family = _v_family_from_call(row.v_call)
+            out[str(row.seq_id)] = (cdr, start, family)
     return out
 
 
@@ -186,6 +201,7 @@ def build_reference_set(
         "cdrh3_identity_to_wt": 1.0,
         "gibbs_step": -1,
         "chain_id": -1,
+        "v_family": "",
     })
 
     # 2) DMS
@@ -203,6 +219,7 @@ def build_reference_set(
             "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
             "gibbs_step": -1,
             "chain_id": -1,
+            "v_family": "",
         })
 
     # 3) OAS
@@ -213,8 +230,9 @@ def build_reference_set(
     n_unmatched = 0
     for sid, seq in oas:
         entry = cdr3_lookup.get(sid)
+        family = ""
         if entry and entry[0]:
-            cdr, start = entry
+            cdr, start, family = entry
             # +1 because token 0 is BOS; verify the annotated region matches the sequence
             if start >= 0 and start + len(cdr) <= len(seq) and seq[start:start + len(cdr)] == cdr:
                 positions = list(range(start + 1, start + 1 + len(cdr)))
@@ -233,6 +251,7 @@ def build_reference_set(
             "cdrh3_identity_to_wt": np.nan,
             "gibbs_step": -1,
             "chain_id": -1,
+            "v_family": family,
         })
     if n_unmatched:
         log.warning("%d / %d OAS sequences have no locatable CDRH3 (NaN cdrh3_emb)", n_unmatched, len(oas))
@@ -253,6 +272,7 @@ def build_reference_set(
                     "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
                     "gibbs_step": int(r["gibbs_step"]),
                     "chain_id": int(r["chain_id"]),
+                    "v_family": "",
                 })
 
     return pd.DataFrame(rows)
@@ -261,15 +281,28 @@ def build_reference_set(
 # --------------------------------------------------------------------- model load
 
 
+def _extract_state_dict(raw) -> dict:
+    """Handle evotuning ('model_state_dict' wrapper, keys prefixed 'model.')
+    and DPO ('policy_state_dict' wrapper, HF-format keys) checkpoint shapes."""
+    if isinstance(raw, dict):
+        for key in ("policy_state_dict", "model_state_dict"):
+            if key in raw and isinstance(raw[key], dict):
+                return raw[key]
+    return raw
+
+
 def load_esm_encoder(checkpoint_path: Optional[str]) -> EsmModel:
-    """Return an `EsmModel` (encoder only) from one of three checkpoint shapes.
+    """Return an `EsmModel` (encoder only) from one of four checkpoint shapes.
 
     1. None → vanilla ESM2-35M from the HF hub.
     2. HF-format directory containing `model.safetensors` or `pytorch_model.bin`.
-    3. Directory containing `best.pt`/`final.pt`, or a direct `.pt` path — torch state
-       dict produced by this repo's training pipeline. Keys are prefixed `model.esm.*`
-       (the `ESM2Model` wrapper class wraps `EsmForMaskedLM`); we strip that prefix and
-       drop the `lm_head.*` keys, then load into a vanilla-initialized `EsmModel`.
+    3. Evotuning .pt: ``{"model_state_dict": {...}}`` with keys prefixed
+       ``model.esm.*`` / ``model.lm_head.*`` (the ``ESM2Model`` wrapper).
+    4. DPO .pt: ``{"policy_state_dict": {...}}`` with HF-format keys
+       ``esm.*`` / ``lm_head.*`` (no wrapper prefix).
+
+    In all .pt cases we strip the ``model.`` prefix and drop ``lm_head.*``,
+    then load into a vanilla-initialized ``EsmModel``.
     """
     if checkpoint_path is None:
         log.info("Loading vanilla ESM2 from %s", ESM2_MODEL_ID)
@@ -290,7 +323,7 @@ def load_esm_encoder(checkpoint_path: Optional[str]) -> EsmModel:
 
     log.info("Loading state-dict checkpoint %s into a vanilla encoder", pt_path)
     raw = torch.load(pt_path, map_location="cpu", weights_only=False)
-    state = raw["model_state_dict"] if isinstance(raw, dict) and "model_state_dict" in raw else raw
+    state = _extract_state_dict(raw)
 
     encoder_state: dict = {}
     for k, v in state.items():
@@ -433,6 +466,7 @@ def main() -> int:
         cdrh3_identity_to_wt=df["cdrh3_identity_to_wt"].to_numpy(dtype=np.float32),
         gibbs_step=df["gibbs_step"].to_numpy(dtype=np.int32),
         chain_id=df["chain_id"].to_numpy(dtype=np.int32),
+        v_family=np.array(df["v_family"].tolist()),
         model_variant=np.array([args.model_variant]),
     )
     log.info("Wrote %s  (%d rows, embedding dim %d)", out_path, len(df), EMB_DIM)

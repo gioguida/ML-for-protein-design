@@ -29,6 +29,7 @@ import json
 import os
 import random
 import time
+from pathlib import Path
 
 import pandas as pd
 import torch
@@ -37,7 +38,76 @@ from transformers import AutoTokenizer, EsmForMaskedLM
 from protein_design.constants import C05_CDRH3, C05_CDRH3_END, C05_CDRH3_START, add_context
 
 STANDARD_AAS = "ACDEFGHIKLMNPQRSTVWY"
-DEFAULT_HF_IDS = {"vanilla": "facebook/esm2_t12_35M_UR50D"}
+ESM2_MODEL_ID = "facebook/esm2_t12_35M_UR50D"
+DEFAULT_HF_IDS = {"vanilla": ESM2_MODEL_ID}
+
+
+def _extract_state_dict(raw) -> dict:
+    """Pull the model-weights dict out of a .pt file with one of three shapes.
+
+    1. Evotuning / finetuning checkpoints: ``{"model_state_dict": {...}, ...}``
+       with keys prefixed ``model.esm.*`` / ``model.lm_head.*`` (the
+       ``ESM2Model`` wrapper).
+    2. DPO checkpoints: ``{"policy_state_dict": {...}, "optimizer_state_dict":
+       ..., ...}`` where ``policy_state_dict`` keys are already in HF format
+       (``esm.*`` / ``lm_head.*``).
+    3. A bare state dict (no wrapper).
+    """
+    if isinstance(raw, dict):
+        for key in ("policy_state_dict", "model_state_dict"):
+            if key in raw and isinstance(raw[key], dict):
+                return raw[key]
+    return raw
+
+
+def _load_pt_into_mlm(pt_path: str, device: torch.device) -> EsmForMaskedLM:
+    """Load a .pt state dict produced by this repo's training pipeline."""
+    print(f"[model] loading state-dict checkpoint {pt_path}")
+    raw = torch.load(pt_path, map_location="cpu", weights_only=False)
+    state = _extract_state_dict(raw)
+    new_state = {}
+    for k, v in state.items():
+        new_state[k[len("model."):] if k.startswith("model.") else k] = v
+    model = EsmForMaskedLM.from_pretrained(ESM2_MODEL_ID)
+    missing, unexpected = model.load_state_dict(new_state, strict=False)
+    non_optional = [m for m in missing
+                    if not m.startswith("esm.contact_head.") and "position_ids" not in m]
+    if non_optional:
+        raise RuntimeError(f"checkpoint missing keys: {non_optional[:5]}")
+    if unexpected:
+        print(f"[model] ignored {len(unexpected)} unexpected keys "
+              f"(e.g. {unexpected[:3]})")
+    return model
+
+
+def load_model_and_tokenizer(checkpoint: str, device: torch.device):
+    """Resolve ``checkpoint`` to (tokenizer, model) supporting four shapes:
+    HF model ID, HF-format dir, dir with ``best.pt``/``final.pt``, or a direct
+    ``.pt`` file. Tokenizer always comes from the public ESM2 model ID — the
+    .pt state dicts produced by this repo do not bundle tokenizer files.
+    """
+    p = Path(checkpoint)
+    if p.is_file() and p.suffix == ".pt":
+        tokenizer = AutoTokenizer.from_pretrained(ESM2_MODEL_ID)
+        model = _load_pt_into_mlm(str(p), device)
+        return tokenizer, model
+    if p.is_dir():
+        if (p / "model.safetensors").exists() or (p / "pytorch_model.bin").exists():
+            tokenizer = AutoTokenizer.from_pretrained(str(p))
+            model = EsmForMaskedLM.from_pretrained(str(p))
+            return tokenizer, model
+        for name in ("best.pt", "final.pt"):
+            if (p / name).exists():
+                tokenizer = AutoTokenizer.from_pretrained(ESM2_MODEL_ID)
+                model = _load_pt_into_mlm(str(p / name), device)
+                return tokenizer, model
+        raise FileNotFoundError(
+            f"No HF weights, best.pt, or final.pt found at {checkpoint}"
+        )
+    # Treat as HF model ID.
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    model = EsmForMaskedLM.from_pretrained(checkpoint)
+    return tokenizer, model
 
 
 def parse_args() -> argparse.Namespace:
@@ -158,8 +228,8 @@ def main() -> None:
     checkpoint = resolve_checkpoint(args)
     print(f"\n[model] variant={args.model_variant}  checkpoint={checkpoint}")
     t0 = time.time()
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-    model = EsmForMaskedLM.from_pretrained(checkpoint).to(device).eval()
+    tokenizer, model = load_model_and_tokenizer(checkpoint, device)
+    model = model.to(device).eval()
     if device.type == "cuda":
         model = model.half()
     print(f"[model] loaded in {time.time() - t0:.1f}s")
