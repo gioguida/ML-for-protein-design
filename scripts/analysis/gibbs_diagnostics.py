@@ -1,20 +1,30 @@
 """Gibbs sampling diagnostics across model variants.
 
-Three figures, plus a CSV summary:
+Six figures, plus a CSV summary:
 
 1. **PLL distribution** — under each variant, compute CDR-only sequence PLL
-   for that variant's Gibbs samples and for the DMS reference set. Side-by-
-   side violins per variant. Answers: are Gibbs samples "as plausible" as
-   real binders to the model, or are they pulled into low-PLL regions?
+   for that variant's Gibbs samples and for the DMS reference set. Two rows
+   (M22 / SI06) × N variants of side-by-side DMS/Gibbs violins; DMS strip is
+   colored by enrichment, and the WT CDR-H3 PLL is drawn as a horizontal
+   reference line per cell.
 
-2. **Edit-distance from WT** — histogram of ``n_mutations`` per variant
-   (already in the Gibbs CSV; no model needed). Shows how far each model
-   walks from WT during sampling.
+2. **PLL trajectory** — per-variant panel of sequence PLL across Gibbs
+   steps, one line per chain. Horizontal line at WT PLL, shaded band at
+   the DMS PLL [5, 95] percentiles. Shows whether chains drift to low-PLL
+   regions over time or settle near the binder manifold.
 
-3. **Per-position mutation frequency** — heatmap (variants × 24 CDR
+3. **Edit-distance from WT** — histogram of ``n_mutations`` per variant.
+
+4. **Per-position mutation frequency** — heatmap (variants × 24 CDR
    positions) of the fraction of Gibbs snapshots whose residue at that
-   position differs from C05 WT. Reveals whether sampling concentrates on
-   particular positions or explores all of them.
+   position differs from C05 WT.
+
+5. **Sequence logo** — per-variant stack of AA frequencies at each CDR
+   position. Tall single letters → the sampler has collapsed onto a small
+   set of similar sequences.
+
+6. **Pairwise Hamming** — per-variant histogram of pairwise CDR-H3 edit
+   distances within the Gibbs samples. Mass near 0 → collapse.
 
 Inputs
 ------
@@ -24,8 +34,11 @@ matches the same set of forms as ``compute_pll_pca.py``.
 Writes
 ------
 - ``gibbs_pll_dist.png``
+- ``gibbs_pll_trajectory.png``
 - ``gibbs_edit_distance.png``
 - ``gibbs_position_mutation_freq.png``
+- ``gibbs_sequence_logo.png``
+- ``gibbs_pairwise_hamming.png``
 - ``gibbs_summary.csv``
 """
 
@@ -159,13 +172,20 @@ def sequence_pll(per_pos_log_probs: np.ndarray) -> np.ndarray:
 # ----------------------------------------------------------------- I/O helpers
 
 
-def load_dms(m22_path: Path, si06_path: Path, max_n: int) -> List[str]:
+def load_dms(
+    m22_path: Path, si06_path: Path, max_n: int
+) -> Tuple[List[str], np.ndarray, np.ndarray]:
+    """Return aligned (cdrh3 list, M22 enrichment array, SI06 enrichment array)."""
     m22 = pd.read_csv(m22_path)[["aa", "M22_binding_enrichment_adj"]]
     si06 = pd.read_csv(si06_path)[["aa", "SI06_binding_enrichment_adj"]]
     merged = m22.merge(si06, on="aa", how="outer")
     if len(merged) > max_n:
         merged = merged.sample(n=max_n, random_state=SEED).reset_index(drop=True)
-    return merged["aa"].astype(str).tolist()
+    return (
+        merged["aa"].astype(str).tolist(),
+        merged["M22_binding_enrichment_adj"].to_numpy(dtype=np.float32),
+        merged["SI06_binding_enrichment_adj"].to_numpy(dtype=np.float32),
+    )
 
 
 def load_gibbs_csv(path: Path) -> pd.DataFrame:
@@ -181,37 +201,267 @@ def load_gibbs_csv(path: Path) -> pd.DataFrame:
 # ------------------------------------------------------------------------ plots
 
 
+FITNESS_ROWS = [
+    ("dms_m22", "M22 binding enrichment"),
+    ("dms_si06", "SI06 binding enrichment"),
+]
+
+# Standard chemistry-style AA palette for sequence logos.
+AA_COLORS: Dict[str, str] = {
+    "A": "#33a02c", "V": "#33a02c", "L": "#33a02c", "I": "#33a02c", "M": "#33a02c",
+    "F": "#6a3d9a", "W": "#6a3d9a", "Y": "#6a3d9a",
+    "K": "#1f78b4", "R": "#1f78b4", "H": "#1f78b4",
+    "D": "#e31a1c", "E": "#e31a1c",
+    "S": "#ff7f00", "T": "#ff7f00", "N": "#ff7f00", "Q": "#ff7f00",
+    "G": "#b15928",
+    "P": "#fb9a99",
+    "C": "#ffff99",
+}
+
+
 def plot_pll_violin(
     per_variant: Dict[str, Dict[str, np.ndarray]],
     out_path: Path,
 ) -> None:
+    """Two rows (M22 / SI06) × N variants. DMS violin (left half) + Gibbs violin
+    (right half) in each cell. DMS strip overlay is colored by that row's
+    enrichment readout; horizontal red dashed line marks WT CDR-H3 PLL.
+    """
     variants = list(per_variant.keys())
-    fig, ax = plt.subplots(figsize=(0.9 * len(variants) * 2 + 3.0, 4.6))
+    n_cols = len(variants)
+    n_rows = len(FITNESS_ROWS)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.6 * n_cols + 1.0, 4.0 * n_rows),
+                             squeeze=False)
 
-    positions = []
-    data = []
-    labels = []
-    colors = []
-    for i, v in enumerate(variants):
-        gibbs = per_variant[v]["gibbs_pll"]
-        dms = per_variant[v]["dms_pll"]
-        positions.extend([2 * i + 1, 2 * i + 2])
-        data.extend([dms, gibbs])
-        labels.extend([f"{v}\nDMS", f"{v}\nGibbs"])
-        colors.extend(["tab:blue", "tab:green"])
+    rng = np.random.default_rng(SEED)
 
-    parts = ax.violinplot(data, positions=positions, widths=0.7, showmeans=False,
-                          showmedians=True, showextrema=False)
-    for pc, c in zip(parts["bodies"], colors):
-        pc.set_facecolor(c)
-        pc.set_edgecolor("black")
-        pc.set_alpha(0.7)
-    ax.set_xticks(positions)
-    ax.set_xticklabels(labels, fontsize=9)
-    ax.set_ylabel("CDR-H3 sequence PLL")
-    ax.set_title("Gibbs vs DMS PLL distribution (each variant scores under its own model)",
-                 fontsize=11)
-    ax.axhline(0, color="lightgrey", linewidth=0.6)
+    for row, (fkey, flabel) in enumerate(FITNESS_ROWS):
+        for col, v in enumerate(variants):
+            ax = axes[row, col]
+            d = per_variant[v]
+            dms_pll = d["dms_pll"]
+            gibbs_pll = d["gibbs_pll"]
+            wt_pll = float(d["wt_pll"])
+            fitness = d[fkey]
+
+            parts = ax.violinplot([dms_pll, gibbs_pll], positions=[1.0, 2.0],
+                                  widths=0.8, showmeans=False, showmedians=True,
+                                  showextrema=False)
+            for pc, color in zip(parts["bodies"], ["tab:blue", "tab:green"]):
+                pc.set_facecolor(color)
+                pc.set_edgecolor("black")
+                pc.set_alpha(0.45)
+
+            # DMS strip-plot overlay colored by enrichment.
+            valid = ~np.isnan(fitness)
+            jitter = rng.uniform(-0.18, 0.18, size=int(valid.sum()))
+            sc = ax.scatter(
+                np.full(int(valid.sum()), 1.0) + jitter,
+                dms_pll[valid],
+                c=fitness[valid], cmap="viridis", s=12, alpha=0.85,
+                edgecolors="black", linewidths=0.2, zorder=4,
+            )
+            fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04, label=flabel)
+
+            # WT line.
+            ax.axhline(wt_pll, color="red", linestyle="--", linewidth=1.2, zorder=5)
+            ax.text(0.02, wt_pll, "WT", color="red", fontsize=9, fontweight="bold",
+                    transform=ax.get_yaxis_transform(), ha="left", va="bottom")
+
+            ax.set_xticks([1.0, 2.0])
+            ax.set_xticklabels(["DMS", "Gibbs"], fontsize=9)
+            if row == 0:
+                ax.set_title(v, fontsize=11)
+            if col == 0:
+                ax.set_ylabel(f"{flabel}\n\nCDR-H3 sequence PLL", fontsize=10)
+            else:
+                ax.set_ylabel("CDR-H3 sequence PLL", fontsize=9)
+
+    fig.suptitle(
+        "DMS vs Gibbs PLL — DMS strip colored by enrichment, WT PLL marked",
+        fontsize=12,
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s", out_path)
+
+
+def plot_pll_trajectory(
+    per_variant: Dict[str, Dict[str, np.ndarray]],
+    out_path: Path,
+) -> None:
+    """Per-variant panel of sequence PLL across Gibbs steps. One coloured line
+    per chain. WT PLL drawn as horizontal dashed line; DMS PLL [5, 95]
+    percentiles shaded as a grey band under that variant's model.
+    """
+    variants = list(per_variant.keys())
+    n_cols = min(3, len(variants))
+    n_rows = (len(variants) + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.4 * n_cols, 3.6 * n_rows),
+                             squeeze=False)
+
+    chain_cmap = plt.get_cmap("tab10")
+
+    for idx, v in enumerate(variants):
+        r, c = divmod(idx, n_cols)
+        ax = axes[r, c]
+        d = per_variant[v]
+        gibbs_pll = d["gibbs_pll"]
+        steps = d["gibbs_step"]
+        chains = d["chain_id"]
+        wt_pll = float(d["wt_pll"])
+        dms_pll = d["dms_pll"]
+
+        # DMS [5, 95] band as a horizontal shaded region.
+        lo, hi = float(np.percentile(dms_pll, 5)), float(np.percentile(dms_pll, 95))
+        ax.axhspan(lo, hi, color="lightgrey", alpha=0.4, zorder=1,
+                   label=f"DMS [5, 95]% PLL")
+
+        unique_chains = sorted(set(int(c_) for c_ in chains))
+        for i, ch in enumerate(unique_chains):
+            mask = chains == ch
+            order = np.argsort(steps[mask])
+            x = steps[mask][order]
+            y = gibbs_pll[mask][order]
+            ax.plot(x, y, "-", color=chain_cmap(i % 10), linewidth=1.0,
+                    alpha=0.85, zorder=3, label=f"chain {ch}" if idx == 0 else None)
+
+        ax.axhline(wt_pll, color="red", linestyle="--", linewidth=1.2, zorder=4,
+                   label="WT PLL" if idx == 0 else None)
+
+        ax.set_title(v, fontsize=11)
+        ax.set_xlabel("Gibbs step")
+        ax.set_ylabel("CDR-H3 sequence PLL")
+
+    # Hide leftover axes.
+    for idx in range(len(variants), n_rows * n_cols):
+        r, c = divmod(idx, n_cols)
+        axes[r, c].axis("off")
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc="upper right", fontsize=8, ncol=1,
+                   bbox_to_anchor=(0.998, 0.998))
+    fig.suptitle("Gibbs PLL trajectory — chains scored under each variant's own model",
+                 fontsize=12)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s", out_path)
+
+
+def plot_sequence_logo(
+    per_variant: Dict[str, Dict[str, np.ndarray]],
+    out_path: Path,
+    min_freq: float = 0.02,
+) -> None:
+    """One row per variant; each column = a CDR position with stacked AA
+    rectangles sized by frequency. Tall single letters → collapse onto one
+    consensus residue.
+    """
+    variants = list(per_variant.keys())
+    P = len(C05_CDRH3)
+    n_vars = len(variants)
+    fig, axes = plt.subplots(n_vars, 1, figsize=(0.45 * P + 4.0, 1.7 * n_vars + 1.4),
+                             squeeze=False, sharex=True)
+
+    for row, v in enumerate(variants):
+        ax = axes[row, 0]
+        chars: np.ndarray = per_variant[v]["cdrh3_chars"]  # (N, P)
+        for p_idx in range(P):
+            counts = Counter(chars[:, p_idx].tolist())
+            total = sum(counts.values())
+            if total == 0:
+                continue
+            sorted_aas = sorted(counts.items(), key=lambda kv: -kv[1])
+            y = 0.0
+            for aa, cnt in sorted_aas:
+                freq = cnt / total
+                if freq < min_freq:
+                    break
+                color = AA_COLORS.get(aa, "lightgrey")
+                ax.add_patch(
+                    plt.Rectangle((p_idx - 0.42, y), 0.84, freq,
+                                  facecolor=color, edgecolor="white",
+                                  linewidth=0.4, alpha=0.85)
+                )
+                if freq > 0.06:
+                    ax.text(p_idx, y + freq / 2, aa, ha="center", va="center",
+                            fontsize=8, fontweight="bold", color="black")
+                y += freq
+
+        ax.set_xlim(-0.6, P - 0.4)
+        ax.set_ylim(0.0, 1.02)
+        ax.set_yticks([0.0, 0.5, 1.0])
+        ax.set_ylabel(v, rotation=0, ha="right", va="center", fontsize=10,
+                      fontweight="bold")
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+
+    axes[-1, 0].set_xticks(range(P))
+    axes[-1, 0].set_xticklabels([f"{i + 1}\n{a}" for i, a in enumerate(C05_CDRH3)],
+                                fontsize=8)
+    axes[-1, 0].set_xlabel("CDR-H3 position (1-indexed; WT residue beneath)")
+    fig.suptitle(
+        "Sequence logo — per-position AA frequency in Gibbs samples\n"
+        "(tall single letters indicate collapse onto one consensus residue)",
+        fontsize=11,
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s", out_path)
+
+
+def plot_pairwise_hamming(
+    per_variant: Dict[str, Dict[str, np.ndarray]],
+    out_path: Path,
+    max_n: int = 1000,
+) -> None:
+    """Per-variant histogram of pairwise Hamming distances among Gibbs CDR-H3s.
+    Cap N to ``max_n`` per variant to keep O(N²) tractable.
+    """
+    variants = list(per_variant.keys())
+    n_cols = min(3, len(variants))
+    n_rows = (len(variants) + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4.4 * n_cols, 3.4 * n_rows),
+                             squeeze=False, sharex=True, sharey=True)
+
+    P = len(C05_CDRH3)
+    rng = np.random.default_rng(SEED)
+
+    for idx, v in enumerate(variants):
+        r, c = divmod(idx, n_cols)
+        ax = axes[r, c]
+        chars: np.ndarray = per_variant[v]["cdrh3_chars"]  # (N, P)
+        n = chars.shape[0]
+        if n > max_n:
+            keep = rng.choice(n, size=max_n, replace=False)
+            chars = chars[keep]
+            n = max_n
+
+        # Vectorised pairwise Hamming via broadcasting on character arrays.
+        eq = (chars[:, None, :] == chars[None, :, :])  # (n, n, P) bool
+        dist = P - eq.sum(axis=2)                       # (n, n)
+        iu = np.triu_indices(n, k=1)
+        d_flat = dist[iu]
+
+        ax.hist(d_flat, bins=range(0, P + 2), align="left",
+                color="tab:purple", edgecolor="white", linewidth=0.4)
+        ax.set_title(f"{v}  (n={n}, pairs={len(d_flat)})", fontsize=10)
+        ax.set_xlabel("pairwise Hamming distance")
+        ax.set_ylabel("pair count")
+        ax.set_xlim(-0.5, P + 0.5)
+
+    for idx in range(len(variants), n_rows * n_cols):
+        r, c = divmod(idx, n_cols)
+        axes[r, c].axis("off")
+
+    fig.suptitle(
+        "Pairwise Hamming among Gibbs CDR-H3s — collapse → mass at 0",
+        fontsize=12,
+    )
     fig.tight_layout()
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -306,7 +556,9 @@ def main() -> int:
     log.info("Device: %s", device)
 
     log.info("Loading DMS reference (max %d) …", args.max_dms)
-    dms_cdrh3 = load_dms(Path(args.dms_m22), Path(args.dms_si06), args.max_dms)
+    dms_cdrh3, dms_m22, dms_si06 = load_dms(
+        Path(args.dms_m22), Path(args.dms_si06), args.max_dms,
+    )
     log.info("DMS: %d sequences", len(dms_cdrh3))
 
     tokenizer = AutoTokenizer.from_pretrained(ESM2_MODEL_ID)
@@ -319,6 +571,8 @@ def main() -> int:
         gdf = load_gibbs_csv(Path(gibbs_csv))
         gibbs_cdrh3 = gdf["cdrh3"].astype(str).tolist()
         n_mutations = gdf["n_mutations"].to_numpy(dtype=np.int32)
+        chain_id = gdf["chain_id"].to_numpy(dtype=np.int32)
+        gibbs_step = gdf["gibbs_step"].to_numpy(dtype=np.int32)
         log.info("Gibbs samples: %d (median edit distance from WT = %d)",
                  len(gibbs_cdrh3), int(np.median(n_mutations)))
 
@@ -338,6 +592,11 @@ def main() -> int:
         )
         dms_pll = sequence_pll(dms_per_pos)
 
+        wt_per_pos = per_position_cdr_log_probs(
+            model, tokenizer, [C05_CDRH3], device, args.batch_size,
+        )
+        wt_pll = float(sequence_pll(wt_per_pos)[0])
+
         # Per-position mutation frequency (vs C05 WT, no model needed).
         wt = np.array(list(C05_CDRH3))
         cdrh3_chars = np.array([list(s) for s in gibbs_cdrh3])  # (N, 24)
@@ -346,8 +605,14 @@ def main() -> int:
         per_variant[label] = {
             "gibbs_pll": gibbs_pll,
             "dms_pll": dms_pll,
+            "wt_pll": np.float32(wt_pll),
             "n_mutations": n_mutations,
             "pos_mut_freq": pos_mut_freq,
+            "chain_id": chain_id,
+            "gibbs_step": gibbs_step,
+            "cdrh3_chars": cdrh3_chars,
+            "dms_m22": dms_m22,
+            "dms_si06": dms_si06,
         }
 
         # Per-position residue counts for the summary CSV (top off-WT residue per pos).
@@ -364,7 +629,9 @@ def main() -> int:
             "edit_dist_max": int(n_mutations.max()),
             "gibbs_pll_median": float(np.median(gibbs_pll)),
             "dms_pll_median": float(np.median(dms_pll)),
+            "wt_pll": float(wt_pll),
             "delta_pll_gibbs_minus_dms": float(np.median(gibbs_pll) - np.median(dms_pll)),
+            "delta_pll_gibbs_minus_wt": float(np.median(gibbs_pll) - wt_pll),
             "max_pos_mut_freq": float(pos_mut_freq.max()),
             "top_alt_per_position": " ".join(top_alts),
         })
@@ -374,8 +641,11 @@ def main() -> int:
             torch.cuda.empty_cache()
 
     plot_pll_violin(per_variant, args.output_dir / "gibbs_pll_dist.png")
+    plot_pll_trajectory(per_variant, args.output_dir / "gibbs_pll_trajectory.png")
     plot_edit_distance(per_variant, args.output_dir / "gibbs_edit_distance.png")
     plot_position_mutation_freq(per_variant, args.output_dir / "gibbs_position_mutation_freq.png")
+    plot_sequence_logo(per_variant, args.output_dir / "gibbs_sequence_logo.png")
+    plot_pairwise_hamming(per_variant, args.output_dir / "gibbs_pairwise_hamming.png")
 
     summary_df = pd.DataFrame(summary_rows)
     summary_path = args.output_dir / "gibbs_summary.csv"

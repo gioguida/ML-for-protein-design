@@ -20,8 +20,8 @@
 #   compute_pll_pca              (joint PLL biplot + per-position loadings)
 #   gibbs_diagnostics            (only when Gibbs CSVs exist)
 #   ↓
-#   plot_projections, plot_per_model_pca, plot_diff_vectors_pca,
-#   plot_oas_germline_umap, plot_pll_pca
+#   plot_projections, plot_per_model_pca, plot_gibbs_per_model_pca,
+#   plot_diff_vectors_pca, plot_oas_germline_umap, plot_pll_pca
 
 ROOT_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 cd "${ROOT_DIR}"
@@ -43,10 +43,10 @@ EMB_DIR="${EMB_DIR:-${SCRATCH_BASE}/embeddings}"
 PROJ_DIR="${PROJ_DIR:-${SCRATCH_BASE}/projections}"
 PER_MODEL_DIR="${PER_MODEL_DIR:-${SCRATCH_BASE}/per_model_pca}"
 DIFF_DIR="${DIFF_DIR:-${SCRATCH_BASE}/diff_pca}"
-CKA_DIR="${CKA_DIR:-${SCRATCH_BASE}/cka}"
+CKA_DIR="${CKA_DIR:-${PROJECT_BASE}/plots/cka}"
 PROCRUSTES_DIR="${PROCRUSTES_DIR:-${SCRATCH_BASE}/procrustes}"
 PLL_DIR="${PLL_DIR:-${SCRATCH_BASE}/pll_pca}"
-GIBBS_DIAG_DIR="${GIBBS_DIAG_DIR:-${SCRATCH_BASE}/gibbs_diagnostics}"
+GIBBS_DIAG_DIR="${GIBBS_DIAG_DIR:-${PROJECT_BASE}/plots/gibbs_diagnostics}"
 
 PLOTS_DIR="${PLOTS_DIR:-${PROJECT_BASE}/plots}"
 
@@ -54,6 +54,12 @@ CKA_THRESHOLD="${CKA_THRESHOLD:-0.5}"
 MAX_DMS="${MAX_DMS:-500}"
 MAX_OAS="${MAX_OAS:-2000}"
 MAX_GIBBS="${MAX_GIBBS:-200}"
+
+# Skip the GPU-heavy steps if their primary output already exists. Set
+# FORCE=1 to recompute everything regardless. The fast PCA/CKA/Procrustes
+# and plotting steps always run — they're cheap and safe to re-do when
+# plot code changes.
+FORCE="${FORCE:-0}"
 
 # Variants — edit the arrays below to add/remove models.
 # Each entry is "label|checkpoint|gibbs_csv". Use empty checkpoint for vanilla.
@@ -98,17 +104,20 @@ for entry in "${VARIANTS[@]}"; do
   echo "============================================================"
   echo "[extract_embeddings] variant=${label}"
   echo "============================================================"
-  extract_args=(
-    --model-variant "${label}"
-    --output-path "${npz_path}"
-    --max-dms "${MAX_DMS}"
-    --max-oas "${MAX_OAS}"
-    --max-gibbs "${MAX_GIBBS}"
-  )
-  [[ -n "${checkpoint}" ]] && extract_args+=(--checkpoint-path "${checkpoint}")
-  [[ -f "${gibbs_csv}" ]] && extract_args+=(--gibbs-path "${gibbs_csv}")
-
-  uv run python scripts/analysis/extract_embeddings.py "${extract_args[@]}"
+  if [[ "${FORCE}" != "1" && -f "${npz_path}" ]]; then
+    echo "[extract_embeddings] ${npz_path} exists — skipping (set FORCE=1 to recompute)"
+  else
+    extract_args=(
+      --model-variant "${label}"
+      --output-path "${npz_path}"
+      --max-dms "${MAX_DMS}"
+      --max-oas "${MAX_OAS}"
+      --max-gibbs "${MAX_GIBBS}"
+    )
+    [[ -n "${checkpoint}" ]] && extract_args+=(--checkpoint-path "${checkpoint}")
+    [[ -f "${gibbs_csv}" ]] && extract_args+=(--gibbs-path "${gibbs_csv}")
+    uv run python scripts/analysis/extract_embeddings.py "${extract_args[@]}"
+  fi
 
   PLL_VARIANT_ARGS+=(--variant "${label}=${checkpoint}")
   if [[ -f "${gibbs_csv}" ]]; then
@@ -174,10 +183,15 @@ uv run python scripts/analysis/compute_procrustes_displacement.py \
 echo "============================================================"
 echo "[compute_pll_pca]"
 echo "============================================================"
-uv run python scripts/analysis/compute_pll_pca.py \
-  "${PLL_VARIANT_ARGS[@]}" \
-  --max-dms "${MAX_DMS}" \
-  --output-path "${PLL_DIR}/pll_pca.npz"
+PLL_OUT="${PLL_DIR}/pll_pca.npz"
+if [[ "${FORCE}" != "1" && -f "${PLL_OUT}" ]]; then
+  echo "[compute_pll_pca] ${PLL_OUT} exists — skipping (set FORCE=1 to recompute)"
+else
+  uv run python scripts/analysis/compute_pll_pca.py \
+    "${PLL_VARIANT_ARGS[@]}" \
+    --max-dms "${MAX_DMS}" \
+    --output-path "${PLL_OUT}"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 8 — Gibbs diagnostics (Phase 7; only if Gibbs CSVs exist)
@@ -186,10 +200,18 @@ if (( ${#GIBBS_DIAG_ARGS[@]} )); then
   echo "============================================================"
   echo "[gibbs_diagnostics]"
   echo "============================================================"
-  uv run python scripts/analysis/gibbs_diagnostics.py \
-    "${GIBBS_DIAG_ARGS[@]}" \
-    --max-dms "${MAX_DMS}" \
-    --output-dir "${GIBBS_DIAG_DIR}"
+  # Use the trajectory PNG as the skip marker: it's a newer output, so any
+  # pre-existing GIBBS_DIAG_DIR from before the trajectory plot was added
+  # will still trigger a re-run the first time after upgrade.
+  GIBBS_MARKER="${GIBBS_DIAG_DIR}/gibbs_pll_trajectory.png"
+  if [[ "${FORCE}" != "1" && -f "${GIBBS_MARKER}" ]]; then
+    echo "[gibbs_diagnostics] ${GIBBS_MARKER} exists — skipping (set FORCE=1 to recompute)"
+  else
+    uv run python scripts/analysis/gibbs_diagnostics.py \
+      "${GIBBS_DIAG_ARGS[@]}" \
+      --max-dms "${MAX_DMS}" \
+      --output-dir "${GIBBS_DIAG_DIR}"
+  fi
 else
   echo "[gibbs_diagnostics] no Gibbs CSVs found — skipping"
 fi
@@ -210,6 +232,14 @@ echo "[plot_per_model_pca]"
 echo "============================================================"
 uv run python scripts/analysis/plot_per_model_pca.py \
   --projections-dir "${PER_MODEL_DIR}" \
+  --output-dir "${PLOTS_DIR}/per_model_pca"
+
+echo "============================================================"
+echo "[plot_gibbs_per_model_pca]"
+echo "============================================================"
+uv run python scripts/analysis/plot_gibbs_per_model_pca.py \
+  --per-model-pca-dir "${PER_MODEL_DIR}" \
+  --embeddings-dir "${EMB_DIR}" \
   --output-dir "${PLOTS_DIR}/per_model_pca"
 
 echo "============================================================"
