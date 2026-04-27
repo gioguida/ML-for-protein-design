@@ -20,6 +20,13 @@ from protein_design.config import (
     build_run_config,
     generate_run_name,
 )
+from protein_design.constants import C05_CDRH3
+from protein_design.dpo.data_processing import (
+    build_clean_ed5_csv,
+    build_processed_views,
+    build_validation_perplexity_csvs,
+)
+from protein_design.dpo.dataset import default_data_paths
 from protein_design.dpo.train import (
     _load_test_pll_eval_sets,
     _load_test_spearman_df,
@@ -38,6 +45,7 @@ from protein_design.unlikelihood.loss import (
     build_unwanted_token_id_lookup,
     unlikelihood_mlm_loss,
 )
+from protein_design.unlikelihood.preprocessing import build_unwanted_set
 from protein_design.utils import ensure_dir, init_wandb, setup_train_logger
 
 hydra, OmegaConf, HydraConfig, to_absolute_path = load_hydra_runtime_modules()
@@ -45,13 +53,147 @@ hydra, OmegaConf, HydraConfig, to_absolute_path = load_hydra_runtime_modules()
 logger = logging.getLogger(__name__)
 
 
-def _load_unwanted_token_ids(cfg: Any, model: ESM2Model) -> Dict[int, List[int]]:
+def _resolve_raw_ed2_csv_path(cfg: Any) -> Path:
+    defaults = default_data_paths()
+    return (
+        defaults["raw_m22"]
+        if getattr(cfg.data, "raw_csv", None) is None
+        else Path(to_absolute_path(str(cfg.data.raw_csv)))
+    )
+
+
+def _resolve_processed_dir(cfg: Any) -> Path:
+    defaults = default_data_paths()
+    return (
+        defaults["processed_dir"]
+        if getattr(cfg.data, "processed_dir", None) is None
+        else Path(to_absolute_path(str(cfg.data.processed_dir)))
+    )
+
+
+def _resolve_unwanted_json_path(cfg: Any) -> Path:
     raw_path = str(getattr(cfg.data, "unwanted_set_path", ""))
     if not raw_path:
         raise ValueError("data.unwanted_set_path must be set for unlikelihood training.")
-    unwanted_path = Path(to_absolute_path(raw_path))
+    return Path(to_absolute_path(raw_path))
+
+
+def _resolve_ed5_raw_csv_path(cfg: Any) -> Path:
+    defaults = default_data_paths()
+    fallback = defaults["raw_m22"].parent / "ED5_M22_enrichment.csv"
+    test_cfg = getattr(cfg.data, "test", None)
+    ed5_csv = None if test_cfg is None else getattr(test_cfg, "ed5_csv", None)
+    return fallback if ed5_csv is None else Path(to_absolute_path(str(ed5_csv)))
+
+
+def _ensure_unwanted_set_json(cfg: Any, run_log: logging.Logger) -> Path:
+    unwanted_path = _resolve_unwanted_json_path(cfg)
+    if unwanted_path.exists():
+        return unwanted_path
+
+    raw_csv_path = _resolve_raw_ed2_csv_path(cfg)
+    processed_dir = unwanted_path.parent
+    summary_csv_name = str(
+        getattr(
+            cfg.data,
+            "unwanted_summary_csv_name",
+            "unwanted_substitution_enrichment.csv",
+        )
+    )
+    run_log.warning(
+        "Unwanted-set JSON missing at %s. Building it automatically from %s.",
+        unwanted_path,
+        raw_csv_path,
+    )
+    summary_csv_path, built_json_path = build_unwanted_set(
+        raw_csv_path=raw_csv_path,
+        processed_dir=processed_dir,
+        enrichment_col=str(
+            getattr(cfg.data, "unwanted_enrichment_col", "M22_binding_enrichment_adj")
+        ),
+        wt_seq=str(getattr(cfg.data, "wt_seq", C05_CDRH3)),
+        min_total_reads=int(getattr(cfg.data, "unwanted_min_total_reads", 10)),
+        min_observations=int(getattr(cfg.data, "unwanted_min_observations", 30)),
+        summary_csv_name=summary_csv_name,
+        unwanted_json_name=unwanted_path.name,
+    )
+    run_log.info("Built unwanted summary CSV at %s", summary_csv_path)
+    run_log.info("Built unwanted-set JSON at %s", built_json_path)
+
     if not unwanted_path.exists():
-        raise FileNotFoundError(f"Unwanted-set JSON not found: {unwanted_path}")
+        raise FileNotFoundError(
+            f"Unwanted-set JSON still missing after automatic build: {unwanted_path}"
+        )
+    return unwanted_path
+
+
+def _ensure_preprocessed_artifacts(cfg: Any, run_log: logging.Logger) -> None:
+    raw_ed2_csv = _resolve_raw_ed2_csv_path(cfg)
+    processed_dir = _resolve_processed_dir(cfg)
+    force = bool(getattr(cfg.data, "force_rebuild", False))
+
+    if not raw_ed2_csv.exists():
+        raise FileNotFoundError(f"ED2 raw CSV not found: {raw_ed2_csv}")
+
+    processed_paths = build_processed_views(
+        raw_csv_path=raw_ed2_csv,
+        processed_dir=processed_dir,
+        force=force,
+        verbose=False,
+    )
+    run_log.info(
+        "Ensured processed ED2 views: %s, %s, %s",
+        processed_paths["ed2_all"],
+        processed_paths["d2_clustered_mut1"],
+        processed_paths["d2_clustered_mut2"],
+    )
+
+    try:
+        val_outputs = build_validation_perplexity_csvs(
+            raw_csv_path=raw_ed2_csv,
+            processed_dir=processed_dir,
+            cfg=cfg,
+            seed=int(cfg.seed),
+            force=force,
+            verbose=False,
+        )
+        run_log.info(
+            "Ensured validation eval CSVs: %s, %s, %s",
+            val_outputs["val_pos"],
+            val_outputs["val_neg"],
+            val_outputs["val_spearman"],
+        )
+    except Exception as exc:
+        run_log.warning("Could not prebuild validation eval CSVs (%s).", exc)
+
+    ed5_raw_csv = _resolve_ed5_raw_csv_path(cfg)
+    if ed5_raw_csv.exists():
+        try:
+            d5_path = build_clean_ed5_csv(
+                raw_csv_path=ed5_raw_csv,
+                processed_dir=processed_dir,
+                force=force,
+                verbose=False,
+            )
+            run_log.info("Ensured processed ED5 CSV: %s", d5_path)
+        except Exception as exc:
+            run_log.warning("Could not prebuild processed ED5 CSV (%s).", exc)
+    else:
+        run_log.warning(
+            "ED5 raw CSV not found at %s. Test ED5 perplexity/Spearman may be unavailable.",
+            ed5_raw_csv,
+        )
+
+    _ensure_unwanted_set_json(cfg, run_log)
+
+
+def _load_unwanted_token_ids(cfg: Any, model: ESM2Model) -> Dict[int, List[int]]:
+    unwanted_path = _resolve_unwanted_json_path(cfg)
+    if not unwanted_path.exists():
+        raise FileNotFoundError(
+            f"Unwanted-set JSON not found at {unwanted_path}. "
+            "Preflight artifact build should have created it."
+        )
 
     unwanted_lookup = load_unwanted_lookup_json(unwanted_path)
     token_ids = build_unwanted_token_id_lookup(unwanted_lookup, tokenizer=model.tokenizer)
@@ -149,6 +291,7 @@ def run_unlikelihood(cfg: Any) -> Path:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     run_log.info("Device: %s", device)
     run_log.info("Run directory: %s", run_dir)
+    _ensure_preprocessed_artifacts(cfg, run_log)
 
     wandb_mod, wandb_run = init_wandb(
         cfg,
