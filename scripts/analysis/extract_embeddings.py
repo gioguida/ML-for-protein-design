@@ -179,7 +179,7 @@ def build_reference_set(
     dms_si06: Path,
     oas_fasta: Path,
     oas_meta: Path,
-    gibbs_path: Optional[Path],
+    gibbs_paths: List[Tuple[str, Path]],
     max_dms: int,
     max_oas: int,
     max_gibbs: int,
@@ -201,6 +201,7 @@ def build_reference_set(
         "cdrh3_identity_to_wt": 1.0,
         "gibbs_step": -1,
         "chain_id": -1,
+        "gibbs_config": "",
         "v_family": "",
     })
 
@@ -219,6 +220,7 @@ def build_reference_set(
             "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
             "gibbs_step": -1,
             "chain_id": -1,
+            "gibbs_config": "",
             "v_family": "",
         })
 
@@ -251,29 +253,33 @@ def build_reference_set(
             "cdrh3_identity_to_wt": np.nan,
             "gibbs_step": -1,
             "chain_id": -1,
+            "gibbs_config": "",
             "v_family": family,
         })
     if n_unmatched:
         log.warning("%d / %d OAS sequences have no locatable CDRH3 (NaN cdrh3_emb)", n_unmatched, len(oas))
 
-    # 4) Gibbs
-    if gibbs_path is not None:
+    # 4) Gibbs (one or more named configs)
+    for config_name, gibbs_path in gibbs_paths:
         gibbs_df = load_gibbs(gibbs_path, max_gibbs)
-        if gibbs_df is not None:
-            log.info("Loaded %d Gibbs rows", len(gibbs_df))
-            for _, r in gibbs_df.iterrows():
-                full = str(r["sequence"])
-                rows.append({
-                    "sequence": full,
-                    "source": "gibbs",
-                    "M22_enrich": np.nan,
-                    "SI06_enrich": np.nan,
-                    "cdrh3_token_positions": fixed_pos,
-                    "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
-                    "gibbs_step": int(r["gibbs_step"]),
-                    "chain_id": int(r["chain_id"]),
-                    "v_family": "",
-                })
+        if gibbs_df is None:
+            continue
+        log.info("Loaded %d Gibbs rows from config=%s path=%s",
+                 len(gibbs_df), config_name, gibbs_path)
+        for _, r in gibbs_df.iterrows():
+            full = str(r["sequence"])
+            rows.append({
+                "sequence": full,
+                "source": "gibbs",
+                "M22_enrich": np.nan,
+                "SI06_enrich": np.nan,
+                "cdrh3_token_positions": fixed_pos,
+                "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
+                "gibbs_step": int(r["gibbs_step"]),
+                "chain_id": int(r["chain_id"]),
+                "gibbs_config": config_name,
+                "v_family": "",
+            })
 
     return pd.DataFrame(rows)
 
@@ -409,7 +415,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model-variant", required=True, help="Label string (vanilla, evotuned, …)")
     p.add_argument("--checkpoint-path", default=None, help="HF-format checkpoint dir; omit for vanilla")
-    p.add_argument("--gibbs-path", default=None, help="CSV or FASTA of Gibbs-sampled sequences")
+    p.add_argument("--gibbs-path", action="append", default=[],
+                   help="CSV or FASTA of Gibbs-sampled sequences. Repeatable. "
+                        "Format: NAME=PATH to tag rows with a config name "
+                        "(e.g. 'distribution=outputs/gibbs/distribution/vanilla.csv'); "
+                        "bare PATH is treated as NAME='default'.")
     p.add_argument("--output-path", required=True, help="Destination .npz path")
     p.add_argument("--dms-m22", default=DEFAULT_DMS_M22)
     p.add_argument("--dms-si06", default=DEFAULT_DMS_SI06)
@@ -439,12 +449,20 @@ def main() -> int:
     if device.type == "cuda":
         model = model.half()
 
+    gibbs_paths: List[Tuple[str, Path]] = []
+    for spec in args.gibbs_path:
+        if "=" in spec:
+            name, path_str = spec.split("=", 1)
+        else:
+            name, path_str = "default", spec
+        gibbs_paths.append((name, Path(path_str)))
+
     df = build_reference_set(
         Path(args.dms_m22),
         Path(args.dms_si06),
         Path(args.oas_fasta),
         Path(args.oas_meta),
-        Path(args.gibbs_path) if args.gibbs_path else None,
+        gibbs_paths,
         args.max_dms,
         args.max_oas,
         args.max_gibbs,
@@ -466,6 +484,7 @@ def main() -> int:
         cdrh3_identity_to_wt=df["cdrh3_identity_to_wt"].to_numpy(dtype=np.float32),
         gibbs_step=df["gibbs_step"].to_numpy(dtype=np.int32),
         chain_id=df["chain_id"].to_numpy(dtype=np.int32),
+        gibbs_config=np.array(df["gibbs_config"].tolist()),
         v_family=np.array(df["v_family"].tolist()),
         model_variant=np.array([args.model_variant]),
     )

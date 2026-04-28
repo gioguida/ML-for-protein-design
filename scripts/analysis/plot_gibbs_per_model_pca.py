@@ -68,10 +68,15 @@ def load_gibbs_rows(emb_npz: Path, emb_key: str) -> Dict[str, np.ndarray]:
     src = z["source_labels"]
     g = src == "gibbs"
     wt = src == "wt"
+    if "gibbs_config" in z.files:
+        gibbs_config = z["gibbs_config"][g]
+    else:
+        gibbs_config = np.array(["default"] * int(g.sum()))
     return {
         "gibbs_emb": z[emb_key][g],
         "gibbs_chain_id": z["chain_id"][g],
         "gibbs_step": z["gibbs_step"][g],
+        "gibbs_config": gibbs_config,
         "wt_emb": z[emb_key][wt][0] if wt.any() else None,
     }
 
@@ -103,6 +108,7 @@ def plot_one_variant(
     wt_pc: np.ndarray | None,
     explained_variance: np.ndarray,
     out_dir: Path,
+    config_suffix: str = "",
 ) -> None:
     chain_cmap = plt.get_cmap("tab10")
     step_cmap = plt.get_cmap("plasma")
@@ -133,12 +139,14 @@ def plot_one_variant(
         ev = explained_variance
         ax.set_xlabel(f"PC1 ({100 * ev[0]:.1f}% var)")
         ax.set_ylabel(f"PC2 ({100 * ev[1]:.1f}% var)" if len(ev) > 1 else "PC2")
+        title_extra = f"  [{config_suffix}]" if config_suffix else ""
         ax.set_title(
-            f"{variant} — Gibbs trajectory in own DMS-PCA  ({emb_type})\n"
+            f"{variant} — Gibbs trajectory in own DMS-PCA  ({emb_type}){title_extra}\n"
             f"DMS background coloured by {flabel}; WT marked with red star",
             fontsize=11,
         )
-        out_path = out_dir / f"gibbs_per_model_pca_{variant}_{emb_type}_{fshort}.png"
+        suffix = f"_{config_suffix}" if config_suffix else ""
+        out_path = out_dir / f"gibbs_per_model_pca_{variant}_{emb_type}_{fshort}{suffix}.png"
         fig.tight_layout()
         fig.savefig(out_path, dpi=200, bbox_inches="tight")
         plt.close(fig)
@@ -186,33 +194,51 @@ def main() -> int:
                 pca = pickle.load(fh)
             grows = load_gibbs_rows(emb_npz, emb_key)
 
-            gibbs_pc = None
-            if len(grows["gibbs_emb"]):
-                valid = ~np.isnan(grows["gibbs_emb"]).any(axis=1)
-                if valid.any():
-                    gibbs_pc = pca.transform(grows["gibbs_emb"][valid])[:, :2]
-                    grows["gibbs_chain_id"] = grows["gibbs_chain_id"][valid]
-                    grows["gibbs_step"] = grows["gibbs_step"][valid]
-
             wt_pc = None
             if grows["wt_emb"] is not None and not np.isnan(grows["wt_emb"]).any():
                 wt_pc = pca.transform(grows["wt_emb"][None, :])[0, :2]
 
-            plot_one_variant(
-                variant=v,
-                emb_type=emb_type,
-                dms_pca=per_variant[v]["pca"],
-                dms_fitness={
-                    "M22_enrich": per_variant[v]["M22_enrich"],
-                    "SI06_enrich": per_variant[v]["SI06_enrich"],
-                },
-                gibbs_pc=gibbs_pc,
-                gibbs_chain_id=grows["gibbs_chain_id"] if gibbs_pc is not None else None,
-                gibbs_step=grows["gibbs_step"] if gibbs_pc is not None else None,
-                wt_pc=wt_pc,
-                explained_variance=per_variant[v]["explained_variance"],
-                out_dir=args.output_dir,
-            )
+            configs = sorted(set(grows["gibbs_config"].tolist())) if len(grows["gibbs_config"]) else []
+            multi_config = len(configs) >= 2
+
+            def _do_plot(emb, chains, steps, suffix):
+                gibbs_pc_local = None
+                chain_ids_local = None
+                steps_local = None
+                if len(emb):
+                    valid = ~np.isnan(emb).any(axis=1)
+                    if valid.any():
+                        gibbs_pc_local = pca.transform(emb[valid])[:, :2]
+                        chain_ids_local = chains[valid]
+                        steps_local = steps[valid]
+                plot_one_variant(
+                    variant=v,
+                    emb_type=emb_type,
+                    dms_pca=per_variant[v]["pca"],
+                    dms_fitness={
+                        "M22_enrich": per_variant[v]["M22_enrich"],
+                        "SI06_enrich": per_variant[v]["SI06_enrich"],
+                    },
+                    gibbs_pc=gibbs_pc_local,
+                    gibbs_chain_id=chain_ids_local,
+                    gibbs_step=steps_local,
+                    wt_pc=wt_pc,
+                    explained_variance=per_variant[v]["explained_variance"],
+                    out_dir=args.output_dir,
+                    config_suffix=suffix,
+                )
+
+            if not configs:
+                _do_plot(grows["gibbs_emb"], grows["gibbs_chain_id"],
+                         grows["gibbs_step"], "")
+            else:
+                for cfg in configs:
+                    mask = grows["gibbs_config"] == cfg
+                    suffix = cfg if multi_config else ""
+                    _do_plot(grows["gibbs_emb"][mask],
+                             grows["gibbs_chain_id"][mask],
+                             grows["gibbs_step"][mask],
+                             suffix)
 
     return 0
 

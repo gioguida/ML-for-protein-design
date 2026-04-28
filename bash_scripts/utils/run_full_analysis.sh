@@ -72,17 +72,27 @@ EVOTUNED_CKPT="${EVOTUNED_CKPT:-${CKPT_ROOT}/oas_dedup___esm2_t12_35M_UR50D__lr2
 C05_FINETUNED_CKPT="${C05_FINETUNED_CKPT:-${CKPT_ROOT}/c05_c05_cdrh3_blosum25__evo_seed_20260424_191020}"
 DPO_FROM_EVO_CKPT="${DPO_FROM_EVO_CKPT:-${CKPT_ROOT}/dpo__evo_base_20260425_190014}"
 DPO_FROM_C05_CKPT="${DPO_FROM_C05_CKPT:-${CKPT_ROOT}/dpo__c05_ft_20260425_190143}"
+DPO_FROM_C05_EP6_CKPT="${DPO_FROM_C05_EP6_CKPT:-${CKPT_ROOT}/dpo__c05_ft_20260425_190143_ep6}"
 GIOVANNI_DPO_CKPT="${GIOVANNI_DPO_CKPT:-${CKPT_ROOT}/giovanni-dpo}"
+GIOVANNI_DPO_LESS_CKPT="${GIOVANNI_DPO_LESS_CKPT:-${CKPT_ROOT}/giovanni-dpo-trained-less}"
+UNLIKELIHOOD_CKPT="${UNLIKELIHOOD_CKPT:-${CKPT_ROOT}/unlikelihood-experiment}"
 
-GIBBS_DIR="${GIBBS_DIR:-outputs/gibbs}"
+GIBBS_DIST_DIR="${GIBBS_DIST_DIR:-outputs/gibbs/distribution}"
+GIBBS_FIT_DIR="${GIBBS_FIT_DIR:-outputs/gibbs/fitness}"
 
+# Each entry: "label|checkpoint|distribution_csv|fitness_csv". Either CSV
+# slot may point to a non-existent path; per-step logic below checks file
+# existence and only passes flags for CSVs that exist.
 VARIANTS=(
-  "vanilla||${GIBBS_DIR}/vanilla.csv"
-  "evotuned|${EVOTUNED_CKPT}|${GIBBS_DIR}/evotuned.csv"
-  "c05-finetuned|${C05_FINETUNED_CKPT}|${GIBBS_DIR}/c05-finetuned.csv"
-  "dpo-from-evo|${DPO_FROM_EVO_CKPT}|${GIBBS_DIR}/dpo-from-evo.csv"
-  "dpo-from-c05|${DPO_FROM_C05_CKPT}|${GIBBS_DIR}/dpo-from-c05.csv"
-  "giovanni-dpo|${GIOVANNI_DPO_CKPT}|${GIBBS_DIR}/giovanni-dpo.csv"
+  "vanilla||${GIBBS_DIST_DIR}/vanilla.csv|${GIBBS_FIT_DIR}/vanilla.csv"
+  "evotuned|${EVOTUNED_CKPT}|${GIBBS_DIST_DIR}/evotuned.csv|${GIBBS_FIT_DIR}/evotuned.csv"
+  "c05-finetuned|${C05_FINETUNED_CKPT}|${GIBBS_DIST_DIR}/c05-finetuned.csv|${GIBBS_FIT_DIR}/c05-finetuned.csv"
+  "dpo-from-evo|${DPO_FROM_EVO_CKPT}|${GIBBS_DIST_DIR}/dpo-from-evo.csv|${GIBBS_FIT_DIR}/dpo-from-evo.csv"
+  "dpo-from-c05|${DPO_FROM_C05_CKPT}|${GIBBS_DIST_DIR}/dpo-from-c05.csv|${GIBBS_FIT_DIR}/dpo-from-c05.csv"
+  "dpo-from-c05-ep6|${DPO_FROM_C05_EP6_CKPT}|${GIBBS_DIST_DIR}/dpo-from-c05-ep6.csv|${GIBBS_FIT_DIR}/dpo-from-c05-ep6.csv"
+  "giovanni-dpo|${GIOVANNI_DPO_CKPT}|${GIBBS_DIST_DIR}/giovanni-dpo.csv|${GIBBS_FIT_DIR}/giovanni-dpo.csv"
+  "giovanni-dpo-less|${GIOVANNI_DPO_LESS_CKPT}|${GIBBS_DIST_DIR}/giovanni-dpo-less.csv|${GIBBS_FIT_DIR}/giovanni-dpo-less.csv"
+  "unlikelihood|${UNLIKELIHOOD_CKPT}|${GIBBS_DIST_DIR}/unlikelihood.csv|${GIBBS_FIT_DIR}/unlikelihood.csv"
 )
 
 mkdir -p "${EMB_DIR}" "${PROJ_DIR}" "${PER_MODEL_DIR}" "${DIFF_DIR}" \
@@ -97,7 +107,7 @@ PLL_VARIANT_ARGS=()
 GIBBS_DIAG_ARGS=()
 
 for entry in "${VARIANTS[@]}"; do
-  IFS='|' read -r label checkpoint gibbs_csv <<<"${entry}"
+  IFS='|' read -r label checkpoint dist_csv fit_csv <<<"${entry}"
   npz_path="${EMB_DIR}/${label}.npz"
   EMBED_NPZ+=("${npz_path}")
 
@@ -115,13 +125,17 @@ for entry in "${VARIANTS[@]}"; do
       --max-gibbs "${MAX_GIBBS}"
     )
     [[ -n "${checkpoint}" ]] && extract_args+=(--checkpoint-path "${checkpoint}")
-    [[ -f "${gibbs_csv}" ]] && extract_args+=(--gibbs-path "${gibbs_csv}")
+    [[ -f "${dist_csv}" ]] && extract_args+=(--gibbs-path "distribution=${dist_csv}")
+    [[ -f "${fit_csv}" ]] && extract_args+=(--gibbs-path "fitness=${fit_csv}")
     uv run python scripts/analysis/extract_embeddings.py "${extract_args[@]}"
   fi
 
   PLL_VARIANT_ARGS+=(--variant "${label}=${checkpoint}")
-  if [[ -f "${gibbs_csv}" ]]; then
-    GIBBS_DIAG_ARGS+=(--gibbs "${label}=${checkpoint}=${gibbs_csv}")
+  if [[ -f "${dist_csv}" ]]; then
+    GIBBS_DIAG_ARGS+=(--gibbs "${label}=${checkpoint}=${dist_csv}=distribution")
+  fi
+  if [[ -f "${fit_csv}" ]]; then
+    GIBBS_DIAG_ARGS+=(--gibbs "${label}=${checkpoint}=${fit_csv}=fitness")
   fi
 done
 

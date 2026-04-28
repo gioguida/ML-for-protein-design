@@ -30,6 +30,7 @@ import os
 import random
 import time
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 import torch
@@ -40,6 +41,18 @@ from protein_design.constants import C05_CDRH3, C05_CDRH3_END, C05_CDRH3_START, 
 STANDARD_AAS = "ACDEFGHIKLMNPQRSTVWY"
 ESM2_MODEL_ID = "facebook/esm2_t12_35M_UR50D"
 DEFAULT_HF_IDS = {"vanilla": ESM2_MODEL_ID}
+CDRH3_LEN = C05_CDRH3_END - C05_CDRH3_START
+
+
+def load_dms_seed_pool(m22_path: Path, si06_path: Path, max_n: int, seed: int) -> List[str]:
+    """Load CDR-H3 sequences from D2_M22 ∪ D2_SI06 for use as chain starts."""
+    m22 = pd.read_csv(m22_path)[["aa"]]
+    si06 = pd.read_csv(si06_path)[["aa"]]
+    merged = pd.concat([m22, si06], ignore_index=True).drop_duplicates(subset=["aa"])
+    merged = merged[merged["aa"].astype(str).str.len() == CDRH3_LEN]
+    if len(merged) > max_n:
+        merged = merged.sample(n=max_n, random_state=seed).reset_index(drop=True)
+    return merged["aa"].astype(str).tolist()
 
 
 def _extract_state_dict(raw) -> dict:
@@ -118,7 +131,8 @@ def parse_args() -> argparse.Namespace:
                    help="Explicit checkpoint path; if omitted, resolve via "
                         "DEFAULT_HF_IDS[variant] or treat variant as HF model ID.")
     p.add_argument("--wt-cdrh3", default=C05_CDRH3,
-                   help="Starting 24-aa CDR-H3 sequence.")
+                   help="Reference WT CDR-H3 (used for the n_mutations column "
+                        "and as the chain start when --start-mode=wt).")
     p.add_argument("--n-chains", type=int, default=5)
     p.add_argument("--n-steps", type=int, default=5000)
     p.add_argument("--snapshot-every", type=int, default=100)
@@ -127,6 +141,16 @@ def parse_args() -> argparse.Namespace:
                    help="Path to output CSV; companion .meta.json is written alongside.")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--start-mode", choices=["wt", "dms"], default="wt",
+                   help="wt: every chain starts from --wt-cdrh3. "
+                        "dms: each chain starts from a random CDR-H3 sampled from "
+                        "D2_M22 ∪ D2_SI06 (deterministic given --seed).")
+    p.add_argument("--dms-m22-path", type=Path, default=None,
+                   help="Path to D2_M22.csv (required when --start-mode=dms).")
+    p.add_argument("--dms-si06-path", type=Path, default=None,
+                   help="Path to D2_SI06.csv (required when --start-mode=dms).")
+    p.add_argument("--max-dms-seeds", type=int, default=500,
+                   help="Cap on the DMS pool size before per-chain sampling.")
     return p.parse_args()
 
 
@@ -224,6 +248,24 @@ def main() -> None:
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
 
+    if args.start_mode == "dms":
+        if args.dms_m22_path is None or args.dms_si06_path is None:
+            raise ValueError("--start-mode=dms requires --dms-m22-path and --dms-si06-path")
+        pool = load_dms_seed_pool(args.dms_m22_path, args.dms_si06_path,
+                                  args.max_dms_seeds, args.seed)
+        if not pool:
+            raise ValueError(f"DMS seed pool is empty (after length-{CDRH3_LEN} filter)")
+        if len(pool) >= args.n_chains:
+            chain_starts = random.sample(pool, args.n_chains)
+        else:
+            chain_starts = [random.choice(pool) for _ in range(args.n_chains)]
+        print(f"[seeds] start_mode=dms pool_size={len(pool)} chain_starts:")
+        for i, cdr in enumerate(chain_starts):
+            print(f"[seeds]   chain {i}: {cdr}")
+    else:
+        chain_starts = [args.wt_cdrh3] * args.n_chains
+        print(f"[seeds] start_mode=wt all chains start from {args.wt_cdrh3}")
+
     device = torch.device(args.device)
     checkpoint = resolve_checkpoint(args)
     print(f"\n[model] variant={args.model_variant}  checkpoint={checkpoint}")
@@ -270,11 +312,12 @@ def main() -> None:
           f"snapshot_every={args.snapshot_every}  temperature={args.temperature}")
 
     for chain_id in range(args.n_chains):
-        current_vh = add_context(args.wt_cdrh3)
+        start_cdrh3 = chain_starts[chain_id]
+        current_vh = add_context(start_cdrh3)
         current_tokens = tokenize_full_vh(tokenizer, current_vh).to(device)
         snapshots.append(make_record(chain_id, 0, current_vh, args.wt_cdrh3, args.model_variant))
         t_chain = time.time()
-        print(f"\n[chain {chain_id}] start  cdrh3={args.wt_cdrh3}")
+        print(f"\n[chain {chain_id}] start  cdrh3={start_cdrh3}")
 
         for step in range(args.n_steps):
             local_pos = random.randrange(C05_CDRH3_END - C05_CDRH3_START)
@@ -311,6 +354,8 @@ def main() -> None:
         "snapshot_every": args.snapshot_every,
         "temperature": args.temperature,
         "seed": args.seed,
+        "start_mode": args.start_mode,
+        "chain_starts": chain_starts,
     }
     meta_path = f"{args.output_path}.meta.json"
     with open(meta_path, "w") as f:
