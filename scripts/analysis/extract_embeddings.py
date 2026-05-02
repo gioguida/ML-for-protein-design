@@ -1,38 +1,40 @@
 """Extract whole-VH and CDRH3 mean-pooled embeddings from one ESM2-35M variant.
 
+DMS-side stage of the embedding pipeline. OAS embeddings live in a separate, dataset-agnostic
+artifact written by ``extract_oas_embeddings.py`` — they are not regenerated when the DMS dataset
+changes.
+
 Reads
 -----
 - DMS scoring CSVs (M22, SI06): C05 CDRH3 variants + binding enrichments.
-- OAS FASTA + metadata (`seq_id`, `cdr3_aa`): background antibody sequences.
 - Optional Gibbs CSV (columns include `chain_id`, `gibbs_step`, `sequence`).
 - ESM2 model weights (vanilla from HF hub or a checkpoint dir).
 
-Writes one .npz file with the schema below — this is the integration contract consumed by
-`compute_projections.py`; keep keys/dtypes stable.
+Writes one .npz file with the schema below.
 
     whole_seq_embs           (N, 480) float32
-    cdrh3_embs               (N, 480) float32  NaN row where CDR3 not locatable
+    cdrh3_embs               (N, 480) float32
     sequences                (N,)     <U       full VH string
-    source_labels            (N,)     <U       wt | dms | oas | gibbs
+    source_labels            (N,)     <U       wt | dms | gibbs
     M22_binding_enrichment   (N,)     float32  NaN where unavailable
     SI06_binding_enrichment  (N,)     float32  NaN where unavailable
-    cdrh3_identity_to_wt     (N,)     float32  NaN for OAS
+    cdrh3_identity_to_wt     (N,)     float32
     gibbs_step               (N,)     int32    -1 for non-gibbs
     chain_id                 (N,)     int32    -1 for non-gibbs
-    v_family                 (N,)     <U       IGHV{1..7} for OAS, "" otherwise
+    gibbs_config             (N,)     <U
     model_variant            (1,)     <U
     dms_dataset              (1,)     <U       which DMS source (ed2, ed5, …)
+    schema_version           (1,)     <U       "v2" — bump when the schema changes
 """
 
 from __future__ import annotations
 
 import argparse
-import gzip
 import logging
 import random
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -52,6 +54,7 @@ from protein_design.constants import (
 ESM2_MODEL_ID = "facebook/esm2_t12_35M_UR50D"
 SEED = 42
 EMB_DIM = 480
+SCHEMA_VERSION = "v2"  # bump when the on-disk schema changes
 
 # Default input paths (CLAUDE.md). Overridable via CLI.
 _DMS_BASE = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/scoring"
@@ -69,8 +72,6 @@ DMS_DATASETS: dict[str, dict[str, str]] = {
     },
 }
 DEFAULT_DMS_DATASET = "ed2"
-DEFAULT_OAS_FASTA = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/oas_dedup_rep_seq.fasta"
-DEFAULT_OAS_META = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/oas_filtered.csv.gz"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("extract_embeddings")
@@ -105,58 +106,6 @@ def load_dms(
     if len(merged) > max_n:
         merged = merged.sample(n=max_n, random_state=SEED).reset_index(drop=True)
     return merged
-
-
-def reservoir_sample_fasta(path: Path, k: int) -> List[Tuple[str, str]]:
-    """Single-pass reservoir sample of (seq_id, sequence) pairs from a FASTA."""
-    rng = random.Random(SEED)
-    opener = gzip.open if str(path).endswith(".gz") else open
-    reservoir: List[Tuple[str, str]] = []
-    with opener(path, "rt") as fh:
-        for i, rec in enumerate(SeqIO.parse(fh, "fasta")):
-            item = (rec.id, str(rec.seq))
-            if i < k:
-                reservoir.append(item)
-            else:
-                j = rng.randint(0, i)
-                if j < k:
-                    reservoir[j] = item
-    return reservoir
-
-
-def _v_family_from_call(v_call) -> str:
-    """Extract the V-gene family prefix (e.g. 'IGHV3-21*01' -> 'IGHV3').
-
-    Handles NaN/empty, comma-separated multi-calls (takes the first), and
-    calls without a dash (returns the full string).
-    """
-    if not isinstance(v_call, str) or not v_call:
-        return ""
-    first = v_call.split(",", 1)[0].strip()
-    return first.split("-", 1)[0] if "-" in first else first
-
-
-def build_cdr3_lookup(meta_path: Path, wanted_ids: Iterable[str]) -> dict[str, tuple[str, int, str]]:
-    """Stream OAS metadata, return {seq_id: (cdr3_aa, cdr3_start, v_family)} restricted to wanted_ids.
-
-    cdr3_start is the 0-based index of the CDR-H3 in the full VH sequence, computed
-    exactly from segment lengths (fwr1+cdr1+fwr2+cdr2+fwr3) — no substring search.
-    v_family is the V-gene family prefix (e.g. 'IGHV3'), '' if missing.
-    """
-    wanted = set(wanted_ids)
-    out: dict[str, tuple[str, int, str]] = {}
-    cols = ["seq_id", "cdr3_aa", "fwr1_aa", "cdr1_aa", "fwr2_aa", "cdr2_aa", "fwr3_aa", "v_call"]
-    for chunk in pd.read_csv(meta_path, usecols=cols, chunksize=500_000):
-        hit = chunk[chunk["seq_id"].isin(wanted)]
-        for row in hit.itertuples(index=False):
-            cdr = row.cdr3_aa if isinstance(row.cdr3_aa, str) else ""
-            start = sum(
-                len(s) if isinstance(s, str) else 0
-                for s in (row.fwr1_aa, row.cdr1_aa, row.fwr2_aa, row.cdr2_aa, row.fwr3_aa)
-            )
-            family = _v_family_from_call(row.v_call)
-            out[str(row.seq_id)] = (cdr, start, family)
-    return out
 
 
 def load_gibbs(path: Path, max_n: int) -> Optional[pd.DataFrame]:
@@ -209,19 +158,18 @@ def fixed_vh_cdrh3_token_positions() -> List[int]:
 def build_reference_set(
     dms_m22: Optional[Path],
     dms_si06: Optional[Path],
-    oas_fasta: Path,
-    oas_meta: Path,
     gibbs_paths: List[Tuple[str, Path]],
     max_dms: int,
-    max_oas: int,
     max_gibbs: int,
 ) -> pd.DataFrame:
-    """Assemble the per-row table all subsequent steps operate on.
+    """Assemble the per-row table (WT + DMS + Gibbs) all subsequent steps operate on.
 
-    Columns: sequence, source, M22_enrich, SI06_enrich, cdrh3_token_positions (list[int]
-    or None), cdrh3_identity_to_wt (float, NaN for OAS), gibbs_step, chain_id.
+    Columns: sequence, source, M22_enrich, SI06_enrich, cdrh3_token_positions (fixed for
+    all rows since the VH framework is constant), cdrh3_identity_to_wt, gibbs_step,
+    chain_id, gibbs_config.
     """
     rows: list[dict] = []
+    fixed_pos = fixed_vh_cdrh3_token_positions()
 
     # 1) WT
     rows.append({
@@ -229,18 +177,16 @@ def build_reference_set(
         "source": "wt",
         "M22_enrich": np.nan,
         "SI06_enrich": np.nan,
-        "cdrh3_token_positions": fixed_vh_cdrh3_token_positions(),
+        "cdrh3_token_positions": fixed_pos,
         "cdrh3_identity_to_wt": 1.0,
         "gibbs_step": -1,
         "chain_id": -1,
         "gibbs_config": "",
-        "v_family": "",
     })
 
     # 2) DMS
     log.info("Loading DMS …")
     dms = load_dms(dms_m22, dms_si06, max_dms)
-    fixed_pos = fixed_vh_cdrh3_token_positions()
     for _, r in dms.iterrows():
         full = add_context(r["aa"])
         rows.append({
@@ -253,45 +199,9 @@ def build_reference_set(
             "gibbs_step": -1,
             "chain_id": -1,
             "gibbs_config": "",
-            "v_family": "",
         })
 
-    # 3) OAS
-    log.info("Reservoir-sampling %d OAS sequences from %s", max_oas, oas_fasta)
-    oas = reservoir_sample_fasta(oas_fasta, max_oas)
-    log.info("Looking up CDR3 metadata for %d OAS seq_ids", len(oas))
-    cdr3_lookup = build_cdr3_lookup(oas_meta, [sid for sid, _ in oas])
-    n_unmatched = 0
-    for sid, seq in oas:
-        entry = cdr3_lookup.get(sid)
-        family = ""
-        if entry and entry[0]:
-            cdr, start, family = entry
-            # +1 because token 0 is BOS; verify the annotated region matches the sequence
-            if start >= 0 and start + len(cdr) <= len(seq) and seq[start:start + len(cdr)] == cdr:
-                positions = list(range(start + 1, start + 1 + len(cdr)))
-            else:
-                positions = None
-                n_unmatched += 1
-        else:
-            positions = None
-            n_unmatched += 1
-        rows.append({
-            "sequence": seq,
-            "source": "oas",
-            "M22_enrich": np.nan,
-            "SI06_enrich": np.nan,
-            "cdrh3_token_positions": positions,
-            "cdrh3_identity_to_wt": np.nan,
-            "gibbs_step": -1,
-            "chain_id": -1,
-            "gibbs_config": "",
-            "v_family": family,
-        })
-    if n_unmatched:
-        log.warning("%d / %d OAS sequences have no locatable CDRH3 (NaN cdrh3_emb)", n_unmatched, len(oas))
-
-    # 4) Gibbs (one or more named configs)
+    # 3) Gibbs (one or more named configs)
     for config_name, gibbs_path in gibbs_paths:
         gibbs_df = load_gibbs(gibbs_path, max_gibbs)
         if gibbs_df is None:
@@ -310,7 +220,6 @@ def build_reference_set(
                 "gibbs_step": int(r["gibbs_step"]),
                 "chain_id": int(r["chain_id"]),
                 "gibbs_config": config_name,
-                "v_family": "",
             })
 
     return pd.DataFrame(rows)
@@ -460,17 +369,39 @@ def parse_args() -> argparse.Namespace:
                    help="Override M22 CSV path (defaults to the --dms-dataset entry).")
     p.add_argument("--dms-si06", default=None,
                    help="Override SI06 CSV path (defaults to the --dms-dataset entry).")
-    p.add_argument("--oas-fasta", default=DEFAULT_OAS_FASTA)
-    p.add_argument("--oas-meta", default=DEFAULT_OAS_META)
     p.add_argument("--max-dms", type=int, default=500)
-    p.add_argument("--max-oas", type=int, default=2000)
     p.add_argument("--max-gibbs", type=int, default=200)
     p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--skip-if-current", action="store_true",
+                   help="If --output-path already exists with the current SCHEMA_VERSION, "
+                        "exit 0 without recomputing. Old/missing schema triggers a rebuild.")
     return p.parse_args()
+
+
+def _existing_is_current(path: Path) -> bool:
+    """True iff `path` exists and contains a matching schema_version field."""
+    if not path.exists():
+        return False
+    try:
+        with np.load(path, allow_pickle=False) as z:
+            if "schema_version" not in z.files:
+                return False
+            return str(z["schema_version"][0]) == SCHEMA_VERSION
+    except Exception as exc:  # noqa: BLE001 — opening unknown legacy formats
+        log.warning("Could not inspect %s (%s); will rebuild", path, exc)
+        return False
 
 
 def main() -> int:
     args = parse_args()
+
+    out_path = Path(args.output_path)
+    if args.skip_if_current and _existing_is_current(out_path):
+        log.info("Skip: %s exists with schema_version=%s", out_path, SCHEMA_VERSION)
+        return 0
+    if args.skip_if_current and out_path.exists():
+        log.warning("Existing %s has stale schema — rebuilding", out_path)
+
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -506,18 +437,14 @@ def main() -> int:
     df = build_reference_set(
         Path(dms_m22) if dms_m22 else None,
         Path(dms_si06) if dms_si06 else None,
-        Path(args.oas_fasta),
-        Path(args.oas_meta),
         gibbs_paths,
         args.max_dms,
-        args.max_oas,
         args.max_gibbs,
     )
     log.info("Reference set: %d rows  (%s)", len(df), dict(df["source"].value_counts()))
 
     whole, cdr = run_inference(df, model, tokenizer, device, args.batch_size)
 
-    out_path = Path(args.output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(
         out_path,
@@ -531,9 +458,9 @@ def main() -> int:
         gibbs_step=df["gibbs_step"].to_numpy(dtype=np.int32),
         chain_id=df["chain_id"].to_numpy(dtype=np.int32),
         gibbs_config=np.array(df["gibbs_config"].tolist()),
-        v_family=np.array(df["v_family"].tolist()),
         model_variant=np.array([args.model_variant]),
         dms_dataset=np.array([args.dms_dataset]),
+        schema_version=np.array([SCHEMA_VERSION]),
     )
     log.info("Wrote %s  (%d rows, embedding dim %d)", out_path, len(df), EMB_DIM)
     return 0

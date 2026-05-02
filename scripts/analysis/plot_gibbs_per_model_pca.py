@@ -2,12 +2,9 @@
 
 Why this exists
 ---------------
-``plot_projections.py`` renders Gibbs trajectories in the *shared* PCA fit on
-vanilla's combined background (DMS + OAS + WT). Because OAS dominates that
-background, the dominant axis is germline diversity rather than within-DMS
-variation, so "does the sampler collapse onto the high-fitness DMS region?"
-cannot be answered there. The per-model DMS-only PCA from
-``compute_per_model_pca.py`` *is* the right frame for that question.
+The per-model DMS-only PCA from ``compute_per_model_pca.py`` is the right
+frame to ask "does the Gibbs sampler collapse onto the high-fitness DMS
+region?" — each variant's PCA captures its own DMS variance.
 
 Reads
 -----
@@ -180,6 +177,131 @@ def plot_one_variant(
         log.info("Wrote %s", out_path)
 
 
+def plot_per_model_pca_grid(
+    per_cell: dict,
+    variant_order: list,
+    config_order: list,
+    fkey: str,
+    flabel: str,
+    fshort: str,
+    emb_type: str,
+    dms_dataset: str,
+    out_dir: Path,
+    view_suffix: str = "",
+    title_extra: str = "",
+) -> None:
+    """Combined grid: rows = configs, cols = variants — all in one figure.
+
+    Each cell shows the DMS background in that variant's own PCA frame,
+    coloured by enrichment with a shared scale, plus the Gibbs trajectories.
+    Output filename: gibbs_per_model_pca_all_{emb_type}_{fshort}_{dms_dataset}[_{view_suffix}].png
+    """
+    variants = [v for v in variant_order if any((v, cfg) in per_cell for cfg in config_order)]
+    configs = [cfg for cfg in config_order if any((v, cfg) in per_cell for v in variant_order)]
+    if not variants or not configs:
+        log.info("No data for combined grid %s/%s/%s — skipping", fshort, emb_type, view_suffix or "full")
+        return
+
+    # Build global fitness range for a shared colorbar across all cells.
+    all_fvals: list[np.ndarray] = []
+    for v in variants:
+        for cfg in configs:
+            key = (v, cfg)
+            if key not in per_cell:
+                continue
+            fvals = per_cell[key]["dms_fitness"][fkey]
+            valid = fvals[~np.isnan(fvals)]
+            if len(valid):
+                all_fvals.append(valid)
+    if not all_fvals:
+        log.info("Skipping %s combined grid — no %s values in dataset %s", fshort, fkey, dms_dataset)
+        return
+
+    all_fcat = np.concatenate(all_fvals)
+    norm = plt.Normalize(vmin=float(np.min(all_fcat)), vmax=float(np.max(all_fcat)))
+    sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+    sm.set_array([])
+
+    chain_cmap = plt.get_cmap("tab10")
+    step_cmap = plt.get_cmap("plasma")
+
+    n_rows, n_cols = len(configs), len(variants)
+    fig, axes = plt.subplots(
+        n_rows, n_cols,
+        figsize=(4.0 * n_cols + 1.4, 3.8 * n_rows + 0.8),
+        squeeze=False,
+        layout="constrained",
+    )
+
+    for row, cfg in enumerate(configs):
+        for col, v in enumerate(variants):
+            ax = axes[row, col]
+            key = (v, cfg)
+            if key not in per_cell:
+                ax.axis("off")
+                continue
+            d = per_cell[key]
+            dms_pca = d["dms_pca"]
+            fvals = d["dms_fitness"][fkey]
+            gibbs_pc = d["gibbs_pc"]
+            gibbs_chain_id = d["gibbs_chain_id"]
+            gibbs_step = d["gibbs_step"]
+            wt_pc = d["wt_pc"]
+            ev = d["explained_variance"]
+
+            # DMS background
+            valid_xy = ~np.isnan(dms_pca[:, :2]).any(axis=1)
+            valid_v = ~np.isnan(fvals)
+            if (valid_xy & ~valid_v).any():
+                ax.scatter(dms_pca[valid_xy & ~valid_v, 0], dms_pca[valid_xy & ~valid_v, 1],
+                           s=7, c="lightgrey", alpha=0.3, zorder=2)
+            if (valid_xy & valid_v).any():
+                ax.scatter(
+                    dms_pca[valid_xy & valid_v, 0], dms_pca[valid_xy & valid_v, 1],
+                    c=fvals[valid_xy & valid_v], cmap="viridis", norm=norm,
+                    s=12, alpha=0.75, zorder=3,
+                )
+
+            # Gibbs trajectories
+            if gibbs_pc is not None and len(gibbs_pc):
+                unique_chains = sorted(set(int(c) for c in gibbs_chain_id))
+                for i, ch in enumerate(unique_chains):
+                    cm = gibbs_chain_id == ch
+                    pts = gibbs_pc[cm]
+                    st = gibbs_step[cm]
+                    order = np.argsort(st)
+                    pts, st = pts[order], st[order]
+                    line_color = chain_cmap(i % 10)
+                    ax.plot(pts[:, 0], pts[:, 1], "-", color=line_color,
+                            alpha=0.55, linewidth=0.9, zorder=4)
+                    ax.scatter(pts[:, 0], pts[:, 1], c=st, cmap=step_cmap,
+                               s=16, zorder=5, edgecolors=line_color, linewidths=0.35)
+
+            if wt_pc is not None:
+                ax.scatter(wt_pc[0], wt_pc[1], **WT_STAR)
+
+            pc2_label = f"PC2 ({100 * ev[1]:.1f}% var)" if len(ev) > 1 else "PC2"
+            pc1_label = f"PC1 ({100 * ev[0]:.1f}% var)"
+            if row == 0:
+                ax.set_title(v, fontsize=9, fontweight="bold")
+            ax.set_ylabel((f"{cfg}\n\n{pc2_label}") if col == 0 else pc2_label, fontsize=8)
+            ax.set_xlabel(pc1_label, fontsize=7)
+            ax.tick_params(labelsize=6)
+
+    fig.colorbar(sm, ax=axes.ravel().tolist(), shrink=0.6, aspect=30, pad=0.02, label=flabel)
+    view_extra = f"  [{title_extra}]" if title_extra else ""
+    fig.suptitle(
+        f"Gibbs trajectory in per-model DMS-PCA [{dms_dataset.upper()}]  ({emb_type}){view_extra}\n"
+        f"DMS coloured by {flabel}; chains coloured by chain ID; markers shaded by Gibbs step",
+        fontsize=11,
+    )
+    view_part = f"_{view_suffix}" if view_suffix else ""
+    out_path = out_dir / f"gibbs_per_model_pca_all_{emb_type}_{fshort}_{dms_dataset}{view_part}.png"
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s", out_path)
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -218,7 +340,14 @@ def main() -> int:
         variants, per_variant, dms_dataset = load_per_model_npz(per_model_npz)
         emb_key = f"{emb_type}_embs"
 
+        # Accumulators for the combined grid plot (keyed by (variant, config_name)).
+        per_cell_full: dict = {}
+        per_cell_early: dict = {}
+        variant_order: list = []
+        config_name_set: list = []   # ordered unique config names
+
         for v in variants:
+            variant_order.append(v)
             pkl_path = args.per_model_pca_dir / f"pca_dms_{v}_{emb_type}.pkl"
             emb_npz = args.embeddings_dir / f"{v}.npz"
             if not pkl_path.exists():
@@ -240,7 +369,7 @@ def main() -> int:
             configs = sorted(set(grows["gibbs_config"].tolist())) if len(grows["gibbs_config"]) else []
             multi_config = len(configs) >= 2
 
-            def _do_plot(emb, chains, steps, cfg_suffix, view_suffix, view_title):
+            def _collect_data(emb, chains, steps):
                 gibbs_pc_local = None
                 chain_ids_local = None
                 steps_local = None
@@ -250,57 +379,59 @@ def main() -> int:
                         gibbs_pc_local = pca.transform(emb[valid])[:, :2]
                         chain_ids_local = chains[valid]
                         steps_local = steps[valid]
-                plot_one_variant(
-                    variant=v,
-                    emb_type=emb_type,
-                    dms_pca=per_variant[v]["pca"],
-                    dms_fitness={
+                return {
+                    "dms_pca": per_variant[v]["pca"],
+                    "dms_fitness": {
                         "M22_enrich": per_variant[v]["M22_enrich"],
                         "SI06_enrich": per_variant[v]["SI06_enrich"],
                     },
-                    gibbs_pc=gibbs_pc_local,
-                    gibbs_chain_id=chain_ids_local,
-                    gibbs_step=steps_local,
-                    wt_pc=wt_pc,
-                    explained_variance=per_variant[v]["explained_variance"],
-                    dms_dataset=dms_dataset,
-                    out_dir=args.output_dir,
-                    config_suffix=cfg_suffix,
-                    view_suffix=view_suffix,
-                    title_extra=view_title,
-                )
+                    "gibbs_pc": gibbs_pc_local,
+                    "gibbs_chain_id": chain_ids_local,
+                    "gibbs_step": steps_local,
+                    "wt_pc": wt_pc,
+                    "explained_variance": per_variant[v]["explained_variance"],
+                }
 
             def _early_subset(emb, chains, steps, ed):
-                ed_mask = ed <= args.early_max_ed
-                if not ed_mask.any():
+                # Select up to early_max_chains chains (all available chains).
+                unique_chains = sorted(set(int(c) for c in chains))[: args.early_max_chains]
+                if not unique_chains:
                     return None
-                emb_e = emb[ed_mask]
-                chains_e = chains[ed_mask]
-                steps_e = steps[ed_mask]
-                keep = sorted(set(int(c) for c in chains_e))[: args.early_max_chains]
-                if not keep:
-                    return None
-                keep_mask = np.isin(chains_e, keep)
-                return emb_e[keep_mask], chains_e[keep_mask], steps_e[keep_mask]
+                # For each chain, keep every step from the start through (and
+                # including) the first checkpoint where ED > early_max_ed.
+                # This guarantees at least one line segment per chain even when
+                # sampling is coarse and chains diverge quickly.
+                keep_idx: list[np.ndarray] = []
+                for cid in unique_chains:
+                    cm = chains == cid
+                    orig_idx = np.where(cm)[0]
+                    order = np.argsort(steps[orig_idx])
+                    sorted_idx = orig_idx[order]
+                    sorted_ed = ed[sorted_idx]
+                    exceeds = np.where(sorted_ed > args.early_max_ed)[0]
+                    cutoff = int(exceeds[0]) + 1 if len(exceeds) else len(sorted_idx)
+                    keep_idx.append(sorted_idx[:cutoff])
+                all_idx = np.concatenate(keep_idx)
+                return emb[all_idx], chains[all_idx], steps[all_idx]
 
-            def _emit_for_subset(emb, chains, steps, ed, cfg_suffix):
+            def _emit_for_subset(emb, chains, steps, ed, cfg_suffix, config_name):
+                if config_name not in config_name_set:
+                    config_name_set.append(config_name)
+                cell = _collect_data(emb, chains, steps)
                 if not args.skip_full:
-                    _do_plot(emb, chains, steps, cfg_suffix, "", "")
+                    per_cell_full[(v, config_name)] = cell
                 if not args.skip_early:
                     sub = _early_subset(emb, chains, steps, ed)
                     if sub is None:
-                        log.warning("No Gibbs rows with edit_distance ≤ %d for %s/%s/%s — skipping early plot",
-                                    args.early_max_ed, v, emb_type, cfg_suffix or "default")
+                        log.warning("No Gibbs chains found for %s/%s/%s — skipping early plot",
+                                    v, emb_type, config_name)
                     else:
                         emb_e, chains_e, steps_e = sub
-                        _do_plot(
-                            emb_e, chains_e, steps_e, cfg_suffix, "early",
-                            f"early: ED≤{args.early_max_ed}, ≤{args.early_max_chains} chains",
-                        )
+                        per_cell_early[(v, config_name)] = _collect_data(emb_e, chains_e, steps_e)
 
             if not configs:
                 _emit_for_subset(grows["gibbs_emb"], grows["gibbs_chain_id"],
-                                 grows["gibbs_step"], grows["gibbs_edit_distance"], "")
+                                 grows["gibbs_step"], grows["gibbs_edit_distance"], "", "default")
             else:
                 for cfg in configs:
                     mask = grows["gibbs_config"] == cfg
@@ -309,7 +440,25 @@ def main() -> int:
                                      grows["gibbs_chain_id"][mask],
                                      grows["gibbs_step"][mask],
                                      grows["gibbs_edit_distance"][mask],
-                                     suffix)
+                                     suffix, cfg)
+
+        # Combined grid plots (all variants in one figure per fitness × view).
+        for fkey, flabel, fshort in FITNESS:
+            if per_cell_full:
+                plot_per_model_pca_grid(
+                    per_cell_full, variant_order, config_name_set,
+                    fkey, flabel, fshort, emb_type, dms_dataset, args.output_dir,
+                )
+            if per_cell_early:
+                plot_per_model_pca_grid(
+                    per_cell_early, variant_order, config_name_set,
+                    fkey, flabel, fshort, emb_type, dms_dataset, args.output_dir,
+                    view_suffix="early",
+                    title_extra=(
+                        f"early: ≤{args.early_max_chains} chains, "
+                        f"steps through first ED>{args.early_max_ed}"
+                    ),
+                )
 
     return 0
 

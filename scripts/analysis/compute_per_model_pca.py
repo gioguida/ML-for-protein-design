@@ -2,16 +2,9 @@
 
 Why this exists
 ---------------
-``compute_projections.py`` fits a single PCA on the vanilla model's combined
-background (DMS + OAS + WT). Because the ~2000 OAS sequences dominate that fit
-numerically, PC1 there describes germline diversity rather than within-DMS
-variation, and asking "does PC1 correlate with affinity?" against that PCA is
-a guaranteed null result regardless of whether fine-tuning worked.
-
-This script answers the per-model question instead: for each model variant
-independently, what is the dominant axis of variance among the DMS sequences,
-and does that axis align with affinity? The fitted projectors are saved so
-new sequences can be projected later without refitting.
+For each model variant independently, what is the dominant axis of variance
+among the DMS sequences, and does that axis align with affinity? The fitted
+projectors are saved so new sequences can be projected later without refitting.
 
 Reads
 -----

@@ -10,18 +10,18 @@
 #SBATCH --output=bash_scripts/logs/embedding_analysis_%j.out
 
 # Full analysis pipeline:
-#   extract_embeddings × N variants
+#   extract_oas_embeddings × N variants  (dataset-agnostic; cached under OAS_DIR)
+#   extract_embeddings × N variants      (DMS+WT+Gibbs only; per DMS_DATASET)
 #   ↓
-#   compute_projections          (existing: shared vanilla PCA + UMAP)
 #   compute_per_model_pca        (DMS-only PCA per model)
 #   compute_diff_vectors_pca     (uncentered SVD on embed − WT)
-#   compute_cka                  (4×4 representational similarity)
+#   compute_cka                  (representational similarity)
 #   compute_procrustes_displacement  (gated on CKA threshold)
 #   compute_pll_pca              (joint PLL biplot + per-position loadings)
 #   gibbs_diagnostics            (only when Gibbs CSVs exist)
 #   ↓
-#   plot_projections, plot_per_model_pca, plot_gibbs_per_model_pca,
-#   plot_diff_vectors_pca, plot_oas_germline_umap, plot_pll_pca
+#   plot_per_model_pca, plot_gibbs_per_model_pca, plot_diff_vectors_pca,
+#   plot_oas_umap (×5 modes), plot_pll_pca
 
 ROOT_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 cd "${ROOT_DIR}"
@@ -45,7 +45,8 @@ DMS_DATASET="${DMS_DATASET:-ed2}"
 echo "DMS_DATASET=${DMS_DATASET}"
 
 EMB_DIR="${EMB_DIR:-${SCRATCH_BASE}/embeddings/${DMS_DATASET}}"
-PROJ_DIR="${PROJ_DIR:-${SCRATCH_BASE}/projections/${DMS_DATASET}}"
+# OAS embeddings are dataset-independent — cache outside any DMS_DATASET scope.
+OAS_DIR="${OAS_DIR:-${SCRATCH_BASE}/embeddings/_oas}"
 PER_MODEL_DIR="${PER_MODEL_DIR:-${SCRATCH_BASE}/per_model_pca/${DMS_DATASET}}"
 DIFF_DIR="${DIFF_DIR:-${SCRATCH_BASE}/diff_pca/${DMS_DATASET}}"
 CKA_DIR="${CKA_DIR:-${PROJECT_BASE}/plots/${DMS_DATASET}/cka}"
@@ -65,6 +66,9 @@ MAX_GIBBS="${MAX_GIBBS:-200}"
 # and plotting steps always run — they're cheap and safe to re-do when
 # plot code changes.
 FORCE="${FORCE:-0}"
+# Set SKIP_OAS=1 to skip extract_oas_embeddings (Step 1a) and plot_oas_umap.
+# Safe when OAS plots are not needed; all DMS/Gibbs steps are unaffected.
+SKIP_OAS="${SKIP_OAS:-0}"
 
 # Variants — edit the arrays below to add/remove models.
 # Each entry is "label|checkpoint|gibbs_csv". Use empty checkpoint for vanilla.
@@ -100,12 +104,38 @@ VARIANTS=(
   "unlikelihood|${UNLIKELIHOOD_CKPT}|${GIBBS_DIST_DIR}/unlikelihood.csv|${GIBBS_FIT_DIR}/unlikelihood.csv"
 )
 
-mkdir -p "${EMB_DIR}" "${PROJ_DIR}" "${PER_MODEL_DIR}" "${DIFF_DIR}" \
+mkdir -p "${EMB_DIR}" "${OAS_DIR}" "${PER_MODEL_DIR}" "${DIFF_DIR}" \
          "${CKA_DIR}" "${PROCRUSTES_DIR}" "${PLL_DIR}" "${GIBBS_DIAG_DIR}" \
          "${PLOTS_DIR}"
 
 # ---------------------------------------------------------------------------
-# Step 1 — Extract embeddings per variant
+# Step 1a — Extract OAS embeddings per variant (dataset-agnostic, cached)
+# ---------------------------------------------------------------------------
+OAS_NPZ=()
+if [[ "${SKIP_OAS}" == "1" ]]; then
+  echo "[extract_oas_embeddings] SKIP_OAS=1 — skipping all OAS extraction"
+else
+  for entry in "${VARIANTS[@]}"; do
+    IFS='|' read -r label checkpoint dist_csv fit_csv <<<"${entry}"
+    oas_npz="${OAS_DIR}/${label}.npz"
+    OAS_NPZ+=("${oas_npz}")
+
+    echo "============================================================"
+    echo "[extract_oas_embeddings] variant=${label}"
+    echo "============================================================"
+    oas_args=(
+      --model-variant "${label}"
+      --output-path "${oas_npz}"
+      --max-oas "${MAX_OAS}"
+    )
+    [[ -n "${checkpoint}" ]] && oas_args+=(--checkpoint-path "${checkpoint}")
+    [[ "${FORCE}" != "1" ]] && oas_args+=(--skip-if-current)
+    uv run python scripts/analysis/extract_oas_embeddings.py "${oas_args[@]}"
+  done
+fi
+
+# ---------------------------------------------------------------------------
+# Step 1b — Extract DMS+WT+Gibbs embeddings per variant (per DMS_DATASET)
 # ---------------------------------------------------------------------------
 EMBED_NPZ=()
 PLL_VARIANT_ARGS=()
@@ -119,22 +149,18 @@ for entry in "${VARIANTS[@]}"; do
   echo "============================================================"
   echo "[extract_embeddings] variant=${label}"
   echo "============================================================"
-  if [[ "${FORCE}" != "1" && -f "${npz_path}" ]]; then
-    echo "[extract_embeddings] ${npz_path} exists — skipping (set FORCE=1 to recompute)"
-  else
-    extract_args=(
-      --model-variant "${label}"
-      --output-path "${npz_path}"
-      --dms-dataset "${DMS_DATASET}"
-      --max-dms "${MAX_DMS}"
-      --max-oas "${MAX_OAS}"
-      --max-gibbs "${MAX_GIBBS}"
-    )
-    [[ -n "${checkpoint}" ]] && extract_args+=(--checkpoint-path "${checkpoint}")
-    [[ -f "${dist_csv}" ]] && extract_args+=(--gibbs-path "distribution=${dist_csv}")
-    [[ -f "${fit_csv}" ]] && extract_args+=(--gibbs-path "fitness=${fit_csv}")
-    uv run python scripts/analysis/extract_embeddings.py "${extract_args[@]}"
-  fi
+  extract_args=(
+    --model-variant "${label}"
+    --output-path "${npz_path}"
+    --dms-dataset "${DMS_DATASET}"
+    --max-dms "${MAX_DMS}"
+    --max-gibbs "${MAX_GIBBS}"
+  )
+  [[ -n "${checkpoint}" ]] && extract_args+=(--checkpoint-path "${checkpoint}")
+  [[ -f "${dist_csv}" ]] && extract_args+=(--gibbs-path "distribution=${dist_csv}")
+  [[ -f "${fit_csv}" ]] && extract_args+=(--gibbs-path "fitness=${fit_csv}")
+  [[ "${FORCE}" != "1" ]] && extract_args+=(--skip-if-current)
+  uv run python scripts/analysis/extract_embeddings.py "${extract_args[@]}"
 
   PLL_VARIANT_ARGS+=(--variant "${label}=${checkpoint}")
   if [[ -f "${dist_csv}" ]]; then
@@ -146,17 +172,7 @@ for entry in "${VARIANTS[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Step 2 — Shared PCA / UMAP projections (existing pipeline)
-# ---------------------------------------------------------------------------
-echo "============================================================"
-echo "[compute_projections]"
-echo "============================================================"
-uv run python scripts/analysis/compute_projections.py \
-  "${EMBED_NPZ[@]}" \
-  --output-dir "${PROJ_DIR}"
-
-# ---------------------------------------------------------------------------
-# Step 3 — Per-model DMS-only PCA (Phase 1)
+# Step 2 — Per-model DMS-only PCA (Phase 1)
 # ---------------------------------------------------------------------------
 echo "============================================================"
 echo "[compute_per_model_pca]"
@@ -166,7 +182,7 @@ uv run python scripts/analysis/compute_per_model_pca.py \
   --output-dir "${PER_MODEL_DIR}"
 
 # ---------------------------------------------------------------------------
-# Step 4 — Diff-vector SVD (Phase 2)
+# Step 3 — Diff-vector SVD (Phase 2)
 # ---------------------------------------------------------------------------
 echo "============================================================"
 echo "[compute_diff_vectors_pca]"
@@ -176,7 +192,7 @@ uv run python scripts/analysis/compute_diff_vectors_pca.py \
   --output-dir "${DIFF_DIR}"
 
 # ---------------------------------------------------------------------------
-# Step 5 — Linear CKA (Phase 4)
+# Step 4 — Linear CKA (Phase 4)
 # ---------------------------------------------------------------------------
 echo "============================================================"
 echo "[compute_cka]"
@@ -186,7 +202,7 @@ uv run python scripts/analysis/compute_cka.py \
   --output-dir "${CKA_DIR}"
 
 # ---------------------------------------------------------------------------
-# Step 6 — Procrustes (Phase 5; gated on CKA)
+# Step 5 — Procrustes (Phase 5; gated on CKA)
 # ---------------------------------------------------------------------------
 echo "============================================================"
 echo "[compute_procrustes_displacement] (CKA gate ${CKA_THRESHOLD})"
@@ -198,7 +214,7 @@ uv run python scripts/analysis/compute_procrustes_displacement.py \
   --output-dir "${PROCRUSTES_DIR}"
 
 # ---------------------------------------------------------------------------
-# Step 7 — Joint PLL PCA (Phase 6)
+# Step 6 — Joint PLL PCA (Phase 6)
 # ---------------------------------------------------------------------------
 echo "============================================================"
 echo "[compute_pll_pca]"
@@ -214,7 +230,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 8 — Gibbs diagnostics (Phase 7; only if Gibbs CSVs exist)
+# Step 7 — Gibbs diagnostics (Phase 7; only if Gibbs CSVs exist)
 # ---------------------------------------------------------------------------
 if (( ${#GIBBS_DIAG_ARGS[@]} )); then
   echo "============================================================"
@@ -238,16 +254,8 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 9 — Plotting
+# Step 8 — Plotting
 # ---------------------------------------------------------------------------
-echo "============================================================"
-echo "[plot_projections]                  (shared PCA/UMAP)"
-echo "============================================================"
-uv run python scripts/analysis/plot_projections.py \
-  --projections-dir "${PROJ_DIR}" \
-  --embeddings-dir "${EMB_DIR}" \
-  --output-dir "${PLOTS_DIR}/projections"
-
 echo "============================================================"
 echo "[plot_per_model_pca]"
 echo "============================================================"
@@ -271,11 +279,32 @@ uv run python scripts/analysis/plot_diff_vectors_pca.py \
   --output-dir "${PLOTS_DIR}/diff_pca"
 
 echo "============================================================"
-echo "[plot_oas_germline_umap]"
+echo "[plot_oas_umap] (germline_family, j_gene, vgene_within IGHV3, shm_within IGHV3, cdr3_length)"
 echo "============================================================"
-uv run python scripts/analysis/plot_oas_germline_umap.py \
-  "${EMBED_NPZ[@]}" \
-  --output-dir "${PLOTS_DIR}/oas_germline"
+if [[ "${SKIP_OAS}" == "1" ]]; then
+  echo "[plot_oas_umap] SKIP_OAS=1 — skipping"
+else
+  OAS_PLOT_DIR="${PLOTS_DIR}/oas_umap"
+  SHM_FAMILY="${SHM_FAMILY:-IGHV3}"
+  VGENE_FAMILY="${VGENE_FAMILY:-IGHV3}"
+
+  uv run python scripts/analysis/plot_oas_umap.py \
+    "${OAS_NPZ[@]}" --output-dir "${OAS_PLOT_DIR}" --color-by germline_family
+
+  uv run python scripts/analysis/plot_oas_umap.py \
+    "${OAS_NPZ[@]}" --output-dir "${OAS_PLOT_DIR}" --color-by j_gene
+
+  uv run python scripts/analysis/plot_oas_umap.py \
+    "${OAS_NPZ[@]}" --output-dir "${OAS_PLOT_DIR}" \
+    --color-by vgene_within_family --filter-family "${VGENE_FAMILY}"
+
+  uv run python scripts/analysis/plot_oas_umap.py \
+    "${OAS_NPZ[@]}" --output-dir "${OAS_PLOT_DIR}" \
+    --color-by shm_within_family --filter-family "${SHM_FAMILY}"
+
+  uv run python scripts/analysis/plot_oas_umap.py \
+    "${OAS_NPZ[@]}" --output-dir "${OAS_PLOT_DIR}" --color-by cdr3_length
+fi
 
 echo "============================================================"
 echo "[plot_pll_pca]"

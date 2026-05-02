@@ -53,18 +53,34 @@ def biplot_c1(z: dict, fitness_key: str, fitness_label: str, out_path: Path) -> 
                     cmap="viridis", s=14, alpha=0.85, zorder=3)
     fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04, label=fitness_label)
 
-    # Model loading arrows. Scale to ~80% of coord range so they are visible.
+    # Model loading arrows. Scale to ~70% of coord range so they are visible.
     lim = max(abs(coords).max(), 1e-6)
     arrow_scale = 0.7 * lim / max(abs(loadings).max(), 1e-6)
+    label_scale = 1.15  # place labels 15% beyond arrow tip
+
+    arrow_endpoints = []
     for m_idx, label in enumerate(variants):
-        dx = loadings[0, m_idx] * arrow_scale
-        dy = loadings[1, m_idx] * arrow_scale if loadings.shape[0] > 1 else 0.0
-        ax.annotate(
+        dx = float(loadings[0, m_idx]) * arrow_scale
+        dy = float(loadings[1, m_idx]) * arrow_scale if loadings.shape[0] > 1 else 0.0
+        arrow_endpoints.append((dx, dy))
+        ann = ax.annotate(
             "", xy=(dx, dy), xytext=(0, 0),
             arrowprops=dict(arrowstyle="->", color="red", lw=1.6),
         )
-        ax.text(dx * 1.08, dy * 1.08, label, color="red",
+        # Prevent arrowhead from being clipped when it extends beyond the
+        # auto-scaled scatter limits.
+        ann.arrow_patch.set_clip_on(False)
+        ax.text(dx * label_scale, dy * label_scale, label, color="red",
                 ha="center", va="center", fontsize=10, fontweight="bold")
+
+    # Expand axes limits to include both scatter data and arrow/label positions
+    # so that arrowheads and labels stay inside the plot area.
+    xs = list(coords[:, 0]) + [dx * label_scale for dx, dy in arrow_endpoints]
+    ys = list(coords[:, 1]) + [dy * label_scale for dx, dy in arrow_endpoints]
+    pad_x = max((max(xs) - min(xs)) * 0.08, 1e-6)
+    pad_y = max((max(ys) - min(ys)) * 0.08, 1e-6)
+    ax.set_xlim(min(xs) - pad_x, max(xs) + pad_x)
+    ax.set_ylim(min(ys) - pad_y, max(ys) + pad_y)
 
     ax.axhline(0, color="lightgrey", linewidth=0.6, zorder=1)
     ax.axvline(0, color="lightgrey", linewidth=0.6, zorder=1)
