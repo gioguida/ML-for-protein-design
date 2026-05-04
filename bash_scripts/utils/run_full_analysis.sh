@@ -22,7 +22,8 @@
 #   beam_diagnostics             (only when stochastic-beam CSVs exist)
 #   ↓
 #   plot_per_model_pca, plot_gibbs_per_model_pca, plot_diff_vectors_pca,
-#   plot_oas_umap (×5 modes), plot_pll_pca, plot_beam_per_model_pca
+#   plot_oas_umap (×5 modes), plot_pll_pca, plot_beam_per_model_pca,
+#   plot_pll_vs_enrichment_overlays (ED2/ED5/ED8 full datasets)
 
 ROOT_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 cd "${ROOT_DIR}"
@@ -59,6 +60,7 @@ BEAM_DIAG_DIR="${BEAM_DIAG_DIR:-${PROJECT_BASE}/plots/${DMS_DATASET}/beam_diagno
 PLOTS_DIR="${PLOTS_DIR:-${PROJECT_BASE}/plots/${DMS_DATASET}}"
 BEAM_PLOTS_DIR="${BEAM_PLOTS_DIR:-${PLOTS_DIR}/per_model_pca_beam}"
 BEAM_EMB_DIR="${BEAM_EMB_DIR:-${SCRATCH_BASE}/embeddings_beam/${DMS_DATASET}}"
+PLL_ENRICH_PLOTS_DIR="${PLL_ENRICH_PLOTS_DIR:-${PLOTS_DIR}/pll_vs_enrichment}"
 
 CKA_THRESHOLD="${CKA_THRESHOLD:-0.5}"
 MAX_DMS="${MAX_DMS:-500}"
@@ -114,7 +116,8 @@ VARIANTS=(
 
 mkdir -p "${EMB_DIR}" "${OAS_DIR}" "${PER_MODEL_DIR}" "${DIFF_DIR}" \
          "${CKA_DIR}" "${PROCRUSTES_DIR}" "${PLL_DIR}" "${GIBBS_DIAG_DIR}" \
-         "${BEAM_DIAG_DIR}" "${PLOTS_DIR}" "${BEAM_PLOTS_DIR}" "${BEAM_EMB_DIR}"
+         "${BEAM_DIAG_DIR}" "${PLOTS_DIR}" "${BEAM_PLOTS_DIR}" "${BEAM_EMB_DIR}" \
+         "${PLL_ENRICH_PLOTS_DIR}"
 
 append_sampler_paths() {
   local label="$1"
@@ -386,6 +389,18 @@ echo "============================================================"
 uv run python scripts/analysis/plot_pll_pca.py \
   --input "${PLL_DIR}/pll_pca.npz" \
   --output-dir "${PLOTS_DIR}/pll_pca"
+
+echo "============================================================"
+echo "[plot_pll_vs_enrichment_overlays] (ED2, ED5, ED8)"
+echo "============================================================"
+uv run python scripts/analysis/plot_pll_vs_enrichment_overlays.py \
+  "${PLL_VARIANT_ARGS[@]}" \
+  --datasets ed2 ed5 ed811 \
+  --gibbs-dist-dir "${GIBBS_DIST_DIR}" \
+  --gibbs-fit-dir "${GIBBS_FIT_DIR}" \
+  --beam-dist-dir "${BEAM_DIST_DIR}" \
+  --beam-fit-dir "${BEAM_FIT_DIR}" \
+  --output-dir "${PLL_ENRICH_PLOTS_DIR}"
 
 echo "============================================================"
 echo "[done] all outputs under ${PLOTS_DIR}"
