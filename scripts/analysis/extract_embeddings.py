@@ -1,36 +1,40 @@
 """Extract whole-VH and CDRH3 mean-pooled embeddings from one ESM2-35M variant.
 
+DMS-side stage of the embedding pipeline. OAS embeddings live in a separate, dataset-agnostic
+artifact written by ``extract_oas_embeddings.py`` — they are not regenerated when the DMS dataset
+changes.
+
 Reads
 -----
 - DMS scoring CSVs (M22, SI06): C05 CDRH3 variants + binding enrichments.
-- OAS FASTA + metadata (`seq_id`, `cdr3_aa`): background antibody sequences.
 - Optional Gibbs CSV (columns include `chain_id`, `gibbs_step`, `sequence`).
 - ESM2 model weights (vanilla from HF hub or a checkpoint dir).
 
-Writes one .npz file with the schema below — this is the integration contract consumed by
-`compute_projections.py`; keep keys/dtypes stable.
+Writes one .npz file with the schema below.
 
     whole_seq_embs           (N, 480) float32
-    cdrh3_embs               (N, 480) float32  NaN row where CDR3 not locatable
+    cdrh3_embs               (N, 480) float32
     sequences                (N,)     <U       full VH string
-    source_labels            (N,)     <U       wt | dms | oas | gibbs
+    source_labels            (N,)     <U       wt | dms | gibbs
     M22_binding_enrichment   (N,)     float32  NaN where unavailable
     SI06_binding_enrichment  (N,)     float32  NaN where unavailable
-    cdrh3_identity_to_wt     (N,)     float32  NaN for OAS
+    cdrh3_identity_to_wt     (N,)     float32
     gibbs_step               (N,)     int32    -1 for non-gibbs
     chain_id                 (N,)     int32    -1 for non-gibbs
+    gibbs_config             (N,)     <U
     model_variant            (1,)     <U
+    dms_dataset              (1,)     <U       which DMS source (ed2, ed5, …)
+    schema_version           (1,)     <U       "v2" — bump when the schema changes
 """
 
 from __future__ import annotations
 
 import argparse
-import gzip
 import logging
 import random
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -50,12 +54,24 @@ from protein_design.constants import (
 ESM2_MODEL_ID = "facebook/esm2_t12_35M_UR50D"
 SEED = 42
 EMB_DIM = 480
+SCHEMA_VERSION = "v2"  # bump when the on-disk schema changes
 
 # Default input paths (CLAUDE.md). Overridable via CLI.
-DEFAULT_DMS_M22 = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/scoring/D2_M22.csv"
-DEFAULT_DMS_SI06 = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/scoring/D2_SI06.csv"
-DEFAULT_OAS_FASTA = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/oas_dedup_rep_seq.fasta"
-DEFAULT_OAS_META = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/oas_filtered.csv.gz"
+_DMS_BASE = "/cluster/project/infk/krause/mdenegri/protein-design/datasets/scoring"
+DMS_DATASETS: dict[str, dict[str, str]] = {
+    "ed2": {
+        "m22": f"{_DMS_BASE}/D2_M22.csv",
+        "si06": f"{_DMS_BASE}/D2_SI06.csv",
+    },
+    "ed5": {
+        "m22": f"{_DMS_BASE}/ED5_M22_binding_enrichment.csv",
+        "si06": f"{_DMS_BASE}/ED5_SI06_binding_enrichment.csv",
+    },
+    "ed811": {
+        "m22": f"{_DMS_BASE}/ED811_M22_enrichment_full.csv",
+    },
+}
+DEFAULT_DMS_DATASET = "ed2"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("extract_embeddings")
@@ -64,52 +80,32 @@ log = logging.getLogger("extract_embeddings")
 # --------------------------------------------------------------------------- I/O
 
 
-def load_dms(m22_path: Path, si06_path: Path, max_n: int) -> pd.DataFrame:
-    """Outer-merge M22 + SI06 on `aa` (24-aa CDRH3), sample up to max_n rows."""
-    m22 = pd.read_csv(m22_path)[["aa", "M22_binding_enrichment_adj"]]
-    si06 = pd.read_csv(si06_path)[["aa", "SI06_binding_enrichment_adj"]]
-    merged = m22.merge(si06, on="aa", how="outer")
+def load_dms(
+    m22_path: Optional[Path], si06_path: Optional[Path], max_n: int
+) -> pd.DataFrame:
+    """Outer-merge M22 + SI06 on `aa` (24-aa CDRH3), sample up to max_n rows.
+
+    Either path may be ``None`` (assay missing for this dataset). The
+    corresponding ``*_binding_enrichment_adj`` column is then filled with NaN.
+    If both are ``None`` the result is an empty DataFrame.
+    """
+    frames: List[pd.DataFrame] = []
+    if m22_path is not None:
+        frames.append(pd.read_csv(m22_path)[["aa", "M22_binding_enrichment_adj"]])
+    if si06_path is not None:
+        frames.append(pd.read_csv(si06_path)[["aa", "SI06_binding_enrichment_adj"]])
+    if not frames:
+        return pd.DataFrame(columns=["aa", "M22_binding_enrichment_adj",
+                                     "SI06_binding_enrichment_adj"])
+    merged = frames[0]
+    for f in frames[1:]:
+        merged = merged.merge(f, on="aa", how="outer")
+    for col in ("M22_binding_enrichment_adj", "SI06_binding_enrichment_adj"):
+        if col not in merged.columns:
+            merged[col] = np.nan
     if len(merged) > max_n:
         merged = merged.sample(n=max_n, random_state=SEED).reset_index(drop=True)
     return merged
-
-
-def reservoir_sample_fasta(path: Path, k: int) -> List[Tuple[str, str]]:
-    """Single-pass reservoir sample of (seq_id, sequence) pairs from a FASTA."""
-    rng = random.Random(SEED)
-    opener = gzip.open if str(path).endswith(".gz") else open
-    reservoir: List[Tuple[str, str]] = []
-    with opener(path, "rt") as fh:
-        for i, rec in enumerate(SeqIO.parse(fh, "fasta")):
-            item = (rec.id, str(rec.seq))
-            if i < k:
-                reservoir.append(item)
-            else:
-                j = rng.randint(0, i)
-                if j < k:
-                    reservoir[j] = item
-    return reservoir
-
-
-def build_cdr3_lookup(meta_path: Path, wanted_ids: Iterable[str]) -> dict[str, tuple[str, int]]:
-    """Stream OAS metadata, return {seq_id: (cdr3_aa, cdr3_start)} restricted to wanted_ids.
-
-    cdr3_start is the 0-based index of the CDR-H3 in the full VH sequence, computed
-    exactly from segment lengths (fwr1+cdr1+fwr2+cdr2+fwr3) — no substring search.
-    """
-    wanted = set(wanted_ids)
-    out: dict[str, tuple[str, int]] = {}
-    cols = ["seq_id", "cdr3_aa", "fwr1_aa", "cdr1_aa", "fwr2_aa", "cdr2_aa", "fwr3_aa"]
-    for chunk in pd.read_csv(meta_path, usecols=cols, chunksize=500_000):
-        hit = chunk[chunk["seq_id"].isin(wanted)]
-        for row in hit.itertuples(index=False):
-            cdr = row.cdr3_aa if isinstance(row.cdr3_aa, str) else ""
-            start = sum(
-                len(s) if isinstance(s, str) else 0
-                for s in (row.fwr1_aa, row.cdr1_aa, row.fwr2_aa, row.cdr2_aa, row.fwr3_aa)
-            )
-            out[str(row.seq_id)] = (cdr, start)
-    return out
 
 
 def load_gibbs(path: Path, max_n: int) -> Optional[pd.DataFrame]:
@@ -160,21 +156,20 @@ def fixed_vh_cdrh3_token_positions() -> List[int]:
 
 
 def build_reference_set(
-    dms_m22: Path,
-    dms_si06: Path,
-    oas_fasta: Path,
-    oas_meta: Path,
-    gibbs_path: Optional[Path],
+    dms_m22: Optional[Path],
+    dms_si06: Optional[Path],
+    gibbs_paths: List[Tuple[str, Path]],
     max_dms: int,
-    max_oas: int,
     max_gibbs: int,
 ) -> pd.DataFrame:
-    """Assemble the per-row table all subsequent steps operate on.
+    """Assemble the per-row table (WT + DMS + Gibbs) all subsequent steps operate on.
 
-    Columns: sequence, source, M22_enrich, SI06_enrich, cdrh3_token_positions (list[int]
-    or None), cdrh3_identity_to_wt (float, NaN for OAS), gibbs_step, chain_id.
+    Columns: sequence, source, M22_enrich, SI06_enrich, cdrh3_token_positions (fixed for
+    all rows since the VH framework is constant), cdrh3_identity_to_wt, gibbs_step,
+    chain_id, gibbs_config.
     """
     rows: list[dict] = []
+    fixed_pos = fixed_vh_cdrh3_token_positions()
 
     # 1) WT
     rows.append({
@@ -182,16 +177,16 @@ def build_reference_set(
         "source": "wt",
         "M22_enrich": np.nan,
         "SI06_enrich": np.nan,
-        "cdrh3_token_positions": fixed_vh_cdrh3_token_positions(),
+        "cdrh3_token_positions": fixed_pos,
         "cdrh3_identity_to_wt": 1.0,
         "gibbs_step": -1,
         "chain_id": -1,
+        "gibbs_config": "",
     })
 
     # 2) DMS
     log.info("Loading DMS …")
     dms = load_dms(dms_m22, dms_si06, max_dms)
-    fixed_pos = fixed_vh_cdrh3_token_positions()
     for _, r in dms.iterrows():
         full = add_context(r["aa"])
         rows.append({
@@ -203,57 +198,29 @@ def build_reference_set(
             "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
             "gibbs_step": -1,
             "chain_id": -1,
+            "gibbs_config": "",
         })
 
-    # 3) OAS
-    log.info("Reservoir-sampling %d OAS sequences from %s", max_oas, oas_fasta)
-    oas = reservoir_sample_fasta(oas_fasta, max_oas)
-    log.info("Looking up CDR3 metadata for %d OAS seq_ids", len(oas))
-    cdr3_lookup = build_cdr3_lookup(oas_meta, [sid for sid, _ in oas])
-    n_unmatched = 0
-    for sid, seq in oas:
-        entry = cdr3_lookup.get(sid)
-        if entry and entry[0]:
-            cdr, start = entry
-            # +1 because token 0 is BOS; verify the annotated region matches the sequence
-            if start >= 0 and start + len(cdr) <= len(seq) and seq[start:start + len(cdr)] == cdr:
-                positions = list(range(start + 1, start + 1 + len(cdr)))
-            else:
-                positions = None
-                n_unmatched += 1
-        else:
-            positions = None
-            n_unmatched += 1
-        rows.append({
-            "sequence": seq,
-            "source": "oas",
-            "M22_enrich": np.nan,
-            "SI06_enrich": np.nan,
-            "cdrh3_token_positions": positions,
-            "cdrh3_identity_to_wt": np.nan,
-            "gibbs_step": -1,
-            "chain_id": -1,
-        })
-    if n_unmatched:
-        log.warning("%d / %d OAS sequences have no locatable CDRH3 (NaN cdrh3_emb)", n_unmatched, len(oas))
-
-    # 4) Gibbs
-    if gibbs_path is not None:
+    # 3) Gibbs (one or more named configs)
+    for config_name, gibbs_path in gibbs_paths:
         gibbs_df = load_gibbs(gibbs_path, max_gibbs)
-        if gibbs_df is not None:
-            log.info("Loaded %d Gibbs rows", len(gibbs_df))
-            for _, r in gibbs_df.iterrows():
-                full = str(r["sequence"])
-                rows.append({
-                    "sequence": full,
-                    "source": "gibbs",
-                    "M22_enrich": np.nan,
-                    "SI06_enrich": np.nan,
-                    "cdrh3_token_positions": fixed_pos,
-                    "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
-                    "gibbs_step": int(r["gibbs_step"]),
-                    "chain_id": int(r["chain_id"]),
-                })
+        if gibbs_df is None:
+            continue
+        log.info("Loaded %d Gibbs rows from config=%s path=%s",
+                 len(gibbs_df), config_name, gibbs_path)
+        for _, r in gibbs_df.iterrows():
+            full = str(r["sequence"])
+            rows.append({
+                "sequence": full,
+                "source": "gibbs",
+                "M22_enrich": np.nan,
+                "SI06_enrich": np.nan,
+                "cdrh3_token_positions": fixed_pos,
+                "cdrh3_identity_to_wt": cdrh3_identity_to_wt(full),
+                "gibbs_step": int(r["gibbs_step"]),
+                "chain_id": int(r["chain_id"]),
+                "gibbs_config": config_name,
+            })
 
     return pd.DataFrame(rows)
 
@@ -261,15 +228,28 @@ def build_reference_set(
 # --------------------------------------------------------------------- model load
 
 
+def _extract_state_dict(raw) -> dict:
+    """Handle evotuning ('model_state_dict' wrapper, keys prefixed 'model.')
+    and DPO ('policy_state_dict' wrapper, HF-format keys) checkpoint shapes."""
+    if isinstance(raw, dict):
+        for key in ("policy_state_dict", "model_state_dict"):
+            if key in raw and isinstance(raw[key], dict):
+                return raw[key]
+    return raw
+
+
 def load_esm_encoder(checkpoint_path: Optional[str]) -> EsmModel:
-    """Return an `EsmModel` (encoder only) from one of three checkpoint shapes.
+    """Return an `EsmModel` (encoder only) from one of four checkpoint shapes.
 
     1. None → vanilla ESM2-35M from the HF hub.
     2. HF-format directory containing `model.safetensors` or `pytorch_model.bin`.
-    3. Directory containing `best.pt`/`final.pt`, or a direct `.pt` path — torch state
-       dict produced by this repo's training pipeline. Keys are prefixed `model.esm.*`
-       (the `ESM2Model` wrapper class wraps `EsmForMaskedLM`); we strip that prefix and
-       drop the `lm_head.*` keys, then load into a vanilla-initialized `EsmModel`.
+    3. Evotuning .pt: ``{"model_state_dict": {...}}`` with keys prefixed
+       ``model.esm.*`` / ``model.lm_head.*`` (the ``ESM2Model`` wrapper).
+    4. DPO .pt: ``{"policy_state_dict": {...}}`` with HF-format keys
+       ``esm.*`` / ``lm_head.*`` (no wrapper prefix).
+
+    In all .pt cases we strip the ``model.`` prefix and drop ``lm_head.*``,
+    then load into a vanilla-initialized ``EsmModel``.
     """
     if checkpoint_path is None:
         log.info("Loading vanilla ESM2 from %s", ESM2_MODEL_ID)
@@ -290,7 +270,7 @@ def load_esm_encoder(checkpoint_path: Optional[str]) -> EsmModel:
 
     log.info("Loading state-dict checkpoint %s into a vanilla encoder", pt_path)
     raw = torch.load(pt_path, map_location="cpu", weights_only=False)
-    state = raw["model_state_dict"] if isinstance(raw, dict) and "model_state_dict" in raw else raw
+    state = _extract_state_dict(raw)
 
     encoder_state: dict = {}
     for k, v in state.items():
@@ -376,21 +356,52 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model-variant", required=True, help="Label string (vanilla, evotuned, …)")
     p.add_argument("--checkpoint-path", default=None, help="HF-format checkpoint dir; omit for vanilla")
-    p.add_argument("--gibbs-path", default=None, help="CSV or FASTA of Gibbs-sampled sequences")
+    p.add_argument("--gibbs-path", action="append", default=[],
+                   help="CSV or FASTA of Gibbs-sampled sequences. Repeatable. "
+                        "Format: NAME=PATH to tag rows with a config name "
+                        "(e.g. 'distribution=outputs/gibbs/distribution/vanilla.csv'); "
+                        "bare PATH is treated as NAME='default'.")
     p.add_argument("--output-path", required=True, help="Destination .npz path")
-    p.add_argument("--dms-m22", default=DEFAULT_DMS_M22)
-    p.add_argument("--dms-si06", default=DEFAULT_DMS_SI06)
-    p.add_argument("--oas-fasta", default=DEFAULT_OAS_FASTA)
-    p.add_argument("--oas-meta", default=DEFAULT_OAS_META)
+    p.add_argument("--dms-dataset", default=DEFAULT_DMS_DATASET, choices=sorted(DMS_DATASETS),
+                   help="Named DMS dataset whose CSVs should be loaded "
+                        "(resolves --dms-m22/--dms-si06 unless those are passed explicitly).")
+    p.add_argument("--dms-m22", default=None,
+                   help="Override M22 CSV path (defaults to the --dms-dataset entry).")
+    p.add_argument("--dms-si06", default=None,
+                   help="Override SI06 CSV path (defaults to the --dms-dataset entry).")
     p.add_argument("--max-dms", type=int, default=500)
-    p.add_argument("--max-oas", type=int, default=2000)
     p.add_argument("--max-gibbs", type=int, default=200)
     p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--skip-if-current", action="store_true",
+                   help="If --output-path already exists with the current SCHEMA_VERSION, "
+                        "exit 0 without recomputing. Old/missing schema triggers a rebuild.")
     return p.parse_args()
+
+
+def _existing_is_current(path: Path) -> bool:
+    """True iff `path` exists and contains a matching schema_version field."""
+    if not path.exists():
+        return False
+    try:
+        with np.load(path, allow_pickle=False) as z:
+            if "schema_version" not in z.files:
+                return False
+            return str(z["schema_version"][0]) == SCHEMA_VERSION
+    except Exception as exc:  # noqa: BLE001 — opening unknown legacy formats
+        log.warning("Could not inspect %s (%s); will rebuild", path, exc)
+        return False
 
 
 def main() -> int:
     args = parse_args()
+
+    out_path = Path(args.output_path)
+    if args.skip_if_current and _existing_is_current(out_path):
+        log.info("Skip: %s exists with schema_version=%s", out_path, SCHEMA_VERSION)
+        return 0
+    if args.skip_if_current and out_path.exists():
+        log.warning("Existing %s has stale schema — rebuilding", out_path)
+
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -406,21 +417,34 @@ def main() -> int:
     if device.type == "cuda":
         model = model.half()
 
+    gibbs_paths: List[Tuple[str, Path]] = []
+    for spec in args.gibbs_path:
+        if "=" in spec:
+            name, path_str = spec.split("=", 1)
+        else:
+            name, path_str = "default", spec
+        gibbs_paths.append((name, Path(path_str)))
+
+    dataset_paths = DMS_DATASETS[args.dms_dataset]
+    dms_m22 = args.dms_m22 if args.dms_m22 is not None else dataset_paths.get("m22")
+    dms_si06 = args.dms_si06 if args.dms_si06 is not None else dataset_paths.get("si06")
+    if dms_m22 is None:
+        log.warning("DMS dataset %s has no M22 assay — M22 column will be NaN", args.dms_dataset)
+    if dms_si06 is None:
+        log.warning("DMS dataset %s has no SI06 assay — SI06 column will be NaN", args.dms_dataset)
+    log.info("DMS dataset: %s (M22=%s, SI06=%s)", args.dms_dataset, dms_m22, dms_si06)
+
     df = build_reference_set(
-        Path(args.dms_m22),
-        Path(args.dms_si06),
-        Path(args.oas_fasta),
-        Path(args.oas_meta),
-        Path(args.gibbs_path) if args.gibbs_path else None,
+        Path(dms_m22) if dms_m22 else None,
+        Path(dms_si06) if dms_si06 else None,
+        gibbs_paths,
         args.max_dms,
-        args.max_oas,
         args.max_gibbs,
     )
     log.info("Reference set: %d rows  (%s)", len(df), dict(df["source"].value_counts()))
 
     whole, cdr = run_inference(df, model, tokenizer, device, args.batch_size)
 
-    out_path = Path(args.output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(
         out_path,
@@ -433,7 +457,10 @@ def main() -> int:
         cdrh3_identity_to_wt=df["cdrh3_identity_to_wt"].to_numpy(dtype=np.float32),
         gibbs_step=df["gibbs_step"].to_numpy(dtype=np.int32),
         chain_id=df["chain_id"].to_numpy(dtype=np.int32),
+        gibbs_config=np.array(df["gibbs_config"].tolist()),
         model_variant=np.array([args.model_variant]),
+        dms_dataset=np.array([args.dms_dataset]),
+        schema_version=np.array([SCHEMA_VERSION]),
     )
     log.info("Wrote %s  (%d rows, embedding dim %d)", out_path, len(df), EMB_DIM)
     return 0
